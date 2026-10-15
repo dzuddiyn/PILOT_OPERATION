@@ -329,6 +329,27 @@ function bseTelegramLatestCorrectionText_(input){
 }
 
 function bseTelegramReportContext_(rows,current) {
+  // Gate F controlled pair is durable as ONE queue row. Original source is
+  // preserved in signed-off metadata, not fabricated as a WAITING_INFO row.
+  let pair=null;
+  try{pair=JSON.parse(String(current[16]||'{}'));}catch(_){pair=null;}
+  if(pair&&pair.gate_f_pair===true){
+    const original=String(pair.original_text||''),correction=String(pair.correction_text||'');
+    if(String(current[0])!=='772257142'||String(current[14])!=='772257141'||
+       String(current[3])!=='15'||String(current[13])!=='14'||
+       String(pair.original_update_id)!=='772257141'||String(pair.correction_update_id)!=='772257142'||
+       String(pair.original_message_id)!=='14'||String(pair.correction_message_id)!=='15'||
+       String(pair.correction_reply_to_message_id)!=='14'||
+       String(pair.reporter_telegram_user_id)!==String(current[2])||
+       String(pair.source_chat_id)!==String(current[1])||
+       !original||!correction||correction!==String(current[4]))throw Error('GATE_F_PAIR_PROVENANCE_CONFLICT');
+    const rootReceivedAt=String(current[17]||'');
+    if(!rootReceivedAt||!Number.isFinite(Date.parse(rootReceivedAt)))throw Error('GATE_F_PAIR_SOURCE_DATE_MISSING');
+    const result=bseTelegramSeedSowingDeterministicResult_(correction);
+    const plots=result&&result.candidates&&result.candidates.filter(x=>x.target==='Plot_Allocation_Log').map(x=>x.fields.plot_id);
+    if(!result||result.validation!=='PASS'||!plots||plots.join('|')!=='M5P1|M5P2')throw Error('GATE_F_PAIR_SOURCE_VALIDATION');
+    return {input:correction,original:original,provenance:bseUnifiedAuditProvenance_(original,[correction]),receivedAt:rootReceivedAt,rootId:'772257141'};
+  }
   const answers=[],seen=new Set();let cursor=current;
   while(cursor[14]) {
     if(seen.has(String(cursor[0]))||answers.length>=10)throw new Error('Rantaian penjelasan tidak sah atau terlalu panjang.');

@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm');
+const c=vm.createContext({});
+for(const f of ['GeminiUnifiedTest.js','TelegramWorkerTest.js'])vm.runInContext(fs.readFileSync(f,'utf8'),c);
+const original='- Semai timun\n- M5P12\n- 2/10/26';
+const corrected='KERJA SEMAIAN BENIH\nJenis Tanaman: Timun\nVarieti: Batu CCB\nModul: M5 P1 P2\nTarikh Semai: 02/10/2026\n\nPembetulan laporan asal: M5P12 bermaksud M5P1 dan M5P2.';
+const meta={gate_f_pair:true,source_chat_id:'913757987',reporter_telegram_user_id:'913757987',original_update_id:'772257141',correction_update_id:'772257142',original_message_id:'14',correction_message_id:'15',correction_reply_to_message_id:'14',original_text:original,correction_text:corrected};
+const row=['772257142','913757987','913757987','15',corrected,'2026-10-15T12:00:55Z','QUEUED','SENT','16','',0,'','','14','772257141','',JSON.stringify(meta),'2026-10-15T11:39:16.000Z'];
+const ctx=c.bseTelegramReportContext_([row],row);
+assert.equal(ctx.rootId,'772257141');assert.equal(ctx.receivedAt,'2026-10-15T11:39:16.000Z');assert.equal(ctx.input,corrected);assert(ctx.provenance.includes(original)&&ctx.provenance.includes(corrected));
+const parsed=c.bseTelegramSeedSowingDeterministicResult_(ctx.input);assert.equal(parsed.validation,'PASS');assert.equal(parsed.candidates.filter(x=>x.target==='Plot_Allocation_Log').map(x=>x.fields.plot_id).join('|'),'M5P1|M5P2');
+const bad=row.slice();bad[13]='999';assert.throws(()=>c.bseTelegramReportContext_([bad],bad),/GATE_F_PAIR_PROVENANCE_CONFLICT/);
+console.log('GATE_F_PAIR_CONTEXT 6/6 PASS');
