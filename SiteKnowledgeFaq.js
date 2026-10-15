@@ -1,6 +1,6 @@
 
 // Read-only, grounded Site B FAQ for PILOT_OPERATION only.
-// Other agriculture questions retain the existing /ai path.
+// Other agriculture questions retain the existing /ask_ai path.
 function bsePilotSiteBFaq_(book,question){
   const q=String(question||'').toLowerCase().trim();
   let key='';
