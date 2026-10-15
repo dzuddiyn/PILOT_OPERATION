@@ -1,43 +1,63 @@
-# BSE OpsMate TEST Guardrails
+# BSE OpsMate PILOT_OPERATION Guardrails
 
-## Mula dengan seni bina
+## Source of truth
 
-Sebelum menganalisis, mendiagnosis, atau mengubah kod, baca
-`docs/ARCHITECTURE.md`. Gunakan dokumen itu sebagai sumber kebenaran bagi
-aliran semasa, status, schema TEST, dan sempadan Fasa 1/Fasa 2.
+This repository, `dzuddiyn/PILOT_OPERATION`, is the canonical implementation workspace for the BSE OpsMate `PILOT_OPERATION` shadow pilot.
 
-## Sempadan keselamatan
+Before analysis, diagnosis, or changes:
+1. read `docs/ARCHITECTURE.md`;
+2. read `docs/PILOT_OPERATION_EXECUTION_PATH.md`;
+3. read `ACTION_PLAN.md` and `docs/DEVELOPMENT_STATUS.md`;
+4. inspect canonical `main`, local working tree, and live runtime state where relevant.
 
-- Kekalkan semua aliran sebagai **TEST-only**.
-- Jangan tambah atau panggil production writer. Semua hasil dan tindakan review
-  mesti mengekalkan `production_write: false`.
-- Google Tasks telah dikeluarkan daripada MVP/shadow pilot melalui ZASS D-027.
-  Jangan aktifkan Tasks API, task sync, task-completion polling, atau reminder
-  berasaskan Google Tasks tanpa keputusan ZASS baharu. Human review kekal eksplisit,
-  diaudit, dan tidak boleh dipintas.
-- Guna semakan manusia yang eksplisit, audit, dedup, dan `ScriptLock` bagi
-  sebarang workflow review baharu.
+The historical/source baseline is inherited from `BSE-dzuddiyn01gmail/BSE-OpsMate-TEST` at merge commit `480981787d00d4d5ef346fb0531b2e3ec161743e`. Do not silently move authority back to that repository.
 
-## Cara membuat perubahan
+## Locked environment boundary
 
-- Gunakan perubahan kecil dengan skop fail yang jelas.
-- Jalankan `node --check` bagi setiap fail JavaScript yang diubah, serta
-  semakan berkaitan seperti `git diff --check`.
-- Bagi perubahan Apps Script, ikut urutan:
+- Canonical environment name: **`PILOT_OPERATION`**.
+- Technical target sheets: `PILOT_*`.
+- PILOT_OPERATION Spreadsheet/Drive must be separate from TEST and PILOT_TEST.
+- `production_write:false` remains locked.
+- `official_bse_write:false` remains locked.
+- PILOT_OPERATION may store real pilot operational data in its own Sheet/Drive.
+- No direct write/integration to the official BSE system.
+- Google Tasks remains out of scope per D-027.
+- Human confirmation, provenance, dedup, audit, access control, and fail-closed behavior remain mandatory.
+- General Telegram receive/worker automation remains OFF until Gate H in the locked A-I execution path.
+- Do not claim physical or operational action occurred merely because a software command was issued.
 
-  ```text
-  ubah dan uji -> clasp push ke TEST -> git add fail tepat -> git commit -> git push
-  ```
+## Identity and authority
 
-- Jangan stage `.clasp.json`, token, API key, credential, `.env`, atau
-  konfigurasi tempatan/peribadi.
-- Sahkan staging dan working tree dengan `git status --short` sebelum dan
-  selepas commit.
+- GitHub authority for PILOT_OPERATION: `dzuddiyn/PILOT_OPERATION`.
+- Google authority/owner: `dzuddiyn01@gmail.com`.
+- `rdeeen` must not be an authority, owner, credential dependency, or fallback.
+- Product/resource identity: **BSE OpsMate** only. No legacy product alias in active PILOT_OPERATION resources/prompts.
 
-## Dokumentasi dan diagnosis
+## Change flow
 
-- Kemas kini `docs/ARCHITECTURE.md` apabila perubahan mengubah aliran, schema,
-  sempadan keselamatan, dedup, status, atau keputusan seni bina.
-- Jika punca isu belum pasti, buat diagnosis read-only dahulu. Jangan mengubah
-  kod, data, trigger, Git, atau deployment sebelum punca disahkan atau arah
-  seterusnya jelas.
+Use:
+```text
+inspect -> feature branch -> implement -> targeted tests -> full regression
+-> git diff --check -> secret scan -> commit -> push -> PR -> verify PR
+-> explicit merge authorization -> runtime binding/deploy step if authorized
+-> live proof -> independent verification
+```
+
+For Apps Script:
+```text
+canonical source -> local tests -> clasp push to authorized PILOT_OPERATION Script HEAD
+-> version/deployment only if explicitly authorized -> live proof -> independent read-back
+```
+
+`clasp push` is Script HEAD update only; it is not production deployment.
+
+Never stage or commit `.clasp.json`, tokens, API keys, credentials, `.env`, Script Properties, or browser/Git credentials.
+
+## A-I execution gate
+
+Follow `docs/PILOT_OPERATION_EXECUTION_PATH.md` strictly:
+A truth reconciliation -> B environment adapter -> C authority binding -> D minimum baseline seed
+-> E transport reconciliation -> F controlled real write/retrieve -> G evidence proof
+-> H automation ON proof -> I ordinary-user walkthrough/delivery.
+
+Do not skip a gate silently.

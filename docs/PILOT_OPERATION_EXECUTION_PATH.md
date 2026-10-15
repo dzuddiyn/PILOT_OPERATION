@@ -29,7 +29,8 @@ Sepanjang `PILOT_OPERATION`:
 - Tiada direct write/integration ke sistem rasmi BSE.
 - Human confirmation, provenance, dedup, audit, access boundary dan fail-closed behavior kekal wajib.
 - Google Tasks kekal out of scope per D-027.
-- GitHub authority: repository/ecosystem **BSE-dzuddiyn01gmail** / owner path yang sedang digunakan.
+- GitHub authority: **`dzuddiyn/PILOT_OPERATION`**.
+- Historical/source baseline repo `BSE-dzuddiyn01gmail/BSE-OpsMate-TEST` kekal reference/history sahaja selepas seed commit `480981787d00d4d5ef346fb0531b2e3ec161743e`; ia bukan canonical write target untuk PILOT_OPERATION.
 - Google authority: **dzuddiyn01@gmail.com**.
 - Akaun GitHub atau Google `rdeeen` tidak menjadi authority, owner, credential dependency atau fallback bagi `PILOT_OPERATION`.
 - Nama produk/project ialah **BSE OpsMate**. Tiada alias produk lama dibenarkan pada resource atau prompt aktif `PILOT_OPERATION`.
@@ -74,7 +75,8 @@ Wajib:
 ### C — Authority and identity binding
 
 Wajib verify:
-- GitHub authority = dzuddiyn01/BSE path;
+- GitHub authority = `dzuddiyn/PILOT_OPERATION`;
+- source baseline/history = `BSE-dzuddiyn01gmail/BSE-OpsMate-TEST` at seed `480981787d00d4d5ef346fb0531b2e3ec161743e`;
 - Google owner = `dzuddiyn01@gmail.com`;
 - bot/group/user config bound kepada environment pilot;
 - no `rdeeen` authority/dependency;
@@ -230,7 +232,7 @@ Ini **bukan** `production`, **bukan** `official_bse_write:true`, dan bukan kelul
 As of 2026-10-15:
 
 - PILOT_TEST technical closeout: PASS.
-- Canonical `main`: `0abf016300231a63126726ef30b1dc513c044fb6` after PR #58 merge.
+- Canonical `dzuddiyn/PILOT_OPERATION` `main`: `480981787d00d4d5ef346fb0531b2e3ec161743e`, exact seed of the source baseline after PR #59 documentation lock.
 - PILOT_TEST Script HEAD reconciled to canonical source.
 - Full regression: 47/47 PASS.
 - Schema audit: 57/57 CURRENT.
@@ -240,14 +242,23 @@ As of 2026-10-15:
 - General Telegram receive/worker automation: OFF.
 - `production_write:false`.
 - `official_bse_write:false`.
-- `PILOT_OPERATION` runtime adapter: NOT IMPLEMENTED.
+- Gate A truth reconciliation: COMPLETE in `dzuddiyn/PILOT_OPERATION`; repo seeded exactly from source baseline merge `480981787d00d4d5ef346fb0531b2e3ec161743e` and repo-specific authority/guardrails reconciled.
+- `PILOT_OPERATION` runtime adapter: IMPLEMENTED ON FEATURE BRANCH, NOT YET MERGED/BOUND.
+- Gate B verification evidence:
+  - changed JavaScript syntax checks PASS;
+  - local environment isolation harness 19/19 PASS;
+  - PILOT_TEST Apps Script executor isolation harness 19/19 PASS;
+  - full regression 47/47 PASS, failed 0, `production_write:false`;
+  - PILOT_TEST Script HEAD restored to canonical source after temporary execution and re-verified 47/47 PASS;
+  - general PILOT_OPERATION Telegram automation is explicitly code-blocked until Gate H;
+  - Evidence folder auto-create is blocked for pilot environments.
 - Reserved Google resources exist but are not bound/used by runtime:
   - workbook `BSE_OpsMate_SB_PILOT_OPERATION`;
   - Evidence folder `BSE_OpsMate_SB_PILOT_OPERATION_Evidence`;
   - owner `dzuddiyn01@gmail.com`, `shared:false`.
 - `PILOT_OPERATION` runtime: NOT STARTED.
 
-Current gate: **A — documentation truth reconciliation**.
+Current gate: **B — merge verified environment-adapter implementation before Gate C runtime binding**.
 
 ## 5. Change-control rule
 

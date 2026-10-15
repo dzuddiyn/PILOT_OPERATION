@@ -38,8 +38,9 @@ ke Spreadsheet/Drive PILOT yang terasing, tetapi `production_write:false` dan
 `official_bse_write:false` kekal kerana tiada penulisan atau integrasi terus ke sistem
 rasmi BSE. Production gate kekal keputusan berasingan selepas pilot delivery.
 
-Authority untuk promotion ini ialah GitHub BSE/dzuddiyn01 path dan Google owner
-`dzuddiyn01@gmail.com`; akaun `rdeeen` tidak menjadi owner, authority, credential
+Authority untuk `PILOT_OPERATION` ialah GitHub `dzuddiyn/PILOT_OPERATION` dan Google owner
+`dzuddiyn01@gmail.com`. Repo `BSE-dzuddiyn01gmail/BSE-OpsMate-TEST` kekal source baseline/history
+selepas seed commit `480981787d00d4d5ef346fb0531b2e3ec161743e`, bukan canonical write target. Akaun `rdeeen` tidak menjadi owner, authority, credential
 dependency atau fallback bagi `PILOT_OPERATION`. Nama produk/resource kekal **BSE OpsMate**;
 tiada alias produk lama dibenarkan untuk resource atau prompt aktif `PILOT_OPERATION`.
 
