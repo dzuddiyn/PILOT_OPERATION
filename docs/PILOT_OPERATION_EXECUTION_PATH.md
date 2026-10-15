@@ -29,7 +29,8 @@ Sepanjang `PILOT_OPERATION`:
 - Tiada direct write/integration ke sistem rasmi BSE.
 - Human confirmation, provenance, dedup, audit, access boundary dan fail-closed behavior kekal wajib.
 - Google Tasks kekal out of scope per D-027.
-- GitHub authority: repository/ecosystem **BSE-dzuddiyn01gmail** / owner path yang sedang digunakan.
+- GitHub authority: **`dzuddiyn/PILOT_OPERATION`**.
+- Historical/source baseline repo `BSE-dzuddiyn01gmail/BSE-OpsMate-TEST` kekal reference/history sahaja selepas seed commit `480981787d00d4d5ef346fb0531b2e3ec161743e`; ia bukan canonical write target untuk PILOT_OPERATION.
 - Google authority: **dzuddiyn01@gmail.com**.
 - Akaun GitHub atau Google `rdeeen` tidak menjadi authority, owner, credential dependency atau fallback bagi `PILOT_OPERATION`.
 - Nama produk/project ialah **BSE OpsMate**. Tiada alias produk lama dibenarkan pada resource atau prompt aktif `PILOT_OPERATION`.
@@ -74,7 +75,8 @@ Wajib:
 ### C — Authority and identity binding
 
 Wajib verify:
-- GitHub authority = dzuddiyn01/BSE path;
+- GitHub authority = `dzuddiyn/PILOT_OPERATION`;
+- source baseline/history = `BSE-dzuddiyn01gmail/BSE-OpsMate-TEST` at seed `480981787d00d4d5ef346fb0531b2e3ec161743e`;
 - Google owner = `dzuddiyn01@gmail.com`;
 - bot/group/user config bound kepada environment pilot;
 - no `rdeeen` authority/dependency;
