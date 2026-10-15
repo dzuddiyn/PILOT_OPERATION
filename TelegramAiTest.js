@@ -188,7 +188,7 @@ function bseTelegramAiReceive_(book,m,allowedPrivate,allowedGroup){
   if(!question){bseTelegramAiSend_(m,'Gunakan: /ask_ai <soalan>\nContoh: /ask_ai abamectin kumpulan IRAC berapa?');return {handled:true,production_write:false};}
   if(question.length>6000){bseTelegramAiSend_(m,'Soalan terlalu panjang. Had /ask_ai ialah 6000 aksara.');return {handled:true,production_write:false};}
   if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'){
-    const siteAnswer=bsePilotSiteBFaq_(book,question);
+    const siteAnswer=bsePilotKbStructuredAnswer_(book,question)||bsePilotSiteBFaq_(book,question);
     if(siteAnswer){bseTelegramAiSend_(m,siteAnswer);return {handled:true,kb_used:true,production_write:false};}
   }
   try{
