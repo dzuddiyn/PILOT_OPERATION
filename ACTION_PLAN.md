@@ -1,17 +1,17 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
 ## Current true milestone
-PILOT_TEST canonical `main` is at `0abf016300231a63126726ef30b1dc513c044fb6` after PR #58 merged and was independently verified. PILOT_TEST Script HEAD was reconciled to canonical source; latest full regression is 47/47 PASS, schema audit 57/57 CURRENT, and source-key audit CURRENT with 0 issue.
-Daily Morning Digest achieved autonomous LIVE PASS on 2026-10-12. Friday Weekly Digest also achieved AUTONOMOUS LIVE PASS on 2026-10-15 through an accelerated owner-runtime one-shot trigger proof: Telegram message 293, audit `SENT`, one send row only, then scheduler state was restored to Friday 07:59 MYT.
-Plant Replacement/Sulam, Plot Reallocation, Chlorine/Treatment lifecycle, Image Processing/Evidence, retrieval/history/status, `/ai`, human review, correction/cancel and duplicate/idempotency paths have relevant TEST/PILOT_TEST runtime proof recorded below.
-Final PILOT_TEST technical closeout is PASS. The next authorized transition is the LOCKED `PILOT_OPERATION` execution path in `docs/PILOT_OPERATION_EXECUTION_PATH.md`. The canonical runtime/environment name is `PILOT_OPERATION`; alternate technical environment names are not permitted. Production/official BSE promotion remains a separate later gate.
+Canonical implementation workspace is now `dzuddiyn/PILOT_OPERATION`. Its `main` was seeded exactly from the fully locked source baseline merge `480981787d00d4d5ef346fb0531b2e3ec161743e` from `BSE-dzuddiyn01gmail/BSE-OpsMate-TEST`.
+PILOT_TEST technical closeout remains PASS: Script HEAD restored to canonical source, full regression 47/47 PASS, schema audit 57/57 CURRENT, source-key audit CURRENT / 0 issue, Daily Morning Digest AUTONOMOUS LIVE PASS, and Friday Weekly Digest AUTONOMOUS LIVE PASS.
+Gate A truth/authority reconciliation for the new repo is complete. Gate B `PILOT_OPERATION` environment adapter is implemented on feature branch `feat/pilot-operation-adapter`, with local isolation 19/19 PASS, PILOT_TEST Apps Script isolation 19/19 PASS, full regression 47/47 PASS, and no runtime binding or automation activation.
+The LOCKED path remains `docs/PILOT_OPERATION_EXECUTION_PATH.md`. Production/official BSE promotion remains a separate later gate.
 
 ## Locked safety
 `production_write:false`; `official_bse_write:false`; `BSE_TELEGRAM_AUTOMATION=OFF`; no Google Tasks; no official BSE write; no Telegram retry unless independently proven safe.
 
 ## Evidence snapshot
-- Canonical `origin/main`: `0abf016300231a63126726ef30b1dc513c044fb6` (PR #58 merged, GitHub verified). No production deployment/version has been created.
-- PR #9 merged 12 recovery commits from `recovery/pilot-source-reconcile`; PR #57 merged Plot Reallocation; PR #58 merged Chlorine/Treatment lifecycle correction and Site B pond fail-safe.
+- Canonical `origin/main` for this repo: `480981787d00d4d5ef346fb0531b2e3ec161743e`, exact seed from the source baseline after PR #59 lock documentation.
+- Historical/source baseline repo retains PR #9 recovery, PR #57 Plot Reallocation, PR #58 Chlorine/Treatment lifecycle + Site B pond fail-safe, and PR #59 execution-path lock. No production deployment/version has been created.
 - Canonical source was pushed/reconciled to PILOT_TEST Apps Script HEAD; no Apps Script version or deployment was created or updated.
 - Latest full PILOT_TEST regression: 47/47 PASS, failed:0, `production_write:false`.
 - Independent final audits: schema 57/57 CURRENT; source-key CURRENT with 0 issue.
@@ -64,13 +64,14 @@ Final PILOT_TEST technical closeout is PASS. The next authorized transition is t
 
 ## Next real pilot gate
 - Execution path A-I is LOCKED in `docs/PILOT_OPERATION_EXECUTION_PATH.md`.
-- A — closeout truth reconciliation: current documentation task; becomes canonical after this documentation PR is merged.
-- B — implement the already-approved `PILOT_OPERATION` environment adapter. Do not create any alternate technical environment name.
-- C-I follow strictly in order: authority binding -> minimum baseline seed -> transport reconciliation -> controlled real write/retrieve proof -> Evidence proof -> automation ON proof -> final ordinary-user walkthrough.
+- A — truth/authority reconciliation: COMPLETE in the new repo.
+- B — environment adapter: implementation + regression PASS on feature branch; merge remains pending.
+- C — runtime authority/binding begins only after Gate B is merged. No PILOT_OPERATION Script Properties/runtime switch has occurred yet.
+- D-I follow strictly in order: minimum baseline seed -> transport reconciliation -> controlled real write/retrieve proof -> Evidence proof -> automation ON proof -> final ordinary-user walkthrough.
 - `production_write:false` and `official_bse_write:false` remain throughout `PILOT_OPERATION`.
 
 ## Known limits
 - Apps Script cloud logs remain unavailable through clasp because its project configuration lacks a GCP project ID; this is a diagnostic gap only.
 - Drive-authorized callbacks may fail through `clasp run` Execution API even when the Apps Script owner runtime is authorized; live Drive callback proofs therefore use the Apps Script owner runtime and are independently read back from Sheet/Drive.
-- `PILOT_OPERATION` is defined by architecture but is not yet implemented in `EnvironmentTest.js`; current runtime adapter supports only `TEST` and `PILOT_TEST`.
+- `PILOT_OPERATION` adapter is implemented and tested on `feat/pilot-operation-adapter` but is not yet merged or bound to live runtime.
 - General Telegram receive/worker automation remains intentionally OFF until A-I Gate H. Production promotion, Apps Script version/deployment update, or official BSE write remains a separate later authorization.

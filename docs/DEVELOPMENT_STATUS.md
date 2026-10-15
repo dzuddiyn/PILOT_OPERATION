@@ -47,7 +47,7 @@ dicapai.
 
 | Trek | Urutan kerja bergantung | Status semasa |
 |---|---|---|
-| A. Domain / pilot entry | 2C-2A -> 2C-2B -> MVP scope freeze -> PILOT_TEST -> PILOT_OPERATION | Domain/review runtime paths, File Evidence, Claim, Observation, Operation, Decision, Input Usage, PM retrieval/history/report, Daily Morning Digest, dan Friday Weekly Digest telah mencapai TEST/PILOT_TEST technical PASS yang berkaitan. Daily 08:01 MYT dan Friday 07:59 MYT autonomous delivery proofs kini PASS. General Telegram receive/worker polling kekal OFF. Next gate ialah LOCKED A-I `PILOT_OPERATION` path; production gate kekal berasingan. |
+| A. Domain / pilot entry | 2C-2A -> 2C-2B -> MVP scope freeze -> PILOT_TEST -> PILOT_OPERATION | PILOT_TEST closeout PASS. New canonical workspace `dzuddiyn/PILOT_OPERATION` seeded from locked source baseline. Gate A truth/authority reconciliation COMPLETE. Gate B environment adapter is implemented on feature branch with local isolation 19/19, Apps Script isolation 19/19 and full regression 47/47 PASS; merge/runtime binding still pending. General Telegram receive/worker polling kekal OFF. Production gate kekal berasingan. |
 | B. Platform | File Evidence architecture -> registration gate -> File Evidence TEST -> PM retrieval -> owner/admin registry + Telegram human review -> text reporting | Registration gate, intake/Drive Evidence, dan PM retrieval telah diimplementasi serta runtime-tested dalam TEST. Google Tasks/Task List telah dikeluarkan daripada MVP/shadow pilot oleh D-027; tiada replacement reminder tersirat. |
 
 Scheduler reporting telah dikunci dan dipasang dalam PILOT_TEST:

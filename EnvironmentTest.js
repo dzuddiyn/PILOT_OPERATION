@@ -1,15 +1,21 @@
 /**
- * Environment adapter for OpsMate TEST / PILOT_TEST.
+ * Environment adapter for OpsMate TEST / PILOT_TEST / PILOT_OPERATION.
  *
  * TEST remains the default so existing regression/runtime behavior is unchanged.
- * PILOT_TEST must be explicitly selected in Script Properties and bound to a
- * separate spreadsheet / Telegram configuration / Drive evidence folder.
- * No environment may enable production writes.
+ * PILOT_TEST and PILOT_OPERATION must be explicitly bound to separate
+ * spreadsheet / Telegram configuration / Drive evidence resources.
+ * PILOT_OPERATION may store real pilot data in its own resources, but no
+ * environment may enable official BSE or production-system writes.
  */
 
 const BSE_PILOT_TEST_BINDING = Object.freeze({
   spreadsheetId: '1wGty1mg-KwCD0RvfC7YkkyiVV8BOF1L0YUM_NnlKnEs',
   evidenceFolderId: '1G7fkLlXJyu35ZIV67LGVrduQ-8uHNnqG'
+});
+
+const BSE_PILOT_OPERATION_BINDING = Object.freeze({
+  spreadsheetId: '1gbuxsuXMWaV7IKv8l5Hnr_VlVBNpWAQ4H4E9Pp4xqDs',
+  evidenceFolderId: '1PhQ_BAtqk--z43UmtE7t8Aa7dM5J5NhG'
 });
 
 const BSE_RUNTIME_ENV_CONFIG = Object.freeze({
@@ -34,6 +40,17 @@ const BSE_RUNTIME_ENV_CONFIG = Object.freeze({
     legacyUserProperty: 'PILOT_TEST_TELEGRAM_USER_ID',
     evidenceFolderProperty: 'BSE_PILOT_TEST_EVIDENCE_DRIVE_FOLDER_ID',
     botUsernameDefault: ''
+  }),
+  PILOT_OPERATION: Object.freeze({
+    name: 'PILOT_OPERATION',
+    label: 'PILOT',
+    startToken: 'BSE_PILOT',
+    spreadsheetProperty: 'BSE_PILOT_OPERATION_SPREADSHEET_ID',
+    approvalGroupsProperty: 'BSE_PILOT_OPERATION_APPROVAL_GROUP_CHAT_IDS',
+    legacyChatProperty: 'PILOT_OPERATION_TELEGRAM_CHAT_ID',
+    legacyUserProperty: 'PILOT_OPERATION_TELEGRAM_USER_ID',
+    evidenceFolderProperty: 'BSE_PILOT_OPERATION_EVIDENCE_DRIVE_FOLDER_ID',
+    botUsernameDefault: ''
   })
 });
 
@@ -41,18 +58,32 @@ function bseRuntimeEnvironmentName_() {
   const props = PropertiesService.getScriptProperties();
   const configured = String(props.getProperty('BSE_RUNTIME_ENV') || '').trim().toUpperCase();
   if (configured) {
-    if (!Object.prototype.hasOwnProperty.call(BSE_RUNTIME_ENV_CONFIG, configured)) throw new Error('BSE_RUNTIME_ENV mesti TEST atau PILOT_TEST.');
+    if (!Object.prototype.hasOwnProperty.call(BSE_RUNTIME_ENV_CONFIG, configured)) throw new Error('BSE_RUNTIME_ENV mesti TEST, PILOT_TEST atau PILOT_OPERATION.');
     return configured;
   }
   try {
     const active = SpreadsheetApp.getActiveSpreadsheet();
-    if (active && active.getId && active.getId() === BSE_PILOT_TEST_BINDING.spreadsheetId) return 'PILOT_TEST';
+    if (active && active.getId) {
+      if (active.getId() === BSE_PILOT_OPERATION_BINDING.spreadsheetId) return 'PILOT_OPERATION';
+      if (active.getId() === BSE_PILOT_TEST_BINDING.spreadsheetId) return 'PILOT_TEST';
+    }
   } catch (_) { }
   return 'TEST';
 }
 
 function bseRuntimeEnvironmentConfig_() {
   return BSE_RUNTIME_ENV_CONFIG[bseRuntimeEnvironmentName_()];
+}
+
+function bseRuntimeIsPilotEnvironment_() {
+  return ['PILOT_TEST','PILOT_OPERATION'].includes(bseRuntimeEnvironmentName_());
+}
+
+function bseRuntimeEnvironmentBinding_() {
+  const env=bseRuntimeEnvironmentName_();
+  if(env==='PILOT_TEST')return BSE_PILOT_TEST_BINDING;
+  if(env==='PILOT_OPERATION')return BSE_PILOT_OPERATION_BINDING;
+  return null;
 }
 
 function bseRuntimeEnvironmentLabel_() {
@@ -62,13 +93,14 @@ function bseRuntimeEnvironmentLabel_() {
 function bseRuntimeSpreadsheetId_() {
   const cfg = bseRuntimeEnvironmentConfig_();
   if (cfg.name === 'TEST') return BSE_TEST.spreadsheetId;
+  const binding=bseRuntimeEnvironmentBinding_();
   const configured = String(PropertiesService.getScriptProperties().getProperty(cfg.spreadsheetProperty) || '').trim();
-  const id = configured || (cfg.name === 'PILOT_TEST' ? BSE_PILOT_TEST_BINDING.spreadsheetId : '');
+  const id = configured || (binding ? binding.spreadsheetId : '');
   if (!/^[A-Za-z0-9_-]{20,}$/.test(id)) {
     throw new Error(cfg.spreadsheetProperty + ' belum disimpan atau tidak sah.');
   }
-  if (cfg.name === 'PILOT_TEST' && id !== BSE_PILOT_TEST_BINDING.spreadsheetId) {
-    throw new Error('SOURCE_MISMATCH: PILOT_TEST spreadsheet ID tidak sepadan dengan binding terkunci.');
+  if (!binding || id !== binding.spreadsheetId) {
+    throw new Error('SOURCE_MISMATCH: ' + cfg.name + ' spreadsheet ID tidak sepadan dengan binding terkunci.');
   }
   return id;
 }
@@ -123,9 +155,11 @@ function bseRuntimeLegacyUserId_() {
 function bseRuntimeEvidenceFolderId_() {
   const cfg = bseRuntimeEnvironmentConfig_();
   const configured = String(PropertiesService.getScriptProperties().getProperty(cfg.evidenceFolderProperty) || '').trim();
-  const id = configured || (cfg.name === 'PILOT_TEST' ? BSE_PILOT_TEST_BINDING.evidenceFolderId : '');
-  if (cfg.name === 'PILOT_TEST' && id && id !== BSE_PILOT_TEST_BINDING.evidenceFolderId) {
-    throw new Error('SOURCE_MISMATCH: PILOT_TEST evidence folder ID tidak sepadan dengan binding terkunci.');
+  if (cfg.name === 'TEST') return configured;
+  const binding=bseRuntimeEnvironmentBinding_();
+  const id = configured || (binding ? binding.evidenceFolderId : '');
+  if (!binding || (id && id !== binding.evidenceFolderId)) {
+    throw new Error('SOURCE_MISMATCH: ' + cfg.name + ' evidence folder ID tidak sepadan dengan binding terkunci.');
   }
   return id;
 }
@@ -136,12 +170,14 @@ function bseRuntimeEvidenceFolderProperty_() {
 
 function bseRuntimeSheetName_(legacyName) {
   const name = String(legacyName || '');
-  if (bseRuntimeEnvironmentName_() === 'TEST') return name;
-  if (/^TEST_/.test(name)) return name.replace(/^TEST_/, 'PILOT_TEST_');
-  if (/^TELEGRAM_TEST_/.test(name)) return name.replace(/^TELEGRAM_TEST_/, 'PILOT_TEST_TELEGRAM_');
-  if (/^GOOGLE_TASKS_TEST_/.test(name)) return name.replace(/^GOOGLE_TASKS_TEST_/, 'PILOT_TEST_GOOGLE_TASKS_');
-  if (name === 'GEMINI_TEST_RESULTS') return 'PILOT_TEST_GEMINI_RESULTS';
-  if (name === 'SCRIPT_TEST_RESULTS') return 'PILOT_TEST_SCRIPT_RESULTS';
+  const env=bseRuntimeEnvironmentName_();
+  if (env === 'TEST') return name;
+  const prefix=env==='PILOT_OPERATION'?'PILOT':'PILOT_TEST';
+  if (/^TEST_/.test(name)) return name.replace(/^TEST_/, prefix + '_');
+  if (/^TELEGRAM_TEST_/.test(name)) return name.replace(/^TELEGRAM_TEST_/, prefix + '_TELEGRAM_');
+  if (/^GOOGLE_TASKS_TEST_/.test(name)) return name.replace(/^GOOGLE_TASKS_TEST_/, prefix + '_GOOGLE_TASKS_');
+  if (name === 'GEMINI_TEST_RESULTS') return prefix + '_GEMINI_RESULTS';
+  if (name === 'SCRIPT_TEST_RESULTS') return prefix + '_SCRIPT_RESULTS';
   return name;
 }
 
@@ -158,8 +194,9 @@ function bseRuntimeBook_(book) {
 
 function bseRuntimeTelegramPayload_(method, payload) {
   const body = Object.assign({}, payload || {});
-  if (bseRuntimeEnvironmentName_() !== 'PILOT_TEST') return body;
-  const prefix = '[PILOT TEST]';
+  const env=bseRuntimeEnvironmentName_();
+  if (!['PILOT_TEST','PILOT_OPERATION'].includes(env)) return body;
+  const prefix = env==='PILOT_OPERATION'?'[PILOT]':'[PILOT TEST]';
   if (['sendMessage','editMessageText'].includes(method) && typeof body.text === 'string' && !body.text.startsWith(prefix)) {
     body.text = prefix + '\n' + body.text;
   }
@@ -174,6 +211,8 @@ function BSE_PILOT_RUNTIME_ISOLATION_PROBE() {
   if (!active || !active.getId) return JSON.stringify({status:'FAILED',reason:'ACTIVE_WORKBOOK_UNAVAILABLE',production_write:false});
   const actual = active.getId();
   const environment = bseRuntimeEnvironmentName_();
+  const binding=bseRuntimeEnvironmentBinding_();
+  if (!binding) return JSON.stringify({status:'FAILED',reason:'NOT_PILOT_ENVIRONMENT',production_write:false});
   bseRuntimeAssertWorkbookId_(actual);
   let crossRejected = false;
   try { bseRuntimeAssertWorkbookId_(BSE_TEST.spreadsheetId); }
@@ -181,10 +220,10 @@ function BSE_PILOT_RUNTIME_ISOLATION_PROBE() {
   return JSON.stringify({
     status: crossRejected ? 'PASS' : 'FAILED',
     environment: environment,
-    workbook_match: actual === BSE_PILOT_TEST_BINDING.spreadsheetId,
+    workbook_match: actual === binding.spreadsheetId,
     domain_sheet: bseRuntimeSheetName_('TEST_TREATMENT_EVENT'),
     queue_sheet: bseRuntimeSheetName_('TELEGRAM_TEST_QUEUE'),
-    evidence_folder_match: bseRuntimeEvidenceFolderId_() === BSE_PILOT_TEST_BINDING.evidenceFolderId,
+    evidence_folder_match: bseRuntimeEvidenceFolderId_() === binding.evidenceFolderId,
     cross_environment_rejected: crossRejected,
     production_write: false,
     official_bse_write: false
@@ -192,7 +231,7 @@ function BSE_PILOT_RUNTIME_ISOLATION_PROBE() {
 }
 
 function BSE_PILOT_RUNTIME_REGRESSION_PROBE() {
-  if (bseRuntimeEnvironmentName_() !== 'PILOT_TEST') return JSON.stringify({status:'FAILED',reason:'NOT_PILOT_TEST',production_write:false});
+  if (!bseRuntimeIsPilotEnvironment_()) return JSON.stringify({status:'FAILED',reason:'NOT_PILOT_ENVIRONMENT',production_write:false});
   const active = SpreadsheetApp.getActiveSpreadsheet();
   if (!active || !active.getId) return JSON.stringify({status:'FAILED',reason:'ACTIVE_WORKBOOK_UNAVAILABLE',production_write:false});
   bseRuntimeAssertWorkbookId_(active.getId());
@@ -227,6 +266,31 @@ function getBsePilotTestRuntimeBindingStatus() {
     environment: env,
     spreadsheet_bound: sheet === BSE_PILOT_TEST_BINDING.spreadsheetId,
     evidence_folder_bound: evidence === BSE_PILOT_TEST_BINDING.evidenceFolderId,
+    automation: automation,
+    production_write: false,
+    official_bse_write: false
+  };
+}
+
+function configureBsePilotOperationRuntimeBinding() {
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty('BSE_RUNTIME_ENV','PILOT_OPERATION');
+  props.setProperty('BSE_PILOT_OPERATION_SPREADSHEET_ID',BSE_PILOT_OPERATION_BINDING.spreadsheetId);
+  props.setProperty('BSE_PILOT_OPERATION_EVIDENCE_DRIVE_FOLDER_ID',BSE_PILOT_OPERATION_BINDING.evidenceFolderId);
+  props.setProperty('BSE_TELEGRAM_AUTOMATION','OFF');
+  return getBsePilotOperationRuntimeBindingStatus();
+}
+
+function getBsePilotOperationRuntimeBindingStatus() {
+  const props = PropertiesService.getScriptProperties();
+  const env = String(props.getProperty('BSE_RUNTIME_ENV') || '').trim().toUpperCase();
+  const sheet = String(props.getProperty('BSE_PILOT_OPERATION_SPREADSHEET_ID') || '').trim();
+  const evidence = String(props.getProperty('BSE_PILOT_OPERATION_EVIDENCE_DRIVE_FOLDER_ID') || '').trim();
+  const automation = String(props.getProperty('BSE_TELEGRAM_AUTOMATION') || 'OFF').trim().toUpperCase();
+  return {
+    environment: env,
+    spreadsheet_bound: sheet === BSE_PILOT_OPERATION_BINDING.spreadsheetId,
+    evidence_folder_bound: evidence === BSE_PILOT_OPERATION_BINDING.evidenceFolderId,
     automation: automation,
     production_write: false,
     official_bse_write: false
@@ -296,6 +360,9 @@ function runBseEnvironmentIsolationHarnessTests() {
   const oldUser = props.getProperty('BSE_TELEGRAM_BOT_USERNAME');
   const oldGroups = props.getProperty('BSE_PILOT_TEST_APPROVAL_GROUP_CHAT_IDS');
   const oldEvidence = props.getProperty('BSE_PILOT_TEST_EVIDENCE_DRIVE_FOLDER_ID');
+  const oldOperationSheet = props.getProperty('BSE_PILOT_OPERATION_SPREADSHEET_ID');
+  const oldOperationGroups = props.getProperty('BSE_PILOT_OPERATION_APPROVAL_GROUP_CHAT_IDS');
+  const oldOperationEvidence = props.getProperty('BSE_PILOT_OPERATION_EVIDENCE_DRIVE_FOLDER_ID');
   const tests = [];
   const pass = function(id, fn) {
     try { fn(); tests.push({id:id,pass:true}); }
@@ -339,6 +406,43 @@ function runBseEnvironmentIsolationHarnessTests() {
       catch (error) { rejected=/^CROSS_ENVIRONMENT_WRITE_REJECTED:/.test(String(error&&error.message||error)); }
       if (!rejected) throw new Error('cross-environment guard gagal');
     });
+
+    props.setProperty('BSE_RUNTIME_ENV','PILOT_OPERATION');
+    props.setProperty('BSE_PILOT_OPERATION_SPREADSHEET_ID',BSE_PILOT_OPERATION_BINDING.spreadsheetId);
+    props.setProperty('BSE_PILOT_OPERATION_APPROVAL_GROUP_CHAT_IDS','-1002234567890');
+    props.setProperty('BSE_PILOT_OPERATION_EVIDENCE_DRIVE_FOLDER_ID',BSE_PILOT_OPERATION_BINDING.evidenceFolderId);
+
+    pass('PILOT_OPERATION maps domain sheets to PILOT prefix', function(){
+      if (bseRuntimeSheetName_('TEST_TREATMENT_EVENT') !== 'PILOT_TREATMENT_EVENT') throw new Error('PILOT domain mapping gagal');
+    });
+    pass('PILOT_OPERATION maps queue separately', function(){
+      if (bseRuntimeSheetName_('TELEGRAM_TEST_QUEUE') !== 'PILOT_TELEGRAM_QUEUE') throw new Error('PILOT queue mapping gagal');
+    });
+    pass('PILOT_OPERATION maps result sheets', function(){
+      if (bseRuntimeSheetName_('GEMINI_TEST_RESULTS') !== 'PILOT_GEMINI_RESULTS' || bseRuntimeSheetName_('SCRIPT_TEST_RESULTS') !== 'PILOT_SCRIPT_RESULTS') throw new Error('PILOT result mapping gagal');
+    });
+    pass('PILOT_OPERATION start token isolated', function(){
+      if (bseRuntimeStartToken_() !== 'BSE_PILOT') throw new Error('PILOT start token salah');
+    });
+    pass('PILOT_OPERATION outgoing text labeled', function(){
+      const body=bseRuntimeTelegramPayload_('sendMessage',{text:'Semakan',chat_id:'-1002'});
+      if (body.text !== '[PILOT]\nSemakan') throw new Error('PILOT label hilang');
+    });
+    pass('PILOT_OPERATION binding locked to reserved workbook', function(){
+      if (bseRuntimeSpreadsheetId_() !== BSE_PILOT_OPERATION_BINDING.spreadsheetId) throw new Error('PILOT binding salah');
+    });
+    pass('PILOT_OPERATION group property isolated', function(){
+      if (bseRuntimeApprovalGroupsRaw_() !== '-1002234567890') throw new Error('PILOT group property salah');
+    });
+    pass('PILOT_OPERATION evidence folder isolated', function(){
+      if (bseRuntimeEvidenceFolderId_() !== BSE_PILOT_OPERATION_BINDING.evidenceFolderId) throw new Error('PILOT evidence binding salah');
+    });
+    pass('PILOT_OPERATION rejects PILOT_TEST workbook id', function(){
+      let rejected=false;
+      try { bseRuntimeAssertWorkbookId_(BSE_PILOT_TEST_BINDING.spreadsheetId); }
+      catch (error) { rejected=/^CROSS_ENVIRONMENT_WRITE_REJECTED:/.test(String(error&&error.message||error)); }
+      if (!rejected) throw new Error('PILOT_OPERATION cross-environment guard gagal');
+    });
     pass('production boundary remains false by design', function(){
       const source=[bseRuntimeEnvironmentName_,bseRuntimeSheetName_,bseRuntimeTelegramPayload_].map(function(fn){return fn.toString();}).join('\n');
       if (/production_write\s*:\s*true/.test(source)) throw new Error('production write ditemukan');
@@ -349,6 +453,9 @@ function runBseEnvironmentIsolationHarnessTests() {
     if (oldUser == null) props.deleteProperty('BSE_TELEGRAM_BOT_USERNAME'); else props.setProperty('BSE_TELEGRAM_BOT_USERNAME',oldUser);
     if (oldGroups == null) props.deleteProperty('BSE_PILOT_TEST_APPROVAL_GROUP_CHAT_IDS'); else props.setProperty('BSE_PILOT_TEST_APPROVAL_GROUP_CHAT_IDS',oldGroups);
     if (oldEvidence == null) props.deleteProperty('BSE_PILOT_TEST_EVIDENCE_DRIVE_FOLDER_ID'); else props.setProperty('BSE_PILOT_TEST_EVIDENCE_DRIVE_FOLDER_ID',oldEvidence);
+    if (oldOperationSheet == null) props.deleteProperty('BSE_PILOT_OPERATION_SPREADSHEET_ID'); else props.setProperty('BSE_PILOT_OPERATION_SPREADSHEET_ID',oldOperationSheet);
+    if (oldOperationGroups == null) props.deleteProperty('BSE_PILOT_OPERATION_APPROVAL_GROUP_CHAT_IDS'); else props.setProperty('BSE_PILOT_OPERATION_APPROVAL_GROUP_CHAT_IDS',oldOperationGroups);
+    if (oldOperationEvidence == null) props.deleteProperty('BSE_PILOT_OPERATION_EVIDENCE_DRIVE_FOLDER_ID'); else props.setProperty('BSE_PILOT_OPERATION_EVIDENCE_DRIVE_FOLDER_ID',oldOperationEvidence);
   }
   const failures=tests.filter(function(t){return !t.pass;});
   if (failures.length) throw new Error('Environment isolation harness gagal: '+failures.map(function(t){return t.id;}).join(', '));

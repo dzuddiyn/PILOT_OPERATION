@@ -11,7 +11,7 @@ function installBseTelegramTestAutomation() {
   const lock=LockService.getScriptLock();
   if(!lock.tryLock(1000))throw new Error('Barisan sibuk; cuba pemasangan kemudian.');
   try {
-    if(bseRuntimeEnvironmentName_()==='PILOT_TEST')throw new Error('PILOT_TEST automation kekal OFF semasa environment setup; controlled replay mesti dijalankan secara manual.');
+    if(bseRuntimeEnvironmentName_()!=='TEST')throw new Error(bseRuntimeEnvironmentLabel_()+' general automation kekal OFF; hanya TEST installer dibenarkan. PILOT_OPERATION menunggu Gate H.');
     bseTelegramAutomationBook_();
     const props=PropertiesService.getScriptProperties();
     const chat=props.getProperty('TELEGRAM_TEST_CHAT_ID'),user=props.getProperty('TELEGRAM_TEST_USER_ID');
@@ -36,16 +36,19 @@ function stopBseTelegramTestAutomation() {
   console.log('TELEGRAM_AUTOMATION_OFF: trigger dihentikan; run yang sudah berjalan mungkin akan selesai. Data dikekalkan.');
 }
 function bseTelegramTick() {
+  if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION')return;
   if(PropertiesService.getScriptProperties().getProperty('BSE_TELEGRAM_AUTOMATION')!=='ON')return;
   bseTelegramAutomationBook_();
   receiveBseTelegramTest();
   processBseTelegramTestQueue();
 }
 function bseTelegramReceiveTick() {
+  if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION')return;
   if(PropertiesService.getScriptProperties().getProperty('BSE_TELEGRAM_AUTOMATION')!=='ON')return;
   bseTelegramAutomationBook_();receiveBseTelegramTest();
 }
 function bseTelegramWorkerTick() {
+  if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION')return;
   if(PropertiesService.getScriptProperties().getProperty('BSE_TELEGRAM_AUTOMATION')!=='ON')return;
   bseTelegramAutomationBook_();processBseTelegramTestQueue();
 }
