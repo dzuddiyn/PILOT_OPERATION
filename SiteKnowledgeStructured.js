@@ -29,7 +29,9 @@ function bsePilotKbStructuredAnswer_(book,question){
  if(/(?:tangki|pam|kolam|wire|kawat|anchor|polybag 16)/.test(q)){
   const rows=read('PILOT_KB_INFRASTRUCTURE');
   const terms=['pam','tangki','kolam','kawat','wire','anchor','polybag'];const needle=terms.find(t=>q.includes(t));
-  const found=rows.filter(r=>String(r.slice(0,5).join(' ')).toLowerCase().includes(needle||'___'));
+  const alias=needle==='tangki'?'tank':needle;
+  const moduleMatch=(q.match(/\bm[1-8]\b/i)||[])[0];
+  const found=rows.filter(r=>{const line=String(r.slice(0,5).join(' ')).toLowerCase();return line.includes(alias||'___')&&(!moduleMatch||line.includes(moduleMatch.toLowerCase()));});
   if(!found.length)return 'Tiada butiran infrastruktur yang sepadan dalam registry. Jangan anggap peralatan tidak wujud.';
   return found.slice(0,5).map(r=>r[2]+': '+r[3]).join('\n')+'\nSumber: Infrastructure_Registry.csv (reference, bukan status fizikal semasa).';
  }
