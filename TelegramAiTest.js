@@ -187,6 +187,10 @@ function bseTelegramAiReceive_(book,m,allowedPrivate,allowedGroup){
   const question=bseTelegramAiQuestion_(m.text);
   if(!question){bseTelegramAiSend_(m,'Gunakan: /ai <soalan>\nContoh: /ai abamectin kumpulan IRAC berapa?');return {handled:true,production_write:false};}
   if(question.length>6000){bseTelegramAiSend_(m,'Soalan terlalu panjang. Had /ai ialah 6000 aksara.');return {handled:true,production_write:false};}
+  if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'){
+    const siteAnswer=bsePilotSiteBFaq_(book,question);
+    if(siteAnswer){bseTelegramAiSend_(m,siteAnswer);return {handled:true,kb_used:true,production_write:false};}
+  }
   try{
     const currentSismarp=bseAiSismarpCurrent_(question),iracQuestion=bseAiIracGroundingQuestion_(question,currentSismarp),iracGrounded=bseAiIracGroundedReliable_(iracQuestion),answer=bseAiGeminiAnswer_(question,currentSismarp,iracGrounded);
     bseTelegramAiSend_(m,bseTelegramAiRender_(answer));
