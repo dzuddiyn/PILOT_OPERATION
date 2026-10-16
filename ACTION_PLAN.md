@@ -75,3 +75,10 @@ The LOCKED path remains `docs/PILOT_OPERATION_EXECUTION_PATH.md`. Production/off
 - Drive-authorized callbacks may fail through `clasp run` Execution API even when the Apps Script owner runtime is authorized; live Drive callback proofs therefore use the Apps Script owner runtime and are independently read back from Sheet/Drive.
 - `PILOT_OPERATION` adapter is implemented and tested on `feat/pilot-operation-adapter` but is not yet merged or bound to live runtime.
 - General Telegram receive/worker automation remains intentionally OFF until A-I Gate H. Production promotion, Apps Script version/deployment update, or official BSE write remains a separate later authorization.
+
+## Fast-track recovery — 2026-10-16 (implementation preparation, NOT Gate H enablement)
+- Gate F domain write independent live proof PASS: BSE-TG-772257142 approved/confirmed with Crop Batch BSE-SB-CB-20261002-001; one Planting Event, exactly two M5P1/M5P2 allocations; queue and callback processed. Telegram /retrieve LIVE proof remains UNVERIFIED.
+- Gate G evidence/image LIVE proof remains NOT STARTED in PILOT_OPERATION.
+- Gate H PILOT_OPERATION-specific installer/tick/preflight/rollback implementation is under development on branch feat/fast-track-gate-h-automation-prep. Automation remains OFF; this work does not authorize merging, Script HEAD sync, or trigger creation.
+- Gate I walkthrough/handover remains NOT STARTED. No production or official BSE write.
+- Exact evidence/readiness checklist: docs/FAST_TRACK_F_TO_I_20261016.md.
