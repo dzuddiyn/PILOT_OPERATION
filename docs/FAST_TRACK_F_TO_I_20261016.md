@@ -1,6 +1,6 @@
 # PILOT_OPERATION Fast-track F–I — 16 October 2026
 
-**Status:** Gate F domain write **LIVE PASS**; Gate F Telegram retrieval **UNVERIFIED**; Gate G evidence proof **NOT STARTED**; Gate H automation implementation **LOCAL PASS only**; Gate I **NOT STARTED**. Do not mark H enabled or deployed.
+**Status:** Gate F Crop Batch write/store/Telegram retrieval **LIVE PASS** (audit `SENT` / `OWNER_ACTIVE`, 16 Oct 2026); Gate G evidence proof **NOT STARTED**; Gate H automation implementation **LOCAL PASS only**; Gate I **NOT STARTED**. Do not mark H enabled or deployed.
 
 ## Why not clone PILOT_TEST
 
@@ -22,6 +22,8 @@ Canonical `PILOT_OPERATION` is derived from successful PILOT_TEST source baselin
 3. Manually run the existing `TelegramQueueTest.gs -> receiveBseTelegramTest` **once** only after inspecting transport offset/backlog. Do not start general automation. The receiver already handles durable callbacks and sends retrieval replies.
 4. Independently verify Telegram reply and `PILOT_TELEGRAM_RECORD_RETRIEVAL_AUDIT` `SENT`, plus queue, approval, hash, 1 batch, 1 planting, 2 allocation.
 5. Reconcile offset with API before any future auto-ON. No blind reruns.
+
+**Gate F independent proof closed:** owner received `[PILOT] Rekod TEST BSE-TG-772257142`, showing Timun Batu CCB, 2026-10-02, M5P1, M5P2; `PILOT_TELEGRAM_RECORD_RETRIEVAL_AUDIT` contains exactly one `SENT` / `OWNER_ACTIVE` row for reference at `2026-10-16T08:34:30.147Z`. Crop Batch, Planting Event, Plot Allocation cardinalities remain 1/1/2. Evidence: `PILOT_OPERATION_EVIDENCE/GATE_F_20261016_RETRIEVAL_LIVE_PASS.md` on owner workstation. Do not replay this test.
 
 ## Gate G minimum controlled closure
 

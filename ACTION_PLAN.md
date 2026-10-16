@@ -77,7 +77,7 @@ The LOCKED path remains `docs/PILOT_OPERATION_EXECUTION_PATH.md`. Production/off
 - General Telegram receive/worker automation remains intentionally OFF until A-I Gate H. Production promotion, Apps Script version/deployment update, or official BSE write remains a separate later authorization.
 
 ## Fast-track recovery — 2026-10-16 (implementation preparation, NOT Gate H enablement)
-- Gate F domain write independent live proof PASS: BSE-TG-772257142 approved/confirmed with Crop Batch BSE-SB-CB-20261002-001; one Planting Event, exactly two M5P1/M5P2 allocations; queue and callback processed. Telegram /retrieve LIVE proof remains UNVERIFIED.
+- Gate F Crop Batch write/store/retrieve loop LIVE PASS: BSE-TG-772257142 confirmed; Crop Batch BSE-SB-CB-20261002-001, one Planting Event, exactly two M5P1/M5P2 allocations. Owner private Telegram `/retrieve` returned matching record and PILOT_TELEGRAM_RECORD_RETRIEVAL_AUDIT independently recorded `SENT` / `OWNER_ACTIVE` at 2026-10-16T08:34:30.147Z. Scope: this Crop Batch loop only; no claim that other operation types passed PILOT_OPERATION live proof.
 - Gate G evidence/image LIVE proof remains NOT STARTED in PILOT_OPERATION.
 - Gate H PILOT_OPERATION-specific installer/tick/preflight/rollback implementation is under development on branch feat/fast-track-gate-h-automation-prep. Automation remains OFF; this work does not authorize merging, Script HEAD sync, or trigger creation.
 - Gate I walkthrough/handover remains NOT STARTED. No production or official BSE write.
