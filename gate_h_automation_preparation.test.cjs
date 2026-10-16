@@ -7,7 +7,7 @@ function reset(){state.props={BSE_TELEGRAM_AUTOMATION:'OFF',BSE_TELEGRAM_OFFSET:
 const makeArray=(length,fields)=>{const a=Array(length).fill('');for(const [k,v] of Object.entries(fields))a[Number(k)]=v;return a;};
 const ctx=vm.createContext({
  console:{log:()=>{}},
- PropertiesService:{getScriptProperties:()=>({getProperty:(k)=>state.props[k]||null,setProperty:(k,v)=>{state.props[k]=v;}})},
+ PropertiesService:{getScriptProperties:()=>({getProperty:(k)=>state.props[k]||null,setProperty:(k,v)=>{state.props[k]=v;},deleteProperty:(k)=>{delete state.props[k];}})},
  getBsePilotOperationRuntimeBindingStatus:()=>({environment:state.env,spreadsheet_bound:state.bound,evidence_folder_bound:state.bound,production_write:false,official_bse_write:false,automation:state.props.BSE_TELEGRAM_AUTOMATION}),
  bseRuntimeLegacyUserId_:()=> '913757987',
  bseTestOwnerForTelegramUser_:()=>({ok:true,private_chat_id:'913757987'}),
@@ -67,11 +67,14 @@ test('installer successful',()=>{reset();const res=ctx.installBsePilotOperationG
 test('unrelated scheduler protected',()=>{reset();state.triggers=[{getHandlerFunction:()=> 'dailyDigest',getUniqueId:()=> 'unrelated'}];ctx.installBsePilotOperationGateH();assert.equal(state.triggers.length,2);});
 test('repeat installer doesnt delete existing trigger',()=>{reset();ctx.installBsePilotOperationGateH();assert.throws(()=>ctx.installBsePilotOperationGateH(),/RUNTIME_NOT_OFF_AND_BOUND/);assert.equal(state.triggers.length,1);assert.equal(state.props.BSE_TELEGRAM_AUTOMATION,'ON');});
 test('preflight denied doesnt mutate triggers',()=>{reset();state.f=false;state.triggers=[{getHandlerFunction:()=> 'dailyDigest',getUniqueId:()=> 'other'}];assert.throws(()=>ctx.installBsePilotOperationGateH(),/F_RETRIEVAL_PROOF_MISSING/);assert.equal(state.triggers.length,1);assert.equal(state.props.BSE_TELEGRAM_AUTOMATION,'OFF');});
-test('stop clears only own triggers',()=>{reset();const dig={getHandlerFunction:()=> 'dailyDigest',getUniqueId:()=> 'unrelated'};state.triggers=[dig];ctx.installBsePilotOperationGateH();const res=ctx.stopBsePilotOperationGateH();assert.equal(res.status,'OFF');assert.deepEqual(state.triggers,[dig]);});
+test('stop clears only own triggers',()=>{reset();const dig={getHandlerFunction:()=> 'dailyDigest',getUniqueId:()=> 'unrelated'};state.triggers=[dig];ctx.installBsePilotOperationGateH();const res=ctx.stopBsePilotOperationGateH();assert.equal(res.status,'OFF');assert.deepEqual(state.triggers,[dig]);assert.equal(state.props.BSE_PILOT_GATE_H_TRIGGER_ID,undefined);});
 test('stop wrong env fails',()=>{reset();state.env='PILOT_TEST';assert.throws(()=>ctx.stopBsePilotOperationGateH(),/WRONG_ENVIRONMENT/);});
 test('pilot tick OFF inert',()=>{reset();ctx.bseTelegramTick();assert.deepEqual(state.calls,[]);});
-test('pilot tick ON pipelines',()=>{reset();state.props.BSE_TELEGRAM_AUTOMATION='ON';ctx.bseTelegramTick();assert.deepEqual(state.calls,['book','receive','approval','worker']);});
+test('pilot tick ON pipelines',()=>{reset();ctx.installBsePilotOperationGateH();ctx.bseTelegramTick();assert.deepEqual(state.calls,['book','receive','approval','worker']);});
+test('property ON alone cannot bypass installer',()=>{reset();state.props.BSE_TELEGRAM_AUTOMATION='ON';assert.throws(()=>ctx.bseTelegramTick(),/TRIGGER_AUTHORITY_MISSING/);assert.deepEqual(state.calls,[]);});
+test('forged trigger marker fails closed',()=>{reset();ctx.installBsePilotOperationGateH();state.props.BSE_PILOT_GATE_H_TRIGGER_ID='forged';assert.throws(()=>ctx.bseTelegramTick(),/TRIGGER_AUTHORITY_MISSING/);assert.deepEqual(state.calls,[]);});
+test('stale marker blocks readiness',()=>{reset();state.props.BSE_PILOT_GATE_H_TRIGGER_ID='stale';assert.throws(()=>ctx.bsePilotGateHReadiness_(),/STALE_AUTHORITY_MARKER/);});
 test('pilot tick bad binding fail closed',()=>{reset();state.bound=false;state.props.BSE_TELEGRAM_AUTOMATION='ON';assert.throws(()=>ctx.bseTelegramTick(),/RUNTIME_BOUNDARY_FAILED/);assert.deepEqual(state.calls,[]);});
 test('TEST tick original pipeline',()=>{reset();state.env='TEST';state.props.BSE_TELEGRAM_AUTOMATION='ON';ctx.bseTelegramTick();assert.deepEqual(state.calls,['book','receive','worker']);});
 test('PILOT_TEST tick inert',()=>{reset();state.env='PILOT_TEST';state.props.BSE_TELEGRAM_AUTOMATION='ON';ctx.bseTelegramTick();assert.deepEqual(state.calls,[]);});
-console.log('GATE_H_AUTOMATION_PREPARATION '+pass+'/25 PASS');
+console.log('GATE_H_AUTOMATION_PREPARATION '+pass+'/28 PASS');

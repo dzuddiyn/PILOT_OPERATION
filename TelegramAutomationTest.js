@@ -44,6 +44,10 @@ function bseTelegramTick() {
     if(!state.spreadsheet_bound||!state.evidence_folder_bound||
        state.production_write!==false||state.official_bse_write!==false)
       throw Error('GATE_H_RUNTIME_BOUNDARY_FAILED');
+    const authorizedId=String(props.getProperty('BSE_PILOT_GATE_H_TRIGGER_ID')||'');
+    if(!authorizedId||!ScriptApp.getProjectTriggers().some(t=>
+       t.getHandlerFunction()==='bseTelegramTick'&&t.getUniqueId()===authorizedId))
+      throw Error('GATE_H_TRIGGER_AUTHORITY_MISSING');
     bseTelegramAutomationBook_();
     receiveBseTelegramTest(); // Durable receive + approval/evidence/registration callbacks.
     processBseTelegramApprovalCallbacks(); // Drains one additional durable callback.

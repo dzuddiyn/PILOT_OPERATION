@@ -6,6 +6,7 @@ function bsePilotGateHReadiness_(){
      binding.official_bse_write!==false||binding.automation!=='OFF')
     throw Error('GATE_H_RUNTIME_NOT_OFF_AND_BOUND');
   const props=PropertiesService.getScriptProperties();
+  if(props.getProperty('BSE_PILOT_GATE_H_TRIGGER_ID'))throw Error('GATE_H_STALE_AUTHORITY_MARKER');
   const offsetText=String(props.getProperty('BSE_TELEGRAM_OFFSET')||'');
   if(!/^\d+$/.test(offsetText)||Number(offsetText)<772257147)
     throw Error('GATE_H_OFFSET_INVALID');
@@ -88,6 +89,9 @@ function installBsePilotOperationGateH(){
     const hits=ScriptApp.getProjectTriggers().filter(t=>t.getHandlerFunction()===handler);
     if(hits.length!==1||hits[0].getUniqueId()!==createdId)
       throw Error('GATE_H_TRIGGER_READBACK_FAILED');
+    props.setProperty('BSE_PILOT_GATE_H_TRIGGER_ID',createdId);
+    if(props.getProperty('BSE_PILOT_GATE_H_TRIGGER_ID')!==createdId)
+      throw Error('GATE_H_TRIGGER_MARKER_READBACK_FAILED');
     props.setProperty('BSE_TELEGRAM_AUTOMATION','ON');
     if(props.getProperty('BSE_TELEGRAM_AUTOMATION')!=='ON')
       throw Error('GATE_H_AUTOMATION_READBACK_FAILED');
@@ -98,6 +102,7 @@ function installBsePilotOperationGateH(){
   }catch(error){
     if(createdId){
       props.setProperty('BSE_TELEGRAM_AUTOMATION','OFF');
+      props.deleteProperty('BSE_PILOT_GATE_H_TRIGGER_ID');
       // Roll back only the trigger created by THIS installation attempt.
       ScriptApp.getProjectTriggers().filter(t=>t.getUniqueId()===createdId)
         .forEach(t=>ScriptApp.deleteTrigger(t));
@@ -110,6 +115,7 @@ function stopBsePilotOperationGateH(){
     throw Error('GATE_H_STOP_WRONG_ENVIRONMENT');
   const p=PropertiesService.getScriptProperties();
   p.setProperty('BSE_TELEGRAM_AUTOMATION','OFF');
+  p.deleteProperty('BSE_PILOT_GATE_H_TRIGGER_ID');
   ScriptApp.getProjectTriggers().filter(t=>[
     'bseTelegramTick','bseTelegramReceiveTick','bseTelegramWorkerTick'
   ].includes(t.getHandlerFunction())).forEach(t=>ScriptApp.deleteTrigger(t));
