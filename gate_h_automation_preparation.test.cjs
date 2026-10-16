@@ -2,8 +2,8 @@ const assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm');
 const root=__dirname+require('node:path').sep;
 let pass=0;
 const test=(label,fn)=>{try{fn();pass++;}catch(e){throw Error(label+': '+e.message);}};
-const state={props:{BSE_TELEGRAM_AUTOMATION:'OFF',BSE_TELEGRAM_OFFSET:'772257149'},env:'PILOT_OPERATION',bound:true,triggers:[],updates:[],webhook:'',f:true,g:true,callbackPending:false,openCard:false,bookId:'pilot-sheet',calls:[]};
-function reset(){state.props={BSE_TELEGRAM_AUTOMATION:'OFF',BSE_TELEGRAM_OFFSET:'772257149'};state.env='PILOT_OPERATION';state.bound=true;state.triggers=[];state.updates=[];state.webhook='';state.f=true;state.g=true;state.callbackPending=false;state.openCard=false;state.calls=[];state.domainBad=false;state.hashBad=false;state.queueBad=false;}
+const state={props:{BSE_TELEGRAM_AUTOMATION:'OFF',BSE_TELEGRAM_OFFSET:'772257149'},env:'PILOT_OPERATION',bound:true,triggers:[],updates:[],webhook:'',f:true,g:true,callbackPending:false,gCallbackStatus:'PROCESSED',gAuditUppercase:false,gAuditWrongRef:false,openCard:false,bookId:'pilot-sheet',calls:[]};
+function reset(){state.props={BSE_TELEGRAM_AUTOMATION:'OFF',BSE_TELEGRAM_OFFSET:'772257149'};state.env='PILOT_OPERATION';state.bound=true;state.triggers=[];state.updates=[];state.webhook='';state.f=true;state.g=true;state.callbackPending=false;state.gCallbackStatus='PROCESSED';state.gAuditUppercase=false;state.gAuditWrongRef=false;state.openCard=false;state.calls=[];state.domainBad=false;state.hashBad=false;state.queueBad=false;}
 const makeArray=(length,fields)=>{const a=Array(length).fill('');for(const [k,v] of Object.entries(fields))a[Number(k)]=v;return a;};
 const ctx=vm.createContext({
  console:{log:()=>{}},
@@ -27,9 +27,9 @@ const ctx=vm.createContext({
    if(name==='TEST_CROP_BATCH')return [makeArray(13,{2:state.domainBad?'wrong':'BSE-SB-CB-20261002-001'})];
    if(name==='TEST_PLANTING_EVENT')return [makeArray(14,{2:'BSE-SB-CB-20261002-001'})];
    if(name==='TEST_PLOT_ALLOCATION')return [makeArray(12,{2:'BSE-SB-CB-20261002-001',5:'M5P1'}),makeArray(12,{2:'BSE-SB-CB-20261002-001',5:'M5P2'})];
-   if(name==='TEST_FILE_EVIDENCE')return state.g?[makeArray(23,{0:'BSE-EV-AB123456',16:'CONFIRMED_TEST',19:'drive-test-only'})]:[];
-   if(name==='TEST_TELEGRAM_RETRIEVAL_AUDIT')return state.g?[makeArray(6,{1:'913757987',3:'BSE-EV-AB123456',4:'SENT'})]:[];
-   if(name==='TEST_FILE_EVIDENCE_CALLBACK_PENDING')return [makeArray(9,{3:'PROCESSED'})];
+   if(name==='TEST_FILE_EVIDENCE')return state.g?[makeArray(23,{0:'BSE-EV-Ab123456',16:'CONFIRMED_TEST',19:'drive-test-only'})]:[];
+   if(name==='TEST_TELEGRAM_RETRIEVAL_AUDIT')return state.g?[makeArray(6,{1:'913757987',3:state.gAuditWrongRef?'BSE-EV-WRONG':state.gAuditUppercase?'BSE-EV-AB123456':'BSE-EV-Ab123456',4:'SENT'})]:[];
+   if(name==='TEST_FILE_EVIDENCE_CALLBACK_PENDING')return [makeArray(9,{3:state.gCallbackStatus})];
    throw Error('UNKNOWN_SHEET_'+name);
  },
  bseTelegramApi_:(method)=>method==='getMe'?{username:'pilotbot'}:method==='getWebhookInfo'?{url:state.webhook}:method==='getUpdates'?state.updates:[],
@@ -55,6 +55,9 @@ test('invalid F hash blocks',()=>{reset();state.hashBad=true;assert.throws(()=>c
 test('invalid domain batch blocks',()=>{reset();state.domainBad=true;assert.throws(()=>ctx.bsePilotGateHReadiness_(),/F_DOMAIN_READBACK_INVALID/);});
 test('missing F blocks',()=>{reset();state.f=false;assert.throws(()=>ctx.bsePilotGateHReadiness_(),/F_RETRIEVAL_PROOF_MISSING/);});
 test('missing G blocks',()=>{reset();state.g=false;assert.throws(()=>ctx.bsePilotGateHReadiness_(),/G_EVIDENCE_RETRIEVAL_PROOF_MISSING/);});
+test('live retrieval uppercases mixed-case Evidence ref',()=>{reset();state.gAuditUppercase=true;assert.equal(ctx.bsePilotGateHReadiness_().ready,true);});
+test('different retrieved Evidence ref blocked',()=>{reset();state.gAuditWrongRef=true;assert.throws(()=>ctx.bsePilotGateHReadiness_(),/G_EVIDENCE_RETRIEVAL_PROOF_MISSING/);});
+test('failed G callback blocks readiness',()=>{reset();state.gCallbackStatus='FAILED_CALLBACK';assert.throws(()=>ctx.bsePilotGateHReadiness_(),/G_EVIDENCE_RETRIEVAL_PROOF_MISSING/);});
 test('pending callback blocks',()=>{reset();state.callbackPending=true;assert.throws(()=>ctx.bsePilotGateHReadiness_(),/F_CALLBACK_NOT_SETTLED/);});
 test('unsettled queue blocks',()=>{reset();state.queueBad=true;assert.throws(()=>ctx.bsePilotGateHReadiness_(),/F_CALLBACK_NOT_SETTLED/);});
 test('open card blocks',()=>{reset();state.openCard=true;assert.throws(()=>ctx.bsePilotGateHReadiness_(),/F_CALLBACK_NOT_SETTLED/);});
@@ -77,4 +80,4 @@ test('stale marker blocks readiness',()=>{reset();state.props.BSE_PILOT_GATE_H_T
 test('pilot tick bad binding fail closed',()=>{reset();state.bound=false;state.props.BSE_TELEGRAM_AUTOMATION='ON';assert.throws(()=>ctx.bseTelegramTick(),/RUNTIME_BOUNDARY_FAILED/);assert.deepEqual(state.calls,[]);});
 test('TEST tick original pipeline',()=>{reset();state.env='TEST';state.props.BSE_TELEGRAM_AUTOMATION='ON';ctx.bseTelegramTick();assert.deepEqual(state.calls,['book','receive','worker']);});
 test('PILOT_TEST tick inert',()=>{reset();state.env='PILOT_TEST';state.props.BSE_TELEGRAM_AUTOMATION='ON';ctx.bseTelegramTick();assert.deepEqual(state.calls,[]);});
-console.log('GATE_H_AUTOMATION_PREPARATION '+pass+'/28 PASS');
+console.log('GATE_H_AUTOMATION_PREPARATION '+pass+'/31 PASS');

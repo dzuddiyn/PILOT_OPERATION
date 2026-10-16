@@ -51,9 +51,9 @@ function bsePilotGateHReadiness_(){
         evidenceCallbacks=bseTelegramRecordReadRows_(book,'TEST_FILE_EVIDENCE_CALLBACK_PENDING',BSE_TG_EVIDENCE_CALLBACK_HEADERS.length);
   const verified=evidence.filter(x=>String(x[16])==='CONFIRMED_TEST'&&
      String(x[19]||'').trim()&&
-     evidenceAudit.some(a=>String(a[3])===String(x[0])&&
+     evidenceAudit.some(a=>String(a[3]).toUpperCase()===String(x[0]).toUpperCase()&&
        String(a[4])==='SENT'&&String(a[1])===String(ownerId)));
-  if(!verified.length||evidenceCallbacks.some(x=>String(x[3])==='PENDING'))
+  if(!verified.length||evidenceCallbacks.some(x=>String(x[3])!=='PROCESSED'))
     throw Error('GATE_H_G_EVIDENCE_RETRIEVAL_PROOF_MISSING');
   const bot=bseTelegramApi_('getMe',{}),webhook=bseTelegramApi_('getWebhookInfo',{});
   if(!bot||bot.username!==bseRuntimeBotUsername_()||!webhook||webhook.url)
