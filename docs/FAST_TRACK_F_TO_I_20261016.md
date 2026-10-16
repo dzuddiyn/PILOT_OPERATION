@@ -1,6 +1,6 @@
 # PILOT_OPERATION Fast-track F–I — 16 October 2026
 
-**Status:** Gate F Crop Batch write/store/Telegram retrieval **LIVE PASS** (audit `SENT` / `OWNER_ACTIVE`, 16 Oct 2026); Gate G confirmation/Drive storage **LIVE PASS** but Telegram image retrieval **PENDING**; Gate H automation implementation **LOCAL PASS only**; Gate I **NOT STARTED**. Do not mark H enabled or deployed.
+**Status:** Gate F Crop Batch write/store/Telegram retrieval **LIVE PASS** (audit `SENT` / `OWNER_ACTIVE`, 16 Oct 2026); Gate G confirmed photo/Drive/**Telegram image retrieval LIVE PASS** (audit `SENT` / `TELEGRAM_FILE_ID`, 16 Oct 2026); Gate H automation implementation **LOCAL PASS only**; Gate I **NOT STARTED**. Do not mark H enabled or deployed.
 
 ## Why not clone PILOT_TEST
 
@@ -32,7 +32,7 @@ Canonical `PILOT_OPERATION` is derived from successful PILOT_TEST source baselin
 3. Independent Drive permissions, evidence metadata/source, duplicate audit and `/retrieve BSE-EV-...` Telegram file receipt.
 4. Verify `PILOT_TELEGRAM_RETRIEVAL_AUDIT` `SENT` and do not equate parsed evidence with domain write.
 
-**Gate G live evidence (16 October 2026):** Source Telegram PHOTO message 22, card message 23, reference `BSE-EV-22-AQADiBBr`. Owner confirmed `Benar`; callback update `772257150` processed in 1 attempt with no error. Independent PILOT Sheet read-back confirms exactly one evidence row, `CONFIRMED_TEST`, `FIELD_OPERATION`, `PRIVATE_SUBMISSION`, Drive ID populated, confirmed timestamp `2026-10-16T09:53:02.026Z`. Independent Google Drive metadata reports one JPEG 116,313 bytes created `2026-10-16T09:53:01.180Z`, under `BSE_OpsMate_SB_PILOT_OPERATION_Evidence`, owner-only and not broadly shared. Live Telegram `/retrieve BSE-EV-22-AQADiBBr` + `PILOT_TELEGRAM_RETRIEVAL_AUDIT` `SENT` remain pending. No second image/callback or Drive write should be generated for this acceptance proof. Detailed receipt: `PILOT_OPERATION_EVIDENCE/GATE_G_20261016_DRIVE_CONFIRMED.md` on owner's workstation.
+**Gate G live evidence (16 October 2026):** Source Telegram PHOTO message 22, card message 23, reference `BSE-EV-22-AQADiBBr`. Owner confirmed `Benar`; callback update `772257150` processed in 1 attempt with no error. Independent PILOT Sheet read-back confirms exactly one evidence row, `CONFIRMED_TEST`, `FIELD_OPERATION`, `PRIVATE_SUBMISSION`, Drive ID populated, confirmed timestamp `2026-10-16T09:53:02.026Z`. Independent Google Drive metadata reports one JPEG 116,313 bytes created `2026-10-16T09:53:01.180Z`, under `BSE_OpsMate_SB_PILOT_OPERATION_Evidence`, owner-only and not broadly shared. **Gate G final retrieval LIVE PASS:** owner Telegram bot returned the original PHOTO with caption `Evidence TEST BSE-EV-22-AQADiBBr` (owner-supplied screenshot, 18:01 MYT); independent `PILOT_TELEGRAM_RETRIEVAL_AUDIT` contains exactly one record `BSE-EV-22-AQADIBBR` (uppercase-normalized), `SENT`, `TELEGRAM_FILE_ID`, at `2026-10-16T10:01:17.756Z`. The same evidence record remains `CONFIRMED_TEST` and Drive metadata remains owner-only. Gate G is CLOSED / LIVE PASS. Full receipt: `PILOT_OPERATION_EVIDENCE/GATE_G_20261016_FULL_LIVE_PASS.md`. No second image/callback or Drive write should be generated for this acceptance proof. Detailed receipt: `PILOT_OPERATION_EVIDENCE/GATE_G_20261016_DRIVE_CONFIRMED.md` on owner's workstation.
 
 ## Gate H preparation (no activation)
 
