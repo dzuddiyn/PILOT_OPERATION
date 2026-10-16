@@ -102,6 +102,16 @@ function bseCropBatchRequireDecision_(decision,note){
 }
 
 function bseCropBatchRoot_(rows,current){
+  // A controlled Gate F pair has one durable queue row; its root lives in
+  // validated provenance metadata, not in a synthetic parent queue row.
+  let pair=null;
+  try{pair=JSON.parse(String(current[16]||'{}'));}catch(_){pair=null;}
+  if(pair&&pair.gate_f_pair===true){
+    if(typeof bseTelegramReportContext_!=='function')throw Error('Gate F provenance validator unavailable.');
+    const context=bseTelegramReportContext_(rows,current);
+    if(String(context.rootId)!==String(pair.original_update_id))throw Error('Gate F Crop Batch root conflict.');
+    return {updateId:String(context.rootId),original:context.original,provenance:context.provenance};
+  }
   let cursor=current;const seen=new Set(),answers=[];
   while(cursor[14]){
     const id=String(cursor[0]);if(seen.has(id))throw new Error('Rantaian penjelasan Crop Batch tidak sah.');seen.add(id);
