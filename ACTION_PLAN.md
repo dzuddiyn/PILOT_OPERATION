@@ -78,7 +78,7 @@ The LOCKED path remains `docs/PILOT_OPERATION_EXECUTION_PATH.md`. Production/off
 
 ## Fast-track recovery — 2026-10-16 (implementation preparation, NOT Gate H enablement)
 - Gate F Crop Batch write/store/retrieve loop LIVE PASS: BSE-TG-772257142 confirmed; Crop Batch BSE-SB-CB-20261002-001, one Planting Event, exactly two M5P1/M5P2 allocations. Owner private Telegram `/retrieve` returned matching record and PILOT_TELEGRAM_RECORD_RETRIEVAL_AUDIT independently recorded `SENT` / `OWNER_ACTIVE` at 2026-10-16T08:34:30.147Z. Scope: this Crop Batch loop only; no claim that other operation types passed PILOT_OPERATION live proof.
-- Gate G evidence/image LIVE proof remains NOT STARTED in PILOT_OPERATION.
+- Gate G PHOTO intake -> reporter confirmation -> private PILOT Drive LIVE PASS: `BSE-EV-22-AQADiBBr`, callback update 772257150 PROCESSED (attempts=1, no error), PHOTO `FIELD_OPERATION` / `PRIVATE_SUBMISSION`, Drive JPEG 116313 bytes in `BSE_OpsMate_SB_PILOT_OPERATION_Evidence`, owner-only. Gate G is NOT CLOSED: owner Telegram `/retrieve BSE-EV-22-AQADiBBr` and `PILOT_TELEGRAM_RETRIEVAL_AUDIT` `SENT` remain LIVE PENDING; no general automation activation.
 - Gate H PILOT_OPERATION-specific installer/tick/preflight/rollback implementation is under development on branch feat/fast-track-gate-h-automation-prep. Automation remains OFF; this work does not authorize merging, Script HEAD sync, or trigger creation.
 - Gate I walkthrough/handover remains NOT STARTED. No production or official BSE write.
 - Exact evidence/readiness checklist: docs/FAST_TRACK_F_TO_I_20261016.md.
