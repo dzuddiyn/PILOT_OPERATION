@@ -36,8 +36,26 @@ function stopBseTelegramTestAutomation() {
   console.log('TELEGRAM_AUTOMATION_OFF: trigger dihentikan; run yang sudah berjalan mungkin akan selesai. Data dikekalkan.');
 }
 function bseTelegramTick() {
-  if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION')return;
-  if(PropertiesService.getScriptProperties().getProperty('BSE_TELEGRAM_AUTOMATION')!=='ON')return;
+  const env=bseRuntimeEnvironmentName_(),props=PropertiesService.getScriptProperties();
+  if(props.getProperty('BSE_TELEGRAM_AUTOMATION')!=='ON')return;
+  if(env==='PILOT_OPERATION'){
+    // Installer is Gate H only. A stale trigger cannot bypass the runtime binding.
+    const state=getBsePilotOperationRuntimeBindingStatus();
+    if(!state.spreadsheet_bound||!state.evidence_folder_bound||
+       state.production_write!==false||state.official_bse_write!==false)
+      throw Error('GATE_H_RUNTIME_BOUNDARY_FAILED');
+    const authorizedId=String(props.getProperty('BSE_PILOT_GATE_H_TRIGGER_ID')||'');
+    if(!authorizedId||!ScriptApp.getProjectTriggers().some(t=>
+       t.getHandlerFunction()==='bseTelegramTick'&&t.getUniqueId()===authorizedId))
+      throw Error('GATE_H_TRIGGER_AUTHORITY_MISSING');
+    bseTelegramAutomationBook_();
+    receiveBseTelegramTest(); // Durable receive + approval/evidence/registration callbacks.
+    processBseTelegramApprovalCallbacks(); // Drains one additional durable callback.
+    processBseTelegramTestQueue();
+    return;
+  }
+  // Preserve legacy TEST behavior; PILOT_TEST automation remains unsupported.
+  if(env!=='TEST')return;
   bseTelegramAutomationBook_();
   receiveBseTelegramTest();
   processBseTelegramTestQueue();
