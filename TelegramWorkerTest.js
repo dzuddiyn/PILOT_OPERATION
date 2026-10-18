@@ -447,10 +447,12 @@ function bseTelegramQuestion_(result) {
 }
 
 /** Controlled PILOT-only edit of an existing unanswered Transplant question. */
-function repairBsePilotTransplantWaitingQuestion(){
-  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')throw Error('PILOT_ONLY_QUESTION_REPAIR');
+/** The original ForceReply bot message is not editable (Telegram HTTP 400).
+ * Send one anchored informational correction; preserve the old Reply session. */
+function sendBsePilotTransplantQuestionCorrection(){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')throw Error('PILOT_ONLY_TRANSPLANT_NOTICE');
   const book=boundTestBook_(),lock=LockService.getScriptLock();
-  if(!lock.tryLock(1000))throw Error('QUESTION_REPAIR_BUSY');
+  if(!lock.tryLock(1000))throw Error('TRANSPLANT_NOTICE_BUSY');
   try{
     const sheet=bseTelegramQueue_(book),rows=sheet.getLastRow()>1?
       sheet.getRange(2,1,sheet.getLastRow()-1,BSE_TG_QUEUE_HEADERS.length).getValues():[];
@@ -461,22 +463,32 @@ function repairBsePilotTransplantWaitingQuestion(){
       /^\s*Transplant\s*$/im.test(String(row[4]||'')));
     const matches=candidates.map(row=>({row:row,result:bseTelegramTransplantDeterministicResult_(book,String(row[4]))}))
       .filter(entry=>entry.result&&entry.result.validation==='NEED_INFO'&&entry.result.transplant_date_conflict);
-    if(matches.length!==1)throw Error('QUESTION_REPAIR_REQUIRES_ONE_MATCHING_OWNER_WAITING_INFO');
+    if(matches.length!==1)throw Error('TRANSPLANT_NOTICE_EXPECTED_ONE_PENDING_REPORT');
     const entry=matches[0],row=entry.row,question=bseTelegramQuestion_(entry.result);
     if(!/Tarikh Pindah/.test(question)||!/M5P1/.test(question)||!/M5P2/.test(question))
-      throw Error('QUESTION_REPAIR_CONTRACT_MISMATCH');
-    const edited=bseTelegramApi_('editMessageText',{
-      chat_id:String(row[1]),message_id:Number(row[15]),
-      text:bseTelegramResultText_('BSE-TG-'+String(row[0]),entry.result,question)
-    });
-    if(!edited||String(edited.message_id)!==String(row[15]))
-      throw Error('QUESTION_REPAIR_TELEGRAM_READBACK_MISMATCH');
-    const result={status:'EDITED',reference:'BSE-TG-'+String(row[0]),
-      message_id:String(row[15]),transplant_record_written:false,
+      throw Error('TRANSPLANT_NOTICE_QUESTION_INVALID');
+    const properties=PropertiesService.getScriptProperties();
+    const key='BSE_PILOT_TRANSPLANT_NOTICE_'+String(row[0]);
+    const previous=String(properties.getProperty(key)||'');
+    if(previous)return {status:'ALREADY_SENT',reference:'BSE-TG-'+String(row[0]),message_id:previous,
       production_write:false,official_bse_write:false};
-    console.log('PILOT_TRANSPLANT_QUESTION_REPAIR '+JSON.stringify(result));
-    return result;
-  }finally{lock.releaseLock();}
+    const text='Pembetulan soalan laporan BSE-TG-'+String(row[0])+':\n'+question+
+      '\nSila jawab menggunakan Reply pada soalan bot asal. Mesej ini tidak mengesahkan kerja ladang.';
+    const sent=bseTelegramApi_('sendMessage',{
+      chat_id:String(row[1]),text:text,
+      reply_parameters:{message_id:Number(row[15]),allow_sending_without_reply:false}
+    });
+    if(!sent||!Number.isSafeInteger(Number(sent.message_id))||Number(sent.message_id)<=0)
+      throw Error('TRANSPLANT_NOTICE_SEND_OUTCOME_UNKNOWN');
+    properties.setProperty(key,String(sent.message_id));
+    if(properties.getProperty(key)!==String(sent.message_id))
+      throw Error('TRANSPLANT_NOTICE_PARTIAL_WRITE_READBACK_MISMATCH');
+    const outcome={status:'NOTICE_SENT',reference:'BSE-TG-'+String(row[0]),message_id:String(sent.message_id),
+      source_question_message_id:String(row[15]),transplant_record_written:false,
+      production_write:false,official_bse_write:false};
+    console.log('PILOT_TRANSPLANT_NOTICE '+JSON.stringify(outcome));
+    return outcome;
+  } finally{lock.releaseLock();}
 }function bseTelegramQueueStatus_(result){
   if(result&&result.validation==='NEED_INFO')return 'WAITING_INFO';
   const actionable=!!(result&&result.validation==='PASS'&&result.production_write===false&&Array.isArray(result.candidates)&&result.candidates.some(candidate=>candidate&&candidate.validation==='PASS'));

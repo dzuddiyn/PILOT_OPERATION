@@ -76,13 +76,14 @@ check('existing Malay transplant parser remains supported',()=>{
  const x=ctx.bseTelegramTransplantDeterministicResult_({},'Pindah anak pokok Timun ke M5P12');
  assert(x&&x.validation==='NEED_INFO'&&x.candidates[0].missing.includes('event_date'));
 });
-check('existing pending Telegram question repair is guarded and edits rather than resends',()=>{
- const fn=extract(worker,'repairBsePilotTransplantWaitingQuestion');
+check('PILOT clarification supplement preserves original Reply and dedups',()=>{
+ const fn=extract(worker,'sendBsePilotTransplantQuestionCorrection');
  assert(fn.includes("bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'"));
  assert(fn.includes("String(row[6])==='WAITING_INFO'"));
  assert(fn.includes('bseRuntimeLegacyUserId_()'));
- assert(fn.includes("bseTelegramApi_('editMessageText'"));
- assert(!fn.includes("bseTelegramApi_('sendMessage'"));
+ assert(fn.includes("bseTelegramApi_('sendMessage'"));
+ assert(fn.includes('ALREADY_SENT')&&fn.includes('source_question_message_id'));
+ assert(fn.includes('allow_sending_without_reply:false'));
  assert(!fn.includes('setValue('));
 });
 console.log('GATE_I_TRANSPLANT_COMPACT '+count+'/'+count+' PASS');
