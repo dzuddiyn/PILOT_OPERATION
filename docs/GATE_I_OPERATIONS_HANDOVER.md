@@ -82,3 +82,8 @@
 - The receipt and approval-card flow can take more than one minute. For verified reports source-to-queue took 16.6-19.9s and source-to-card 33.2-76.5s. Delay is not solved by message copy changes; do not encourage duplicate resubmission to force a quicker reply.
 - Ordinary-user /retrieve, /history and /status user outputs are now proven through actual Telegram PM and independently matched PILOT_* audits. Non-owner visibility negative test remains pending; no synthetic/impersonated negative proof should count as a real registered external user.
 - Original human questionnaire templates and sign-off contract remain in docs/SHADOW_PILOT_MVP_HANDOVER.md. Fill these only with actual recipients/respondents and evidence, not AI-generated acceptance.
+## J. Fresh post-treatment integrity verification
+- On 2026-10-18 at 15:28 MYT, actual owner Script HEAD read-only integrity auditor returned 31 CURRENT / 30 OPTIONAL_ABSENT out of 61 declared schemas; 11/11 currently required CURRENT, 39 source-key entries, no source issues, no stale or mismatched schemas, production and official writes false. It inspected PILOT records after the two real treatment submissions. Execution finished successfully without a domain write.
+- Do not use historical counts (26 CURRENT/35 optional absent/16 entries) as the current database integrity status. Do not create absent optional sheets to optimize the dashboard.
+- Non-owner negative visibility evidence cannot be marked live-proven while registry contains only one active owner. Invite/onboard only a real authorized user under BSE access policy; do not create a dummy staff identity.
+- Handover remains prepared rather than accepted; questionnaire and actual receiving sign-off must be retained as real source evidence.

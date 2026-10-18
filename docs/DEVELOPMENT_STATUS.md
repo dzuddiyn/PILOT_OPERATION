@@ -101,3 +101,8 @@ menjadi kelulusan automatik atau bukti penerimaan pilot.
 - 15:07 owner PM /history 2026-10-18 LIVE PASS with refs BSE-TG-772257161 and 772257163 in plain language, independent HISTORY_AUDIT SENT/OWNER_ACTIVE/matched 2/displayed 2 at 2026-10-18T07:07:25.282Z.
 - 15:07 /status plot M5P1 LIVE proof returned truthful no-ACTIVE status; independent PLOT_STATUS_AUDIT NOT_FOUND/STATUS_NONE at 2026-10-18T07:07:29.636Z. Source allocations PLANNED; do not infer ACTIVE.
 - Real confirmed treatment PILOT Sheet domain events remain 2 unique and allocation links 4, one Daily and one Friday digest audit SENT. Visible TEST/PILOT internal jargon fixed for /retrieve, /history and /status in PILOT_OPERATION. Source work-date vs confirmation-date search remains an explicit unresolved product decision; runtime latency not declared improved. Final BSE signoff still PENDING; Gate I NOT DELIVERED.
+
+## Latest Gate I post-treatment integrity audit - 2026-10-18 15:28 MYT
+- Owner PILOT_OPERATION Script read-only auditor LIVE PASS after both actual treatment records: 61 schemas, 31 CURRENT/30 OPTIONAL_ABSENT, 11/11 required CURRENT, 0 schema/header mismatch, 39 source-key entries/0 issues, production_write:false, official_bse_write:false. No domain write.
+- The earlier 11:53 26 CURRENT / 35 optional missing / 16 source entries is historical, not current. Prior PR #27 end-user Telegram proof and PR #28 evidence handover remain valid.
+- Gate I NOT DELIVERED: non-owner negative access proof requires a real authorized user, history event-vs-confirmation date is an unresolved semantic decision, latency is not yet accepted against an SLA, and BSE questionnaire/sign-off is missing.

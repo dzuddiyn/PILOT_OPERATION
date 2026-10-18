@@ -1,6 +1,6 @@
 # Gate I — PILOT_OPERATION acceptance matrix (verified checkpoint)
 
-**Date:** 2026-10-18 MYT (latest PR #27 user Telegram live proof 15:07; latest independent Sheet audit 15:07).
+**Date:** 2026-10-18 MYT (latest post-treatment integrity audit 15:28; Telegram user proof 15:07).
 **State:** TECHNICAL PARTIAL VERIFIED / HANDOVER PREPARED / NOT DELIVERED.
 **Canonical source:** dzuddiyn/PILOT_OPERATION main efc4e9188e4e185e41ad70622bbcbdda22fbce03 (PR #27).
 **Locked:** production_write:false; official_bse_write:false. No official BSE write/deployment.
@@ -17,7 +17,7 @@
 | I-05 | Evidence | Gate G independent historical PILOT Evidence/retrieval proof; no new Gate I photo | HISTORICAL LIVE PASS / NEW PROOF PENDING |
 | I-06 | Visibility and authorization | Owner-only digest live delivery; runtime source guards tested. New non-owner negative proof not observed | PARTIAL |
 | I-07 | Dedup / retry / callback | Gate H Batal and queue reconciliation previously live; digest one send per period; local wrong-env/lock tests PASS | VERIFIED TESTED SUBSET |
-| I-08 | Live schema/source-key integrity | 11:53 owner read-only Apps Script audit: 61 registry, 26 CURRENT, 35 OPTIONAL MISSING, 0 stale/mismatch; 11/11 required CURRENT, 16 source entries, 0 issues; PR #20/#21 | REQUIRED LIVE PASS, OPTIONAL_TABS_ABSENT |
+| I-08 | Fresh PILOT schema/source-key integrity | Owner Apps Script read-only audit at 15:28 MYT AFTER both real treatment writes: 61 declared, 31 CURRENT, 30 OPTIONAL_ABSENT, 0 stale/schema mismatches, 11/11 required CURRENT, 39 source entries, 0 issues; production/official writes false | LIVE PASS REQUIRED / OPTIONAL_TABS_ABSENT |
 | I-09 | SOP and rollback | GATE_I_OPERATIONS_HANDOVER.md prepared, both digest OFF/readback/ON rehearsed. Gate H rollback tested in separate evidence | PREPARED / ROLLBACK LIVE PASS |
 | I-10 | Team questionnaire and official BSE handover sign-off | No genuine ops/admin questionnaire and signed receipt | HUMAN ACCEPTANCE PENDING |
 
@@ -52,3 +52,8 @@
 - The latest directly observed Daily/Friday scheduler trigger runtime remains the earlier owner inspector evidence, not an inferred new 15:07 trigger inspection. Final independent Sheets still have exactly one SENT Daily and Friday digest each.
 - Independent 2026-10-18 15:18+ MYT PILOT_OWNER_REGISTRY read-back found a single active owner and no enrolled non-owner user. Therefore a genuine non-owner negative visibility test is not currently possible without authorized real-user onboarding; local mock checks must not be promoted to LIVE PASS.
 - Remaining: genuine non-owner negative visibility proof, date semantics acceptance (confirmation vs work date), latency issue, corporate questionnaire and sign-off. PILOT_OPERATION HANDOVER PREPARED, NOT DELIVERED.
+## Final independent post-treatment integrity audit (15:28 MYT)
+- Script log PILOT_OP_INTEGRITY_AUDIT: 2026-10-18 15:28:46 MYT, execution completed, read_only:true.
+- 61 registry items, 31 CURRENT, 30 OPTIONAL_TABS_ABSENT, 0 STALE, 0 SOURCE_MISMATCH, all 11 required CURRENT, 39 source-key entries, 0 issues. production_write:false / official_bse_write:false.
+- This replaces the earlier 11:53 audit counts (26 CURRENT, 35 optional missing, 16 entries) for latest integrity status; the earlier historical audit remains valid at its recorded time.
+- Corporate sign-off and genuine non-owner negative access proof are still outstanding; no business status or operational ledger fields changed by the audit. Gate I NOT DELIVERED.
