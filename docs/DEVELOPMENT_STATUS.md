@@ -116,3 +116,7 @@ menjadi kelulusan automatik atau bukti penerimaan pilot.
 - Actual source: unsupported group input ACK was stripped empty by PILOT legacy Mod TEST filter; bseTelegramTick returned HTTP 400 text is empty. PR32 fixed only PILOT outgoing text, allowing real update 772257172 ACK SENT/message ID 77. Owner Transplant 772257174 already ACK SENT, now WAITING_INFO and no domain write.
 - 154/154 local checks PASS, Apps Script 47/47 LIVE PASS, independent Script HEAD 70/70 MATCH and nine runtime helper files preserved, source/main merged.
 - Work-date history and native Start still require separate real-user live proof; report date 7 Sep precedes 2 Oct sowing and requires owner factual correction. Official production write disabled and Gate I NOT DELIVERED.
+## 2026-10-18 17:08 MYT â€” correct Transplant clarification live
+- PRs #34/#35 merged; compact Transplant M5P12 now correctly maps source-approved M5P1/M5P2 and detects 07/09/2026 vs seed 02/10/2026 chronology conflict; holds NEED_INFO instead of asking for internal batch IDs.
+- Original Telegram ForceReply ID 76 could not be edited (explicit HTTP 400). One deduped owner PILOT supplemental message 78 successfully sent and visibly verified, linked to original. No domain Sheet write, no digital plot ACTIVE. 164/164 Node checks, Apps Script 47/47 LIVE PASS, HEAD exact 70/70 source match. Official writes false.
+- Human actual work-date Reply pending, real secondary user native Start and history work-date Telegram reproof also pending. No BSE receiving signoff; Gate I NOT DELIVERED.
