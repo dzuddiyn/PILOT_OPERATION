@@ -16,8 +16,9 @@ check('PILOT ordinary message has no technical environment prefix',()=>{
 check('PILOT ACK removes trailing Mod TEST suffix without changing reference',()=>{
  env='PILOT_OPERATION';
  const raw='Laporan diterima dan sudah disimpan untuk diproses. Rujukan: BSE-TG-772257188. (Mod TEST)';
- assert.equal(out('sendMessage',raw),'Laporan diterima dan sudah disimpan untuk diproses. Rujukan: BSE-TG-772257188.');
- assert.equal(out('editMessageText',raw),'Laporan diterima dan sudah disimpan untuk diproses. Rujukan: BSE-TG-772257188.');
+ assert.equal(out('sendMessage',raw),'Laporan diterima untuk diproses. Rujukan: BSE-TG-772257188.');
+ assert.equal(out('editMessageText',raw),'Laporan diterima untuk diproses. Rujukan: BSE-TG-772257188.');
+ assert.equal(out('sendMessage','Laporan diterima dan sudah disimpan untuk diproses. Rujukan: BSE-TG-772257188.'),'Laporan diterima untuk diproses. Rujukan: BSE-TG-772257188.');
 });
 check('PILOT does not rewrite unrelated reporter note containing Mod TEST',()=>{
  env='PILOT_OPERATION';const note='Nota pelapor: (Mod TEST) adalah tulisan asal.';
