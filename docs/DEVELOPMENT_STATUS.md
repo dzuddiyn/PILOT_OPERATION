@@ -112,3 +112,7 @@ menjadi kelulusan automatik atau bukti penerimaan pilot.
 - /history operational work date semantics are now in source/Script HEAD, including daily/Friday event windows. Telegram ordinary-user live proof on new semantics not yet run due active Reply composer. Late-reported historical operations are not automatically pushed into already SENT digests.
 - PILOT /start now reaches REGISTRATION_PENDING but live new-user test pending; original new user was unregistered, registry has 0 rows. No change to TEST/PILOT_TEST. Group row 772257172 ACK remains PENDING.
 - Pilot remains partial technically verified, not corporate DELIVERED. See docs/GATE_I_TRANSPLANT_RECOVERY_20261018.md.
+## 18 Oct 2026 16:30 MYT PR #32 group ACK live closure
+- Actual source: unsupported group input ACK was stripped empty by PILOT legacy Mod TEST filter; bseTelegramTick returned HTTP 400 text is empty. PR32 fixed only PILOT outgoing text, allowing real update 772257172 ACK SENT/message ID 77. Owner Transplant 772257174 already ACK SENT, now WAITING_INFO and no domain write.
+- 154/154 local checks PASS, Apps Script 47/47 LIVE PASS, independent Script HEAD 70/70 MATCH and nine runtime helper files preserved, source/main merged.
+- Work-date history and native Start still require separate real-user live proof; report date 7 Sep precedes 2 Oct sowing and requires owner factual correction. Official production write disabled and Gate I NOT DELIVERED.

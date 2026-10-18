@@ -1,5 +1,11 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## Gate I ACK root-cause closure (18 Oct 2026 16:30 MYT)
+- PR #32 merged main 5ba0d709d9f37bb97cb50ba12cf297efc91d650a. Actual bseTelegramTick log 16:23 showed Telegram HTTP 400: Bad Request: message text is empty for unsupported group update 772257172. PILOT UI filter had removed its entire one-line Mod TEST notice. PR32 translates that exact notice before filtering, preserving TEST/PILOT_TEST.
+- Independent PILOT Sheet now shows group update 772257172 ACK SENT (Telegram message ID 77) and owner Transplant 772257174 ACK SENT (ID 75) / WAITING_INFO. The older ACK PENDING entries below are HISTORICAL, not current.
+- 154/154 local regression PASS; PILOT Script HEAD 70/70 independent pull with 9 Gate F helpers; owner Apps Script regression 47/47 PASS at 16:30 MYT. production_write:false, official_bse_write:false.
+- Transplant domain write and plot ACTIVE acceptance still HUMAN-FACT BLOCKED; work-date history and native Start are source/live-head updated but ordinary-user live proof pending. Gate I NOT DELIVERED.
+
 ## Gate I PR #30 â€” queue, work-date history, Start / Transplant truth (18 Oct 2026 16:17 MYT)
 - PR #30 merged main 65a74c74d9badbc6787647c67ed21f92d78d4dec. Local 152/152 checks across 13 suites PASS; Apps Script full regression owner UI 47/47 at 16:15 MYT. Independent 70/70 JS Script HEAD exact pull with 9 preserved Gate F helpers. production_write:false, official_bse_write:false.
 - Actual owner PM Transplant BSE-TG-772257174 (15:52 MYT) was durably received but blocked behind group row 772257172 ACK PENDING because receiver caught-and-broke on first send failure. PR30 safely continues to other recipients, logging sanitized error and preserving failed row for retry; real owner ACK SENT and worker processed once to WAITING_INFO/NEED_INFO (batch_match). The group row remains ACK PENDING; do not claim full recovery. PILOT_TRANSPLANT_EVENT remains EMPTY, no activation created.
