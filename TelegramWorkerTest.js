@@ -48,6 +48,60 @@ function bseTelegramSeedSowingDeterministicResult_(input){
   return {validation:pass?'PASS':'NEED_INFO',production_write:false,candidates:candidates};
 }
 
+/** PILOT user grammar. "M5P34" explicitly denotes M5P3 + M5P4.
+ * Never infer three-digit plot suffixes, and never pass incomplete seed reports to AI. */
+function bsePilotCompactSowingResult_(input){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')return null;
+  const source=bseUnifiedSourceContext_(input);
+  const note=String(source.original||'').trim();
+  const rows=note.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
+  if(!rows.length||!/^(?:[-]\s*)?Semai(?:an)?$/i.test(rows[0]))return null;
+  const cropLine=rows[1]||'',plotLine=rows[2]||'',dateLine=rows[3]||'';
+  const cropMatch=cropLine.match(/^([^()]+?)\s*\(([^()]+)\)$/);
+  const plotMatch=plotLine.match(/^[-]\s*M([1-9]\d*)P([1-9]\d*)\s*$/i);
+  const commaPlot=plotLine.match(/^[-]\s*M([1-9]\d*)P([1-9]),\s*([1-9])\s*$/i);
+  let plots=[];
+  if(commaPlot)plots=['M'+commaPlot[1]+'P'+commaPlot[2],'M'+commaPlot[1]+'P'+commaPlot[3]];
+  else if(plotMatch){
+    // Two one-digit plots concatenate: P34 means P3 and P4.
+    if(plotMatch[2].length===2)plots=['M'+plotMatch[1]+'P'+plotMatch[2][0],'M'+plotMatch[1]+'P'+plotMatch[2][1]];
+    else if(plotMatch[2].length===1)plots=['M'+plotMatch[1]+'P'+plotMatch[2]];
+  }
+  const plotNumbersAreUnique=new Set(plots).size===plots.length;
+  plots=Array.from(new Set(plots)).sort((a,b)=>{
+    const aa=a.match(/^M(\d+)P(\d+)$/),bb=b.match(/^M(\d+)P(\d+)$/);
+    return Number(aa[1])-Number(bb[1])||Number(aa[2])-Number(bb[2]);
+  });
+  const rawDate=dateLine.match(/^[-]\s*(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})\s*$/);
+  let eventDate='';
+  if(rawDate){
+    const day=Number(rawDate[1]),month=Number(rawDate[2]),year=rawDate[3].length===2?2000+Number(rawDate[3]):Number(rawDate[3]);
+    const v=new Date(Date.UTC(year,month-1,day));
+    if(year===2026&&v.getUTCFullYear()===year&&v.getUTCMonth()===month-1&&v.getUTCDate()===day)
+      eventDate=year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+  }
+  const crop=cropMatch?cropMatch[1].trim():'',variety=cropMatch?cropMatch[2].trim():'';
+  const valid=rows.length===4&&!!crop&&!!variety&&!!eventDate&&plots.length>0&&plotNumbersAreUnique;
+  const base={project_id:'BSE_SB',system_year:2026,event_date:eventDate,verification_status:'PROVISIONAL',original_note:note};
+  const mandatory=[];
+  if(!eventDate)mandatory.push('event_date');
+  if(!crop)mandatory.push('crop');
+  if(!variety)mandatory.push('variety');
+  if(rows.length!==4||!plots.length||!plotNumbersAreUnique)mandatory.push('plot_id');
+  const candidate=(target,recordType,fields,missing)=>({
+    target:target,validation:valid?'PASS':'NEED_INFO',missing:valid?[]:missing,
+    fields:Object.assign({},base,{record_type:recordType},fields)
+  });
+  const candidates=[
+    candidate('Crop_Batch_Log','CROP_BATCH',{batch_action:'BATCH_START',crop, variety,batch_status:'PROPOSED'},mandatory.slice()),
+    candidate('Planting_Event_Log','PLANTING_EVENT',{event_type:'SEED_SOWING',crop,variety,event_status:'PROPOSED'},mandatory.slice())
+  ];
+  if(plots.length)plots.forEach(plot=>candidates.push(
+    candidate('Plot_Allocation_Log','PLOT_ALLOCATION',{plot_id:plot,allocation_status:'PLANNED'},mandatory.slice())
+  ));
+  else candidates.push(candidate('Plot_Allocation_Log','PLOT_ALLOCATION',{plot_id:'',allocation_status:'PLANNED'},mandatory.slice()));
+  return {validation:valid?'PASS':'NEED_INFO',production_write:false,candidates};
+}
 function bsePilotCompactTransplantDate_(source){
   const originals=String(source&&source.original||'').split(/\r?\n/);
   const answers=(source&&source.clarifications||[]).map(s=>String(s||'').trim());
@@ -221,6 +275,21 @@ function runBseTelegramTransplantDeterministicHarnessTests(){
  * PASS-result message. Existing CARD_SEND_PENDING audit/retry remains intact.
  * NEED_INFO and TEST/PILOT_TEST are unchanged.
  */
+function bsePilotSowingReviewCardOnly_(result,status){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||status!=='NEEDS_HUMAN_REVIEW'||
+     !result||result.validation!=='PASS'||result.production_write!==false||
+     !Array.isArray(result.candidates))return false;
+  const candidates=result.candidates,targets=candidates.map(c=>c&&c.target);
+  const batch=candidates.filter(c=>c&&c.target==='Crop_Batch_Log');
+  const event=candidates.filter(c=>c&&c.target==='Planting_Event_Log');
+  const plots=candidates.filter(c=>c&&c.target==='Plot_Allocation_Log');
+  return batch.length===1&&event.length===1&&plots.length>=1&&
+    candidates.length===2+plots.length&&
+    targets.every(t=>['Crop_Batch_Log','Planting_Event_Log','Plot_Allocation_Log'].includes(t))&&
+    candidates.every(c=>c.validation==='PASS'&&Array.isArray(c.missing)&&!c.missing.length)&&
+    plots.every(c=>/^M[1-9]\d*P[1-9]\d*$/.test(String(c.fields&&c.fields.plot_id||'')))&&
+    new Set(plots.map(c=>String(c.fields.plot_id))).size===plots.length;
+}
 function bsePilotTransplantReviewCardOnly_(result,status){
   return bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&
     status==='NEEDS_HUMAN_REVIEW'&&result&&result.validation==='PASS'&&
@@ -293,7 +362,7 @@ function bsePilotTransplantReviewCardOnly_(result,status){
       const maintenanceResult=!ecResult&&!inventoryResult&&!leaveResult&&typeof bseMaintenanceParseMessage_==='function'?bseMaintenanceParseMessage_(job.input,job.receivedAt):null;
       // One seed-sowing message is one atomic Crop Batch. Multiple seed batches must
       // be split by the reporter and must never fall through as Treatment traffic.
-      const seedSowingResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult?bseTelegramSeedSowingDeterministicResult_(job.input):null;
+      const seedSowingResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult?(bsePilotCompactSowingResult_(job.input)||bseTelegramSeedSowingDeterministicResult_(job.input)):null;
       const transplantResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult?bseTelegramTransplantDeterministicResult_(book,job.input):null;
       const censusResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&typeof bseTelegramCensusDeterministicResult_==='function'?bseTelegramCensusDeterministicResult_(job.input,job.receivedAt):null;
       const treatmentResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&!censusResult&&typeof bseTreatmentListParseMessage_==='function'?bseTreatmentListParseMessage_(job.input,job.receivedAt):null;
@@ -337,7 +406,7 @@ function bsePilotTransplantReviewCardOnly_(result,status){
       return;
     }
     try {
-      if(!bsePilotTransplantReviewCardOnly_(result,reviewStatus)){
+      if(!bsePilotTransplantReviewCardOnly_(result,reviewStatus)&&!bsePilotSowingReviewCardOnly_(result,reviewStatus)){
       const payload={chat_id:job.chatId,text:claimMissingText||bseTelegramResultText_('BSE-TG-'+job.id,result,question)};
       if(/^\d+$/.test(job.messageId))payload.reply_parameters={message_id:Number(job.messageId),allow_sending_without_reply:true};
       if(question||claimMissingText)payload.reply_markup={force_reply:true,input_field_placeholder:'Jawapan untuk laporan ini'};
