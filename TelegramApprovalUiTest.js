@@ -254,6 +254,98 @@ function bseApprovalRecomputeQueueStatus_(book,reference){
   else status='NEEDS_HUMAN_REVIEW';
   queue.getRange(q+2,7).setValue(status);SpreadsheetApp.flush();return status;
 }
+function bsePilotSowing184RepairContext_(book){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')throw Error('PILOT_ONLY_CARD_REPAIR');
+  const q=bseTelegramQueue_(book),qrows=q.getLastRow()>1?
+    q.getRange(2,1,q.getLastRow()-1,BSE_TG_QUEUE_HEADERS.length).getValues():[];
+  const matches=qrows.map((row,index)=>({row,index})).filter(item=>String(item.row[0])==='772257184');
+  if(matches.length!==1)throw Error('SOWING_REPAIR_QUEUE_NOT_UNIQUE');
+  const row=matches[0].row,ref='BSE-TG-772257184',
+    expected='- Semai\nTimun (282)\n- M5P34\n- 6/10/26',
+    note=String(row[4]||'').replace(/\r\n/g,'\n').trim();
+  if(note!==expected||String(row[6])!=='NEEDS_HUMAN_REVIEW'||
+     String(row[7])!=='SENT'||String(row[1])!==String(bseRuntimeLegacyChatId_())||
+     String(row[2])!==String(bseRuntimeLegacyUserId_())||
+     String(row[1])!==String(row[2]))throw Error('SOWING_REPAIR_QUEUE_NOT_ELIGIBLE');
+  const sheet=bseTelegramApprovalSheet_(book),arows=bseApprovalRows_(sheet),
+    cards=arows.map((item,index)=>({item,index})).filter(c=>String(c.item[0])===ref);
+  if(cards.length!==1)throw Error('SOWING_REPAIR_CARD_NOT_UNIQUE');
+  const card=cards[0].item,state=String(card[17]||'');
+  if(!['OPEN','CARD_REPAIR_PENDING'].includes(state)||String(card[1])!==ref+'|Crop_Batch_Log'||
+     String(card[7])!==String(row[1])||String(card[8])!==String(row[3])||
+     !/^\d+$/.test(String(card[9]||''))||!/^[A-Za-z0-9]{8,16}$/.test(String(card[10]||''))||
+     String(card[13]||'')!==''||String(card[15]||'')!==''||
+     String(card[9])!=='104')throw Error('SOWING_REPAIR_CARD_NOT_ELIGIBLE');
+  const existing=JSON.parse(String(row[9]||''));
+  const oldPlots=existing.candidates.filter(c=>c.target==='Plot_Allocation_Log');
+  if(existing.validation!=='PASS'||oldPlots.length!==1||
+     String(oldPlots[0].fields.plot_id)!=='M5P34'||String(existing.candidates[0].fields.event_date)!=='2026-10-06')
+    throw Error('SOWING_REPAIR_ORIGINAL_CANDIDATE_MISMATCH');
+  const approved=book.getSheetByName('PILOT_CROP_BATCH');
+  if(approved&&approved.getLastRow()>1){
+    const written=approved.getRange(2,1,approved.getLastRow()-1,1).getValues()
+      .some(x=>String(x[0])===ref+'|Crop_Batch_Log');
+    if(written)throw Error('SOWING_REPAIR_ALREADY_HAS_DOMAIN_WRITE');
+  }
+  const corrected=bsePilotCompactSowingResult_(note);
+  if(!corrected||corrected.validation!=='PASS'||corrected.production_write!==false||
+     corrected.candidates.length!==4)throw Error('SOWING_REPAIR_NEW_CANDIDATE_NOT_PASS');
+  const plots=corrected.candidates.filter(c=>c.target==='Plot_Allocation_Log').map(c=>c.fields.plot_id);
+  if(plots.join('|')!=='M5P3|M5P4')throw Error('SOWING_REPAIR_PLOT_MISMATCH');
+  const envelope=bseApprovalEnvelopes_(corrected);
+  if(envelope.length!==1)throw Error('SOWING_REPAIR_ENVELOPE_INVALID');
+  const oldHash=bseApprovalHash_(bseApprovalEnvelopes_(existing)[0]),newHash=bseApprovalHash_(envelope[0]);
+  if(String(card[2])!==oldHash&&String(card[2])!==newHash)throw Error('SOWING_REPAIR_HASH_REVISION_MISMATCH');
+  return {ref,queue:q,queueRow:matches[0].index+2,approval:sheet,approvalRow:cards[0].index+2,
+    oldState:state,oldHash,newHash,card,corrected,envelope:envelope[0],plots};
+}
+function inspectBsePilotSowing184CardCorrection(){
+  const context=bsePilotSowing184RepairContext_(boundTestBook_());
+  const report={reference:context.ref,status:context.oldState,
+    current_plot:'M5P34',corrected_plots:context.plots,event_date:'2026-10-06',
+    card_message_id:String(context.card[9]),new_card_required:false,read_only:true,
+    production_write:false,official_bse_write:false};
+  console.log('PILOT_SOWING_184_CARD_INSPECT '+JSON.stringify(report));
+  return report;
+}
+function repairBsePilotSowing184OpenCard(){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')throw Error('PILOT_ONLY_CARD_REPAIR');
+  const lock=LockService.getScriptLock();
+  if(!lock.tryLock(1000))throw Error('SOWING_REPAIR_BUSY');
+  try{
+    const c=bsePilotSowing184RepairContext_(boundTestBook_());
+    // First stop stale callbacks; no interim mismatched candidate can be approved.
+    c.approval.getRange(c.approvalRow,18).setValue('CARD_REPAIR_PENDING');
+    SpreadsheetApp.flush();
+    if(String(c.approval.getRange(c.approvalRow,18).getValue())!=='CARD_REPAIR_PENDING')
+      throw Error('SOWING_REPAIR_PREVENT_CALLBACK_WRITE_FAILED');
+    const message=bseApprovalSummary_(c.ref,c.envelope)+
+      '\n\nPengesahan ini meliputi semaian dan semua plot di atas.';
+    const response=bseTelegramApi_('editMessageText',{
+      chat_id:String(c.card[7]),message_id:Number(c.card[9]),text:message,
+      reply_markup:bseApprovalMarkupForResult_(String(c.card[10]),c.envelope)
+    });
+    if(!response||String(response.message_id)!==String(c.card[9]))
+      throw Error('SOWING_REPAIR_TELEGRAM_EDIT_OUTCOME_UNKNOWN');
+    c.queue.getRange(c.queueRow,10).setValue(JSON.stringify(c.corrected));
+    c.approval.getRange(c.approvalRow,3).setValue(c.newHash);
+    SpreadsheetApp.flush();
+    const qv=JSON.parse(String(c.queue.getRange(c.queueRow,10).getValue())),
+      hash=String(c.approval.getRange(c.approvalRow,3).getValue());
+    if(bseApprovalHash_(bseApprovalEnvelopes_(qv)[0])!==hash||
+       hash!==c.newHash||qv.candidates.length!==4)
+      throw Error('SOWING_REPAIR_PARTIAL_WRITE_RECONCILIATION_REQUIRED');
+    c.approval.getRange(c.approvalRow,18).setValue('OPEN');
+    SpreadsheetApp.flush();
+    if(String(c.approval.getRange(c.approvalRow,18).getValue())!=='OPEN')
+      throw Error('SOWING_REPAIR_FINAL_STATE_UNKNOWN');
+    const done={status:'CARD_EDITED_AND_REOPENED',reference:c.ref,card_message_id:String(c.card[9]),
+      plot_ids:c.plots,event_date:'2026-10-06',approved:false,domain_write:false,
+      production_write:false,official_bse_write:false};
+    console.log('PILOT_SOWING_184_CARD_REPAIR '+JSON.stringify(done));
+    return done;
+  }finally{lock.releaseLock();}
+}
 function bseTelegramApprovalEnsureCard_(book,queueRow){
   const chat=String(queueRow[1]||''),reporter=String(queueRow[2]||''),reference='BSE-TG-'+String(queueRow[0]||''),owner=bseTestOwnerForTelegramUser_(book,reporter),groupAllowed=bseTelegramTestApprovalGroupIds_().includes(chat),ownerPrivateAllowed=owner.ok&&chat===reporter&&String(owner.private_chat_id||'')===chat;
   if((!groupAllowed&&!ownerPrivateAllowed)||!/^\d+$/.test(reporter))return {skipped:'CHAT_OR_REPORTER_INVALID'};
