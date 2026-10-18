@@ -1,5 +1,11 @@
 # Gate I — PILOT_OPERATION acceptance matrix (verified checkpoint)
 
+## Latest 18 October 2026 20:52 MYT — Transplant 188 LIVE VERIFIED
+- PR #44/#45/#46 MERGED at main `6ed8b8a17c38546695457256468e04fd007c46a6`; Script HEAD 62/62 canonical exact + nine Gate F helpers (71 JS total), 20/20 Node suites and 47/47 Apps Script regression PASS.
+- Real callback 772257189 processed once; source 772257188 and Telegram card 111 REPORTER_CONFIRMED; one Transplant Review APPROVED, one event `BSE-SB-TR-20261009-001`, precisely two M5P3/M5P4 PLANNED→ACTIVE status events. Callback 772257190 terminal failure is retained for audit; no duplicate replay.
+- Independent Telegram Desktop card edited to Disahkan and notification shows BSE-TG-772257188 recorded, ~20:52 MYT. I-03 Transplant technical E2E write/retrieval proof LIVE PASS; this supersedes older 772257188 OPEN/FAILED sections below. No BSE corporate acceptance; no production/official BSE writes.
+- Still open: recurring old `(Mod TEST)` ACK user-facing jargon, actual new-message proof for seed/transplant card-only UX, non-owner negative visibility, /history real-date semantics acceptance, latency SLA, BSE ops/admin signed handover. Gate I PARTIAL VERIFIED, NOT DELIVERED; evidence: docs/GATE_I_TRANSPLANT_188_RECOVERY_LIVE_VERIFIED_20261018.md.
+
 **Date:** 2026-10-18 MYT (latest post-treatment integrity audit 15:28; Telegram user proof 15:07).
 **State:** TECHNICAL PARTIAL VERIFIED / HANDOVER PREPARED / NOT DELIVERED.
 **Canonical source:** dzuddiyn/PILOT_OPERATION main efc4e9188e4e185e41ad70622bbcbdda22fbce03 (PR #27).

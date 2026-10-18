@@ -1,5 +1,10 @@
 # OpsMate BSE site B v1.0 Final Handover
 
+## Gate I recovery checkpoint 18 October 2026 20:52 MYT — LIVE VERIFIED
+- Main `6ed8b8a17c38546695457256468e04fd007c46a6`, PR #44/#45/#46 MERGED, canonical Script HEAD 62/62 exact files, runtime 71 JS with Gate F helpers. Local Node suites 20/20; Apps Script regression 47/47 PASS at 20:49 MYT.
+- Genuine owner Transplant BSE-TG-772257188 callback 772257189 recovered once; independent Sheets confirm exactly one APPROVED review, one event BSE-SB-TR-20261009-001 and two M5P3/M5P4 PLANNED→ACTIVE records, card 111 and queue REPORTER_CONFIRMED. Callback 772257190 preserved as prior terminal failure, not replayed. Independent Telegram Desktop saw same card edited to Disahkan plus receipt notice at 20:52 MYT.
+- No official BSE write or physical-fact inference; `production_write:false` and `official_bse_write:false`. No Apps Script version/deployment claimed. Gate I PARTIAL VERIFIED, NOT DELIVERED; see docs/GATE_I_TRANSPLANT_188_RECOVERY_LIVE_VERIFIED_20261018.md. Remaining UI jargon, non-owner access proof, history UX acceptance, SLA and corporate sign-off still open.
+
 ## Gate I 18 October 2026 19:34 MYT - Sowing 184 card repair VERIFIED
 - Current canonical main PR #42 MERGED (420e42600f0451519e04d5c60113dcafae7d0c75) introduced PILOT-only compact seed parser: BSE-TG-772257184 "Semai / Timun (282) / M5P34 / 6/10/26" now maps work date 2026-10-06, variety 282 and TWO plots M5P3 and M5P4, not M5P34. One Crop Batch + one Planting Event + two PLANNED allocation candidates, all validation PASS. No automatic approval.
 - Existing OPEN Telegram card 104 safely EDITED IN PLACE. Independent Telegram Desktop verifies same card with Tarikh semai 06/10/2026, Timun, Varieti 282, Plot M5P3, M5P4; queue 772257184 NEEDS_HUMAN_REVIEW and approval OPEN. Independent PILOT Google Sheets shows zero Crop Batch, Planting Event or Plot Allocation domain writes for this reference. Await genuine reporter Benar/Betulkan/Batal; do not click on user's behalf.
