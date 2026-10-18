@@ -211,6 +211,7 @@ function bseRuntimePilotUiLabels_(text) {
     .replace(/^Status Plot TEST\b/gm,'Status Plot')
     .replace(/^Rumusan Plot TEST\b/gm,'Rumusan Plot')
     .replace(/^Makluman TEST\b/gm,'Makluman')
+    .replace(/^(Laporan diterima dan sudah disimpan untuk diproses\. Rujukan: BSE-TG-\d+\.) \(Mod TEST\)$/gm,'$1')
     .replace(/^Laporan TEST\b/gm,'Laporan')
     .replace(/^TREATMENT_EVENT$/gm,'Rawatan / Racun')
     .replace(/^Treatment_Event_Log\s*\|/gm,'Rawatan / Racun |')
