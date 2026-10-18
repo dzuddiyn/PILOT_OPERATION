@@ -86,4 +86,38 @@ check('PILOT clarification supplement preserves original Reply and dedups',()=>{
  assert(fn.includes('allow_sending_without_reply:false'));
  assert(!fn.includes('setValue('));
 });
+check('confirmed 7/9/2026 remains NEED_INFO and asks about other sowing',()=>{
+ const r=ctx.bseTelegramTransplantDeterministicResult_({},prefix+JSON.stringify({original_note:report,clarifications:['7/9/2026']}));
+ assert.equal(r.validation,'NEED_INFO');
+ assert.equal(r.transplant_date_conflict.date_reconfirmed,true);
+ assert.equal(r.candidates[0].fields.event_date,'');
+ const q=ctx.bseTelegramQuestion_(r);
+ assert(q.includes('07/09/2026')&&q.includes('02/10/2026'));
+ assert(/semaian lain/.test(q));
+ assert(!/batch Crop Batch|allocation yang sepadan|Balas tarikh pindah sebenar/.test(q));
+});
+check('PILOT generic transplant question never requests technical IDs',()=>{
+ const r={validation:'NEED_INFO',candidates:[{target:'Transplant_Event_Log',missing:['batch_match'],fields:{}}]};
+ const q=ctx.bseTelegramQuestion_(r);
+ assert(/tarikh semai/.test(q));
+ assert(!/Crop Batch|allocation yang sepadan/.test(q));
+});
+check('other domain batch_match also avoids internal IDs',()=>{
+ const r={validation:'NEED_INFO',candidates:[{target:'Treatment_Event_Log',missing:['batch_match'],fields:{}}]};
+ assert(!/Crop Batch|allocation yang sepadan/.test(ctx.bseTelegramQuestion_(r)));
+});
+vm.runInContext(extract(worker,'bseTelegramResultText_'),ctx);
+check('PILOT NEED_INFO omits misleading approval status',()=>{
+ env='PILOT_OPERATION';
+ const r={validation:'NEED_INFO',candidates:[{target:'Transplant_Event_Log',missing:['batch_match'],fields:{}}]};
+ const t=ctx.bseTelegramResultText_('BSE-TG-772257174',r,ctx.bseTelegramQuestion_(r));
+ assert(t.includes('Rujukan BSE-TG-772257174'));
+ assert(!/PROVISIONAL|menunggu pengesahan|Mod TEST/i.test(t));
+});
+check('TEST remains unchanged',()=>{
+ const r={validation:'NEED_INFO',candidates:[]};
+ env='TEST';
+ assert(ctx.bseTelegramResultText_('BSE-TG-TEST',r,'Soalan').includes('Status: PROVISIONAL'));
+ env='PILOT_OPERATION';
+});
 console.log('GATE_I_TRANSPLANT_COMPACT '+count+'/'+count+' PASS');

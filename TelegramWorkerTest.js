@@ -104,7 +104,13 @@ function bseTelegramTransplantDeterministicResult_(book,input){
     }
     const chronology=bsePilotTransplantChronology_(book,match,date.date);
     if(match.kind==='UNIQUE'&&date.ok&&!chronology.ok){
-      candidate.transplant_date_conflict={reported_date:date.date,sowing_date:chronology.sowing_date,plots:parsed.plots};
+      candidate.transplant_date_conflict={
+        reported_date:date.date,sowing_date:chronology.sowing_date,plots:parsed.plots,
+        date_reconfirmed:(source.clarifications||[]).some(answer=>{
+          const recheck=bsePilotCompactTransplantDate_({original:'',clarifications:[answer]});
+          return recheck.ok&&recheck.date===date.date;
+        })
+      };
       f.event_date=''; // Generic schema guard preserves NEED_INFO rather than falsely promoting PASS.
       c.missing=Array.from(new Set(c.missing.concat('event_date')));
       c.validation='NEED_INFO';candidate.validation='NEED_INFO';
@@ -341,6 +347,9 @@ function bseTelegramResultText_(reference,result,question) {
   const lines=['Rujukan '+reference+':'];
   if(question) {
     lines.push(question);
+    // A PILOT clarification is NOT an approval; do not append
+    // misleading approval status boilerplate to an information request.
+    if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION')return lines.join('\n');
   } else if(result&&result.validation==='PASS'&&Array.isArray(result.candidates)) {
     result.candidates.forEach(c=>{
       const f=c&&c.fields||{};
@@ -406,7 +415,10 @@ function bseTelegramReportContext_(rows,current) {
     seen.add(String(cursor[0]));answers.unshift(String(cursor[4]));
     const parent=rows.find(r=>String(r[0])===String(cursor[14])&&String(r[1])===String(current[1])&&String(r[2])===String(current[2]));
     const correctionSession=parent&&String(parent[6])==='CORRECTION_WAITING_INFO'&&!String(cursor[13]||'').trim()&&/^\d+$/.test(String(parent[15]||''));
-    if(!parent||!parent[15]||(String(parent[15])!==String(cursor[13])&&!correctionSession))throw new Error('Rujukan penjelasan tidak sepadan.');
+    const pilotNoticeReply=parent&&typeof bseTelegramPilotNoticeParent_==='function'&&
+      bseTelegramPilotNoticeParent_([parent],String(current[1]),String(current[2]),String(cursor[13]))===parent;
+    if(!parent||!parent[15]||(String(parent[15])!==String(cursor[13])&&!correctionSession&&!pilotNoticeReply))
+      throw new Error('Rujukan penjelasan tidak sepadan.');
     cursor=parent;
   }
   const original=String(cursor[4]);
@@ -420,11 +432,17 @@ function bseTelegramReportContext_(rows,current) {
 
 function bseTelegramQuestion_(result) {
   if(!result||result.validation!=='NEED_INFO'||!Array.isArray(result.candidates))return '';
-  if(result.seed_sowing_split_required===true)return 'Laporan semaian mengandungi lebih daripada satu Crop Batch. Sila hantar satu Crop Batch sahaja bagi setiap mesej: satu jenis tanaman/varieti, satu Modul, dan satu Tarikh Semai.';
+  if(result.seed_sowing_split_required===true)return 'Laporan semaian mengandungi lebih daripada satu set tanaman. Sila hantar setiap semaian secara berasingan: satu jenis tanaman/varieti, satu modul, dan satu tarikh semai untuk setiap mesej.';
   if(result.transplant_date_conflict){
     const c=result.transplant_date_conflict;
     const format=ymd=>String(ymd||'').split('-').reverse().join('/');
     const plots=(c.plots||[]).join(' dan ');
+    if(c.date_reconfirmed)return 'Tarikh pindah tanam '+format(c.reported_date)+
+      ' telah diterima semula. Namun, rekod semaian Timun yang ada bagi '+plots+
+      ' bertarikh '+format(c.sowing_date)+', iaitu selepas tarikh pindah tanam yang dilaporkan.'+
+      ' Adakah anak pokok ini daripada semaian lain? Jika ya, sila nyatakan tarikh semai, varieti Timun, dan plot sebenar.'+
+      ' Jika rekod semaian '+format(c.sowing_date)+' yang tersalah, nyatakan pembetulan fakta semaian itu.'+
+      ' Gunakan Reply pada soalan asal. Tiada rekod pindah tanam ditulis.';
     return 'Sila semak tarikh pindah tanam Timun untuk '+plots+'. Laporan menyatakan '+format(c.reported_date)+
       ', tetapi rekod semaian batch yang sepadan ialah '+format(c.sowing_date)+
       '. Tarikh pindah tanam tidak boleh mendahului tarikh semai. Balas tarikh pindah sebenar (format: Tarikh Pindah: DD/MM/YYYY) menggunakan Reply. Jika laporan merujuk batch lain, nyatakan fakta itu. Rekod Transplant belum disahkan.';
@@ -439,7 +457,9 @@ function bseTelegramQuestion_(result) {
   if(pendingTreatment.length){const names=pendingTreatment.join(', '),example=pendingTreatment.length===1?' Balas nilai sahaja (contoh: 100) atau '+pendingTreatment[0]+' - 100.':' Balas setiap bahan bersama nilainya, contoh: '+pendingTreatment[0]+' - 100.';return 'Berapa jumlah/dos '+names+' yang digunakan?'+example+' Sila gunakan Reply pada soalan ini.';}
   const reallocationSource=result.candidates.find(c=>c&&c.target==='Transplant_Event_Log'&&Array.isArray(c.missing)&&c.missing.includes('source_plot'));
   if(reallocationSource){const f=reallocationSource.fields||{},crop=String(f.crop||'tanaman'),to=Array.isArray(f.plot_ids)&&f.plot_ids.length===1?String(f.plot_ids[0]):'plot baharu',options=Array.isArray(f.source_plot_options)?f.source_plot_options.map(String).filter(Boolean):[],optionText=options.length?' Pilihan yang sistem jumpa: '+(options.length===1?options[0]:options.slice(0,-1).join(', ')+' atau '+options[options.length-1])+'.':'';return 'Untuk laporan pindah anak pokok '+crop+' ke '+to+', anak pokok itu berasal dari plot mana?'+optionText+' Balas satu plot sahaja. Sila gunakan Reply pada soalan ini.';}
-  const labels={event_date:isTransplant?'Tarikh Pindah sebenar (hari/bulan/tahun)':'tarikh laporan (hari/bulan/tahun)',plot_id:'plot yang betul',measurement_type:'jenis bacaan',value:'nilai bacaan',item_name:'nama bahan',quantity:'jumlah penggunaan sebenar',unit:'unit penggunaan',decision_subject:'perkara cadangan',approval_status:'status semakan',observation_facts:'fakta gejala/pemerhatian',crop:'jenis tanaman',variety:'varieti tanaman',living_plant_count:'jumlah pokok hidup',reported_dead_count:'bilangan pokok mati',reported_sick_count:'bilangan pokok sakit',plot_capacity_polybag:'kapasiti polybag plot yang sah',census_counts_conflict:'semakan semula bilangan Mati/Sakit kerana melebihi kapasiti plot',census_date_before_active:'Tarikh Banci sebenar pada atau selepas plot menjadi ACTIVE',treatment_dosage:'jumlah/dos bahan rawatan yang belum lengkap',batch_match:'batch Crop Batch dan allocation yang sepadan dengan tarikh/plot laporan',session:'sesi Pagi atau Petang',ec_readings:'baris bacaan EC yang sah',ec_full_report:'laporan EC penuh untuk pembetulan',duplicate_scope:'scope modul/plot yang tidak berganda',module_scope:'baris scope modul hanya boleh menggunakan x : x'};
+  const unmatchedTransplant=result.candidates.find(c=>c&&c.target==='Transplant_Event_Log'&&Array.isArray(c.missing)&&c.missing.includes('batch_match'));
+  if(unmatchedTransplant)return 'Laporan pindah tanam belum dapat dipadankan dengan rekod tanaman yang tersedia. Sila nyatakan jenis/varieti tanaman, plot sebenar, tarikh semai serta tarikh pindah tanam. Jika semaian itu belum direkodkan, maklumkan perkara tersebut. Gunakan Reply pada soalan ini. Tiada rekod pindah tanam ditulis.';
+  const labels={event_date:isTransplant?'Tarikh Pindah sebenar (hari/bulan/tahun)':'tarikh laporan (hari/bulan/tahun)',plot_id:'plot yang betul',measurement_type:'jenis bacaan',value:'nilai bacaan',item_name:'nama bahan',quantity:'jumlah penggunaan sebenar',unit:'unit penggunaan',decision_subject:'perkara cadangan',approval_status:'status semakan',observation_facts:'fakta gejala/pemerhatian',crop:'jenis tanaman',variety:'varieti tanaman',living_plant_count:'jumlah pokok hidup',reported_dead_count:'bilangan pokok mati',reported_sick_count:'bilangan pokok sakit',plot_capacity_polybag:'kapasiti polybag plot yang sah',census_counts_conflict:'semakan semula bilangan Mati/Sakit kerana melebihi kapasiti plot',census_date_before_active:'Tarikh Banci sebenar pada atau selepas plot menjadi ACTIVE',treatment_dosage:'jumlah/dos bahan rawatan yang belum lengkap',batch_match:'jenis tanaman, plot dan tarikh semai yang sepadan dengan kerja ini',session:'sesi Pagi atau Petang',ec_readings:'baris bacaan EC yang sah',ec_full_report:'laporan EC penuh untuk pembetulan',duplicate_scope:'scope modul/plot yang tidak berganda',module_scope:'baris scope modul hanya boleh menggunakan x : x'};
   const missing=[];
   result.candidates.forEach(c=>{if(c&&Array.isArray(c.missing))c.missing.forEach(k=>{if(labels[k])missing.push(labels[k]);});});
   if(!missing.length)return 'Maklumat laporan belum cukup atau tidak konsisten. Sila semak semula laporan dan jawab dengan maklumat yang diminta.';
