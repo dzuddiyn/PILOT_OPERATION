@@ -423,6 +423,18 @@ function runBseTelegramQueueStatusRegressionTests(){
 
 function bseTelegramResultText_(reference,result,question) {
   const lines=['Rujukan '+reference+':'];
+  const candidate=result&&result.candidates&&result.candidates.length===1?
+    result.candidates[0]:null;
+  if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&
+     !question&&result&&result.validation==='PASS'&&
+     candidate&&candidate.target==='Transplant_Event_Log'){
+    const f=candidate.fields||{};
+    return ['Laporan pindah tanam '+reference+' sedia untuk disemak.',
+      'Tarikh kerja: '+String(f.event_date||'').split('-').reverse().join('/'),
+      'Tanaman: '+String(f.crop||''),
+      'Plot: '+(Array.isArray(f.plot_ids)?f.plot_ids.join(', '):''),
+      'Sila pilih Benar, Betulkan atau Batal pada kad semakan.'].join('\n');
+  }
   if(question) {
     lines.push(question);
     // A PILOT clarification is NOT an approval; do not append

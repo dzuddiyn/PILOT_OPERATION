@@ -203,4 +203,32 @@ check('recovery forbidden in TEST and PILOT_TEST',()=>{
  env='PILOT_TEST';assert.throws(()=>ctx.inspectBsePilotTransplantDateCorrection(),/PILOT_ONLY/);
  env='PILOT_OPERATION';
 });
+const approvalSrc=fs.readFileSync(__dirname+'/TelegramApprovalUiTest.js','utf8');
+vm.runInContext(extract(approvalSrc,'bseApprovalSummary_'),ctx);
+ctx.bseApprovalDisplayDate_=ymd=>String(ymd||'').split('-').reverse().join('/');
+const accepted=ctx.bseTelegramTransplantDeterministicResult_({},prefix+JSON.stringify({
+ original_note:report,clarifications:['7/9/2026','7/10/2026']}));
+check('PILOT future Transplant card includes real work date and plot rather than schema jargon',()=>{
+ const card=ctx.bseApprovalSummary_('BSE-TG-772257176',accepted);
+ assert(card.includes('Pindah Tanam'));
+ assert(card.includes('07/10/2026')&&card.includes('Timun')&&card.includes('Batu CCB'));
+ assert(card.includes('M5P1, M5P2'));
+ assert(card.includes('Benar'));
+ assert(!card.includes('Transplant_Event_Log')&&!card.includes('Crop Batch'));
+});
+check('PILOT pass receipt preserves real work date and confirmation-gated wording',()=>{
+ const msg=ctx.bseTelegramResultText_('BSE-TG-772257176',accepted,'');
+ assert(msg.includes('07/10/2026')&&msg.includes('M5P1, M5P2'));
+ assert(msg.includes('kad semakan'));
+ assert(!msg.includes('TRANSPLANT_EVENT')&&!msg.includes('PROVISIONAL'));
+ assert(!msg.includes('menunggu pengesahan laporan'));
+});
+check('TEST retains legacy summary and result shape without PILOT-only changes',()=>{
+ env='TEST';
+ const card=ctx.bseApprovalSummary_('BSE-TG-772257176',accepted);
+ assert(card.includes('Transplant_Event_Log'));
+ const text=ctx.bseTelegramResultText_('BSE-TG-772257176',accepted,'');
+ assert(text.includes('TRANSPLANT_EVENT'));
+ env='PILOT_OPERATION';
+});
 console.log('GATE_I_TRANSPLANT_COMPACT '+count+'/'+count+' PASS');
