@@ -1,4 +1,13 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
+## Current operational checkpoint — 2026-10-18
+- Canonical main `eaa6e72acb7e322085838a79dbba720f69c4dfb9` (Gate H PR #16 merged). Prior sections below describe historical checkpoints and must not be used as current automation status.
+- Gate F and Gate G PILOT_OPERATION LIVE PASS. Gate H general Telegram automation activated and independently read back `ON`, one `bseTelegramTick` CLOCK trigger, webhook inactive, offset `772257155`; tested auto-receive, callback Batal, dedup window, actual STOP/OFF/0 trigger and reactivation ON/1 trigger. Evidence: external `PILOT_OPERATION_EVIDENCE/GATE_H_20261016_AUTO_ON_LIVE_PASS.md`.
+- `production_write:false` and `official_bse_write:false` remain locked. Production promotion is separate.
+- Current gate: I-00 digest scheduler promotion followed by Gate I ordinary-user E2E, audits and handover. Gate I **NOT ACCEPTED**, BSE sign-off **PENDING**.
+- I-00 feature `feat/gate-i-pilot-digest-schedulers`: PILOT_OPERATION-specific owner-only Daily 08:01 MYT and Friday 07:59 MYT schedulers, no inherited PILOT_TEST scheduler changes. 12/12 targeted tests, existing Gate E/F/H 80/80 node checks LOCAL PASS. Runtime/Telegram LIVE proof PENDING until after verified main and Script HEAD sync.
+- Apps Script HEAD snapshot pulled into isolated disposable local mirror and independently matched the 59 canonical JS source files; nine additional Gate F helpers must be preserved on source sync. No unsafe push from the bare repository.
+
+## Historical checkpoints (as recorded at their respective times)
 
 ## Current true milestone
 Canonical implementation workspace is now `dzuddiyn/PILOT_OPERATION`. Its `main` was seeded exactly from the fully locked source baseline merge `480981787d00d4d5ef346fb0531b2e3ec161743e` from `BSE-dzuddiyn01gmail/BSE-OpsMate-TEST`.
