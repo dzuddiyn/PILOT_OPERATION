@@ -65,3 +65,12 @@
 - Actual admin and operations questionnaire results, sign-off roles/date, delivery recipient and acceptance scope.
 
 **Acceptance classification:** `HANDOVER_PREPARED` until external BSE review and signatures are real. No automatic `DELIVERED` classification from source merge or digest messages.
+
+## H. Gate I live integrity audit and handover hold
+
+- Run the **read-only** owner Apps Script function runBsePilotOperationReadOnlyIntegrityAudit to verify schema/source-key lineage without creating, repairing or mutating Sheet/Drive records. Check the returned environment and production/official BSE write flags before accepting output.
+- Verified 2026-10-18 11:53 MYT: 61 registered schemas; 26 CURRENT, 35 optional missing, 0 stale/header mismatch, all 11 currently required CURRENT, 16 source-key entries and 0 detected issues. Correct result is OPTIONAL_TABS_ABSENT, not 61/61 CURRENT. Do not auto-create optional tabs merely to make a metric green.
+- Domain source keys may refer to a parent Telegram update retained in queue parent_update_id after clarification. Repeated /retrieve requests in append-only audit are not duplicate domain writes. PR #21 regression preserves both rules and still detects true orphans.
+- Owner PM /retrieve BSE-TG-772257142 on 2026-10-18 12:05 MYT returned real confirmed PILOT record with M5P1/M5P2; source UI labels were corrected in PR #22. Independent retrieval Sheet audit recorded SENT / OWNER_ACTIVE. This does not replace a NEW real operational-report confirmation.
+- Daily and Friday digest shutdown/reinstall exercises were separately proved OFF/0 → ON/1, preserving one SENT message per period. Refer to the private Gate I evidence and acceptance matrix for timestamps.
+- **Human acceptance hold:** Do not mark Gate I DELIVERED until a new actual farm-work fact is submitted and the real reporter selects Benar, plus required BSE admin/team questionnaire and receiving representative sign-off. AI cannot supply physical-work facts, impersonate review or grant corporate acceptance.

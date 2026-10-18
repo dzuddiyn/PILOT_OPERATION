@@ -1,42 +1,35 @@
-# Gate I — Acceptance matrix and independent verification
+# Gate I — PILOT_OPERATION acceptance matrix (verified checkpoint)
 
-**Date:** 2026-10-18 MYT
-**Authority:** owner-approved Gate I technical execution in PILOT_OPERATION only.
-**Status:** IN PROGRESS — delivery not accepted.
+**Date:** 2026-10-18 MYT (last Telegram live proof 12:05, latest independent Google Sheets read-back 13:53).
+**State:** TECHNICAL PARTIAL VERIFIED / HANDOVER PREPARED / NOT DELIVERED.
+**Canonical source:** dzuddiyn/PILOT_OPERATION main 53d95873700ebec3b9ead4b192e1fd0c3f06adcf (PR #22).
+**Locked:** production_write:false; official_bse_write:false. No official BSE write/deployment.
 
-| ID | Acceptance | Evidence / status |
-| --- | --- | --- |
-| I-00-A | Daily scheduler PILOT-only, 08:01 MYT | PR #17 merged, Script HEAD read-back 69/69 files, scheduled owner Telegram LIVE PASS: daily message 34, Friday message 35; owner audit ON/1 trigger after both proofs |
-| I-00-B | Friday scheduler PILOT-only, Friday 07:59 MYT | PR #17 merged, Script HEAD read-back, installed ON / 1 trigger; accelerated scheduled proof LIVE PASS, Friday message 35, PILOT Friday audit SENT |
-| I-00-C | Source & regression | Node targeted 12/12; Gate E/F/H targeted 80/80; Apps Script full regression 47/47 PASS, production_write:false on 2026-10-18 10:49 MYT |
-| I-01 | Canonical source/runtime compare | Main bd3921b; Script HEAD 69/69 content matches selected snapshot incl. nine Gate F helpers; PASS |
-| I-02 | General Telegram runtime controls | Gate H final independent audit on 2026-10-16 ON / one CLOCK; 2026-10-18 general tick history includes transient Telegram network and lock-busy failures, reconciliation under repair |
-| I-03 | New legitimate report via automatic receive, human Benar, PILOT domain write | PENDING — HUMAN VERIFIED FACT REQUIRED, no fabrication |
-| I-04 | Retrieve/history/status matches actual confirmed record | Prior Gate F existing record verified; Gate I new positive flow PENDING |
-| I-05 | Evidence/photo identity, Drive and retrieval | Gate G existing live proof; new Gate I review PENDING |
-| I-06 | Access checks and sender visibility | Initial owner-only digests enforced in code; live negative proof PENDING |
-| I-07 | Dedup, callbacks and wrong-environment | Gate H Batal callback and stable offset; new digest local guards PASS; final live review PENDING |
-| I-08 | Fresh schema and source-key audit | Selected 11 PILOT tabs independently checked; no missing header, callbacks processed; legitimate 2 plot allocations share one source key. Full declared-schema audit PENDING |
-| I-09 | Rollback and exception SOP | Prepared in GATE_I_OPERATIONS_HANDOVER.md; final field read-back PENDING |
-| I-10 | BSE questionnaire, ops/admin receiving sign-off | HUMAN BSE ACCEPTANCE PENDING — cannot fabricate |
+| ID | Criterion | Outcome | Status |
+| --- | --- | --- | --- |
+| I-00-A | Daily 08:01 MYT owner PM | Autonomous CLOCK proof Telegram message 34, 2026-10-17; one Sheet SENT/production FALSE | LIVE PASS |
+| I-00-B | Friday 07:59 MYT owner PM | Autonomous CLOCK proof Telegram message 35, 2026-10-09..15; one Sheet SENT/production FALSE; Gemini labelled NON_CANONICAL | LIVE PASS |
+| I-00-C | Digest rollback and reschedule | Daily OFF/0 then ON/1 at 11:23–11:24; Friday OFF/0 then ON/1 at 11:33–11:36; final 11:37 UID marker and one trigger each | LIVE PASS |
+| I-01 | Source and regression | PR #17–#22 merged; 70/70 Script HEAD files matched independent pull, 9 Gate F helpers preserved; 119/119 local checks; Apps Script full regression 47/47 PASS at 12:03 | VERIFIED |
+| I-02 | General Telegram recovery | Gate H previously ON, webhook OFF; 11:20 Gate F audit shows offset 772257155, 3 CLOCK handlers, 2 callbacks PROCESSED. PR #19 defers exact ScriptLock busy collision. Historical transport failures remain observed | PARTIAL |
+| I-03 | New genuine operational report → auto review → reporter Benar → domain write | No new owner-verifiable farm work fact has been provided. Prior Gate F confirmation / Gate H Batal are historical, not a NEW Gate I approval | BLOCKED: HUMAN FACT |
+| I-04 | Ordinary-user read-only retrieval | 12:05 PM /retrieve BSE-TG-772257142 produced real Telegram bot reply with corrected Rekod PILOT / Mod PILOT, Timun Batu CCB, M5P1/M5P2; Sheet retrieval audit 2026-10-18T04:05:31Z SENT OWNER_ACTIVE | LIVE PASS for /retrieve |
+| I-05 | Evidence | Gate G independent historical PILOT Evidence/retrieval proof; no new Gate I photo | HISTORICAL LIVE PASS / NEW PROOF PENDING |
+| I-06 | Visibility and authorization | Owner-only digest live delivery; runtime source guards tested. New non-owner negative proof not observed | PARTIAL |
+| I-07 | Dedup / retry / callback | Gate H Batal and queue reconciliation previously live; digest one send per period; local wrong-env/lock tests PASS | VERIFIED TESTED SUBSET |
+| I-08 | Live schema/source-key integrity | 11:53 owner read-only Apps Script audit: 61 registry, 26 CURRENT, 35 OPTIONAL MISSING, 0 stale/mismatch; 11/11 required CURRENT, 16 source entries, 0 issues; PR #20/#21 | REQUIRED LIVE PASS, OPTIONAL_TABS_ABSENT |
+| I-09 | SOP and rollback | GATE_I_OPERATIONS_HANDOVER.md prepared, both digest OFF/readback/ON rehearsed. Gate H rollback tested in separate evidence | PREPARED / ROLLBACK LIVE PASS |
+| I-10 | Team questionnaire and official BSE handover sign-off | No genuine ops/admin questionnaire and signed receipt | HUMAN ACCEPTANCE PENDING |
 
-## Distinct scopes
-- `I-00 LIVE PASS` is supported by Telegram message IDs 34 and 35 and independent PILOT digest audit; it is separate from Gate I acceptance.
-- `SCRIPT HEAD UPDATED` and `Apps Script full regression PASS` do not imply production deployment.
-- `PILOT_OPERATION VERIFIED` requires live proof and independent audits, not just the test runner.
-- `PILOT_OPERATION DELIVERED` requires applicable actual human handover acceptance.
-- Official BSE system remains disconnected with `production_write:false`, `official_bse_write:false`.
+## Independent facts and limitations
 
-## Evidence references
-- Local external owner evidence: `PILOT_OPERATION_EVIDENCE/GATE_H_20261016_AUTO_ON_LIVE_PASS.md`.
-- Source: `PilotOperationDigests.js`, PR #17 merge `bd3921b2fcaa2bdb0b0695e211f93a26bc1d2bce`.
-- Apps Script read-back: isolated mirror count 69 JavaScript, 0 mismatch, module SHA256 D57CD6AA62ABB0E787A571495B9B478587925AA77B60DA09B17E5B19659B28CB.
-- Google PILOT workbook: owner-scoped, separate from TEST/PILOT_TEST, reports only facts verified through read-back.
+- At 13:53 independent PILOT Sheets still had exactly one SENT row for each digest (Telegram 34 and 35) and the latest 12:05 /retrieve was recorded SENT / OWNER_ACTIVE.
+- Apps Script runtime trigger count was last directly inspected at 11:37. CONFIG_AUDIT entries confirm restoration history, but are not fresh real-time trigger observation at 13:53.
+- Final Apps Script Script HEAD matched all 70 JS files with zero differences; clasp push did not create a version, update a deployment or promote official BSE production.
+- The 35 uncreated tabs are optional; no synthetic seed/repair. Initial 6 source-key warnings were auditor false positives due parent_update_id lineage and repeatable retrieval audit; PR #21 fixed logic, not domain data.
+- PR #22 PILOT-only fixed TEST labels and was verified in a Telegram auto-reply at 12:05, without changing PILOT_TEST/TEST.
+- Sender permissions beyond owner, NEW factual positive Benar, new Gate I photo and BSE acceptance are unverified; do not promote them to PASS.
+- Runtime evidence (private): PILOT_OPERATION_EVIDENCE/GATE_I_20261018_DIGEST_AUTO_LIVE_VERIFIED_PARTIAL_HANDOVER.md.
+- PRs: #17 Digests; #18 Handover; #19 Poll lock and Gemini label; #20 Integrity auditor; #21 Parent lineage; #22 PILOT UI label.
 
-**Use this matrix for tracking. Do not mark I-00 or Gate I complete while any required proof is PENDING.**
-
-## I-00 verified live evidence (2026-10-18)
-- Daily: 2026-10-17 period; PILOT_DAILY_DIGEST_AUDIT SENT / Telegram message 34; received in authorized owner PM at 10:55 MYT.
-- Friday: 2026-10-09 through 2026-10-15; PILOT_FRIDAY_WEEKLY_DIGEST_AUDIT SENT / Telegram message 35; received at 11:02 MYT.
-- After trigger proof: inspectBsePilotOperationDigestSchedulers at 11:08 MYT returned DAILY and FRIDAY enabled true, triggers 1 each, marker_matches true, production_write false, official_bse_write false.
-- Known issues: transient Gate H receiver lock contention/Telegram transport failure; inherited Gemini commentary mentioned mod TEST in one PILOT weekly message. These are recorded as reliability/UX findings; no claim of clean final Gate I closure.
+**Next genuine human gate:** a real, owner-verified operational fact plus reporter Benar is required for the new positive E2E acceptance; separate BSE representative questionnaire/sign-off follows. Never fabricate physical work, create a fake official acceptance or mark DELIVERED prematurely.

@@ -1,4 +1,13 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
+
+## Latest Gate I verified checkpoint — 2026-10-18 13:53 MYT
+- Canonical GitHub main: 53d95873700ebec3b9ead4b192e1fd0c3f06adcf, PRs #17–#22 MERGED; local working tree clean at start of this documentation feature. The earlier 2026-10-18 and prior sections below are historical snapshots, not current gate status.
+- Gate I-00 Daily owner PM 08:01 MYT and Friday owner PM 07:59 MYT AUTONOMOUS LIVE PASS: Telegram 34 and 35, one SENT PILOT_* audit row each. Both digest rollback OFF/0 → ON/1 LIVE PASS, independent scheduler UID status at 11:37 correct. Latest 13:53 independent Sheet check shows no second digest send.
+- After final PR #22, Apps Script Script HEAD 70/70 JavaScript source and preserved 9 Gate F helpers independently MATCHED; local 119/119 Node tests PASS, Apps Script full regression 47/47 PASS at 12:03 MYT. Clasp push is Script HEAD only, NOT deployment.
+- Gate I integrity read-only live audit: 61 registered; 26 CURRENT, 35 OPTIONAL_TABS_ABSENT, 0 stale/header mismatch; 11/11 currently required CURRENT; 16 source-key entries, 0 issues. PR #21 corrected parent_update_id lineage/repeated append-only audit false positives without changing domain data.
+- Gate I /retrieve PM LIVE PASS at 12:05 MYT: genuine existing Crop Batch Timun Batu CCB M5P1/M5P2, PILOT label fixed by PR #22, Google Sheet SENT / OWNER_ACTIVE at 2026-10-18T04:05:31Z.
+- Historic Telegram API/network failures were observed and are NOT erased by PR #19 lock-busy defer fix. Positive NEW operational-report Benar proof, non-owner negative visibility and BSE receiving questionnaire/sign-off still PENDING / HUMAN GATE. Gate I NOT DELIVERED.
+- Safety locks: production_write:false, official_bse_write:false, no official BSE integration; no fake farm report or human approval. Latest matrix: docs/GATE_I_ACCEPTANCE_MATRIX_20261018.md; private evidence: PILOT_OPERATION_EVIDENCE/GATE_I_20261018_DIGEST_AUTO_LIVE_VERIFIED_PARTIAL_HANDOVER.md.
 ## Current operational checkpoint — 2026-10-18
 - Canonical main `eaa6e72acb7e322085838a79dbba720f69c4dfb9` (Gate H PR #16 merged). Prior sections below describe historical checkpoints and must not be used as current automation status.
 - Gate F and Gate G PILOT_OPERATION LIVE PASS. Gate H general Telegram automation activated and independently read back `ON`, one `bseTelegramTick` CLOCK trigger, webhook inactive, offset `772257155`; tested auto-receive, callback Batal, dedup window, actual STOP/OFF/0 trigger and reactivation ON/1 trigger. Evidence: external `PILOT_OPERATION_EVIDENCE/GATE_H_20261016_AUTO_ON_LIVE_PASS.md`.
