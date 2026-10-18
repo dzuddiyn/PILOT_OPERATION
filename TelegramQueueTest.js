@@ -187,11 +187,19 @@ function bseTelegramQueue_(book) {
   if(sheet.getRange(1,1,1,BSE_TG_QUEUE_HEADERS.length).getValues()[0].join('|')!==BSE_TG_QUEUE_HEADERS.join('|'))throw new Error('Header TELEGRAM_TEST_QUEUE tidak sepadan.');
   return sheet;
 }
+/** Queue state written only by documented owner-directed administrative closeout.
+ * This is not a Telegram Benar/Batal decision and must never create domain records.
+ * CLOSED_BY_OWNER is terminal in PILOT_OPERATION, not an active clarification.
+ */
+function bsePilotQueueClosedByOwner_(row){
+  return bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&
+    String(row&&row[6]||'')==='CLOSED_BY_OWNER';
+}
 function bseTelegramCell_(v){return typeof v==='string'&&/^\s*[=+@-]/.test(v)?"'"+v:v;}
-function bseTelegramEditedWaitingInfoMatch_(rows,chatId,userId,messageId){const matches=(rows||[]).map((row,index)=>({row:row,index:index})).filter(item=>String(item.row[1])===String(chatId)&&String(item.row[2])===String(userId)&&String(item.row[3])===String(messageId)&&String(item.row[6])==='WAITING_INFO'&&String(item.row[14]||'').trim()&&!(rows||[]).some(reply=>String(reply[14])===String(item.row[0])));return matches.length===1?matches[0]:null;}
+function bseTelegramEditedWaitingInfoMatch_(rows,chatId,userId,messageId){const matches=(rows||[]).map((row,index)=>({row:row,index:index})).filter(item=>String(item.row[1])===String(chatId)&&String(item.row[2])===String(userId)&&String(item.row[3])===String(messageId)&&!bsePilotQueueClosedByOwner_(item.row)&&String(item.row[6])==='WAITING_INFO'&&String(item.row[14]||'').trim()&&!(rows||[]).some(reply=>String(reply[14])===String(item.row[0])));return matches.length===1?matches[0]:null;}
 function bseTelegramEditedMetadata_(rawMeta,update,message,priorText){let meta={};try{meta=JSON.parse(String(rawMeta||'{}'));}catch(_){meta={};}meta.edited_message=true;meta.edited_update_id=String(update&&update.update_id||'');meta.edited_at=message&&Number.isSafeInteger(Number(message.edit_date))?new Date(Number(message.edit_date)*1000).toISOString():new Date().toISOString();meta.previous_text=String(priorText||'');return JSON.stringify(meta);}
 function bseTelegramFindActiveWaitingInfo_(rows,chatId,userId){
-  const active=(rows||[]).filter(row=>String(row[1])===String(chatId)&&String(row[2])===String(userId)&&String(row[6])==='WAITING_INFO'&&/^\d+$/.test(String(row[15]||''))&&!rows.some(reply=>String(reply[14])===String(row[0])));
+  const active=(rows||[]).filter(row=>String(row[1])===String(chatId)&&String(row[2])===String(userId)&&!bsePilotQueueClosedByOwner_(row)&&String(row[6])==='WAITING_INFO'&&/^\d+$/.test(String(row[15]||''))&&!rows.some(reply=>String(reply[14])===String(row[0])));
   return active.length===1?active[0]:null;
 }
 function bseTelegramTestSiteAOutOfScope_(text){return /\bsite\s+a\b/i.test(String(text||''));}
