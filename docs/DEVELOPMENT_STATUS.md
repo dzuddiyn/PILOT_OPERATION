@@ -79,3 +79,5 @@ menjadi kelulusan automatik atau bukti penerimaan pilot.
 - Gate I-00 PILOT_OPERATION Daily/Friday scheduler feature: LOCAL PASS only (12/12 targeted, 80/80 Gate E/F/H), unmerged and Script HEAD not updated at this checkpoint. Do not claim digest LIVE PASS until actual Telegram scheduled receipt and independent PILOT_* audit.
 - Gate I ordinary-user positive store/retrieve, fresh audits and handover remain PENDING. Real operation confirmation and BSE questionnaire/sign-off cannot be manufactured.
 - production_write:false; official_bse_write:false; production gate separately authorized.
+
+- Gate I-00 LIVE proof update (2026-10-18): PR #17 merged main bd3921b; Script HEAD 69/69 readback, Apps Script full regression 47/47 PASS; daily owner PM 34 and Friday owner PM 35 emitted by accelerated CLOCK triggers and PILOT_* audits SENT; schedulers ON / exactly 1 trigger each on independent 11:08 owner runtime audit. Remaining Gate H tick overlap and Gemini PILOT label issues are under repair; Gate I acceptance/handover still PENDING.

@@ -4,7 +4,7 @@
 **Scope:** PILOT_OPERATION ONLY; no production or official BSE writes.
 **Owner authority:** Gate I full autonomous execution authorization in the Pilot AUTO chat.
 **Source baseline:** main eaa6e72acb7e322085838a79dbba720f69c4dfb9 (PR #16 merged).
-**Execution state at first implementation:** LOCAL PASS; merge, Script HEAD, runtime and Telegram LIVE proof to be recorded only after observation.
+**Initial implementation state:** LOCAL PASS. **Update 2026-10-18:** merged Script HEAD and both scheduled Telegram proofs LIVE PASS; see acceptance matrix for exact evidence.
 
 ## Existing state and rationale
 - Gate H general Telegram polling LIVE PASS on 2026-10-16; final owner runtime audit ON, one bseTelegramTick CLOCK trigger and no webhook, offset 772257155.
@@ -29,11 +29,11 @@
 - [x] Owner-only, wrong-environment, duplicate and noncanonical fallback tests.
 - [x] Node targeted tests 12/12 PASS.
 - [x] Existing Gate E/F/H local harness tests 80/80 PASS, no regressions.
-- [ ] PR merged into canonical main after source review.
-- [ ] Script HEAD safely synchronized preserving nine Gate F helpers.
-- [ ] Apps Script full regression and runtime guard verification.
-- [ ] Daily/Friday scheduled one-shot autonomous Telegram send with independent PILOT Sheet audits.
-- [ ] Live trigger count/date/read-back, wrong env and rollback verification.
+- [x] PR #17 merged to canonical main bd3921b after source review.
+- [x] Script HEAD 69 JS read-back 0 mismatch, preserving nine Gate F helpers.
+- [x] Apps Script full regression 47/47 PASS, runtime guard/owner scope verified.
+- [x] Daily and Friday scheduled one-shot proofs SENT Telegram IDs 34/35 with independent PILOT_* audits.
+- [ ] Two digest trigger state read-back 11:08 PASS; wrong-env tested locally, digest OFF/ON rollback rehearsal PENDING.
 - [ ] Gate I normal-user walkthrough positive confirmation (requires an actual owner-verified operational fact).
 - [ ] Final pilot acceptance documentation and human BSE sign-off (not delegated to AI).
 
