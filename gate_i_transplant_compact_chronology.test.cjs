@@ -86,4 +86,121 @@ check('PILOT clarification supplement preserves original Reply and dedups',()=>{
  assert(fn.includes('allow_sending_without_reply:false'));
  assert(!fn.includes('setValue('));
 });
+check('confirmed 7/9/2026 remains NEED_INFO and asks about other sowing',()=>{
+ const r=ctx.bseTelegramTransplantDeterministicResult_({},prefix+JSON.stringify({original_note:report,clarifications:['7/9/2026']}));
+ assert.equal(r.validation,'NEED_INFO');
+ assert.equal(r.transplant_date_conflict.date_reconfirmed,true);
+ assert.equal(r.candidates[0].fields.event_date,'');
+ const q=ctx.bseTelegramQuestion_(r);
+ assert(q.includes('07/09/2026')&&q.includes('02/10/2026'));
+ assert(/semaian lain/.test(q));
+ assert(!/batch Crop Batch|allocation yang sepadan|Balas tarikh pindah sebenar/.test(q));
+});
+check('PILOT generic transplant question never requests technical IDs',()=>{
+ const r={validation:'NEED_INFO',candidates:[{target:'Transplant_Event_Log',missing:['batch_match'],fields:{}}]};
+ const q=ctx.bseTelegramQuestion_(r);
+ assert(/tarikh semai/.test(q));
+ assert(!/Crop Batch|allocation yang sepadan/.test(q));
+});
+check('other domain batch_match also avoids internal IDs',()=>{
+ const r={validation:'NEED_INFO',candidates:[{target:'Treatment_Event_Log',missing:['batch_match'],fields:{}}]};
+ assert(!/Crop Batch|allocation yang sepadan/.test(ctx.bseTelegramQuestion_(r)));
+});
+vm.runInContext(extract(worker,'bseTelegramResultText_'),ctx);
+check('PILOT NEED_INFO omits misleading approval status',()=>{
+ env='PILOT_OPERATION';
+ const r={validation:'NEED_INFO',candidates:[{target:'Transplant_Event_Log',missing:['batch_match'],fields:{}}]};
+ const t=ctx.bseTelegramResultText_('BSE-TG-772257174',r,ctx.bseTelegramQuestion_(r));
+ assert(t.includes('Rujukan BSE-TG-772257174'));
+ assert(!/PROVISIONAL|menunggu pengesahan|Mod TEST/i.test(t));
+});
+check('TEST remains unchanged',()=>{
+ const r={validation:'NEED_INFO',candidates:[]};
+ env='TEST';
+ assert(ctx.bseTelegramResultText_('BSE-TG-TEST',r,'Soalan').includes('Status: PROVISIONAL'));
+ env='PILOT_OPERATION';
+});
+check('real 772257174 > 175 > 176 date replies use latest verified 7 October',()=>{
+ const context=prefix+JSON.stringify({original_note:report,clarifications:['7/9/2026','7/10/2026']});
+ const parsed=ctx.bseTelegramTransplantDeterministicResult_({},context);
+ assert.equal(parsed.validation,'PASS');
+ assert.equal(parsed.candidates[0].validation,'PASS');
+ assert.deepEqual([...parsed.candidates[0].fields.plot_ids],['M5P1','M5P2']);
+ assert.equal(parsed.candidates[0].fields.event_date,'2026-10-07');
+ assert.equal(parsed.transplant_date_conflict,undefined);
+ assert.deepEqual([...parsed.candidates[0].missing],[]);
+});
+check('latest correction remains authoritative, earlier invalid chronology not restored',()=>{
+ const raw=prefix+JSON.stringify({original_note:report,clarifications:['7/9/2026','7/10/2026','7/9/2026']});
+ const parsed=ctx.bseTelegramTransplantDeterministicResult_({},raw);
+ assert.equal(parsed.validation,'NEED_INFO');
+ assert.equal(parsed.transplant_date_conflict.reported_date,'2026-09-07');
+});
+check('invalid latest date blocks rather than falling back to previous valid',()=>{
+ const raw=prefix+JSON.stringify({original_note:report,clarifications:['7/10/2026','31/11/2026']});
+ const parsed=ctx.bseTelegramTransplantDeterministicResult_({},raw);
+ assert.equal(parsed.validation,'NEED_INFO');
+ assert.equal(parsed.candidates[0].fields.event_date,'');
+});
+vm.runInContext(extract(worker,'bsePilotTransplantCorrectionReady_'),ctx);
+vm.runInContext(extract(worker,'inspectBsePilotTransplantDateCorrection'),ctx);
+vm.runInContext(extract(worker,'recoverBsePilotTransplantDateCorrection'),ctx);
+const requeueRows=[
+ Object.assign(Array(18).fill(''),{0:'772257174',1:'913',2:'913',4:report,6:'WAITING_INFO',7:'SENT',15:'76'}),
+ Object.assign(Array(18).fill(''),{0:'772257175',1:'913',2:'913',4:'7/9/2026',6:'WAITING_INFO',7:'SENT',13:'76',14:'772257174',15:'81'}),
+ Object.assign(Array(18).fill(''),{0:'772257176',1:'913',2:'913',4:'7/10/2026',6:'WAITING_INFO',7:'SENT',13:'81',14:'772257175',15:'84'})
+];
+const requeueWrites=[];
+ctx.bseRuntimeLegacyChatId_=()=> '913';
+ctx.bseRuntimeLegacyUserId_=()=> '913';
+ctx.bseTelegramReportContext_=(all,row)=>({original:report,rootId:'772257174',
+ input:prefix+JSON.stringify({original_note:report,clarifications:row[0]==='772257176'?['7/9/2026','7/10/2026']:['7/9/2026']}),
+ provenance:report,receivedAt:'2026-10-18T07:52:21.000Z'});
+ctx.bseTelegramWorkerFinalizeResult_=(book,raw)=>raw;
+ctx.LockService={getScriptLock:()=>({tryLock:()=>true,releaseLock:()=>{}})};
+ctx.SpreadsheetApp={flush:()=>{}};
+const fakeSheet={
+ getLastRow:()=>requeueRows.length+1,
+ getRange:(row,col,count,columns)=>({
+  getValues:()=>count===requeueRows.length?requeueRows.map(x=>x.slice()):[requeueRows[row-2].slice()],
+  getValue:()=>requeueRows[row-2][col-1],
+  setValue:value=>{requeueWrites.push({row,col,value});requeueRows[row-2][col-1]=value;}
+ })
+};
+ctx.boundTestBook_=()=>({});
+ctx.BSE_TG_QUEUE_HEADERS=Array(18).fill('x');
+ctx.bseTelegramQueue_=()=>fakeSheet;
+check('real old correction 175 remains WAITING_INFO while only 176 is eligible',()=>{
+ const entry=ctx.bsePilotTransplantCorrectionReady_({},requeueRows);
+ assert(entry);assert.equal(entry.reference,'BSE-TG-772257176');
+ assert.equal(entry.original_reference,'BSE-TG-772257174');
+ assert.equal(entry.event_date,'2026-10-07');
+ assert.equal(entry.index,2);
+});
+check('read-only real-correction inspector does not write to queue',()=>{
+ const r=ctx.inspectBsePilotTransplantDateCorrection();
+ assert.equal(r.ready,true);assert.equal(r.entry.reference,'BSE-TG-772257176');
+ assert.equal(r.read_only,true);assert.equal(requeueWrites.length,0);
+});
+check('one-shot recovery changes only correction 176 status to ordinary worker retry',()=>{
+ const r=ctx.recoverBsePilotTransplantDateCorrection();
+ assert.equal(r.status,'REQUEUED_FOR_HUMAN_REVIEW');
+ assert.equal(r.reference,'BSE-TG-772257176');assert.equal(r.event_date,'2026-10-07');
+ assert.equal(requeueRows[2][6],'RETRY_NEEDED');
+ assert.equal(requeueRows[0][6],'WAITING_INFO');
+ assert.equal(requeueRows[1][6],'WAITING_INFO');
+ assert.equal(requeueWrites.length,1);
+ assert.equal(requeueWrites[0].col,7);
+});
+check('repeating recovery does not create duplicate work',()=>{
+ const before=requeueWrites.length;
+ const r=ctx.recoverBsePilotTransplantDateCorrection();
+ assert.equal(r.status,'NO_ELIGIBLE_WAITING_CORRECTION');
+ assert.equal(requeueWrites.length,before);
+});
+check('recovery forbidden in TEST and PILOT_TEST',()=>{
+ env='TEST';assert.throws(()=>ctx.recoverBsePilotTransplantDateCorrection(),/PILOT_ONLY/);
+ env='PILOT_TEST';assert.throws(()=>ctx.inspectBsePilotTransplantDateCorrection(),/PILOT_ONLY/);
+ env='PILOT_OPERATION';
+});
 console.log('GATE_I_TRANSPLANT_COMPACT '+count+'/'+count+' PASS');

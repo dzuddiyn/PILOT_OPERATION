@@ -49,13 +49,20 @@ function bseTelegramSeedSowingDeterministicResult_(input){
 }
 
 function bsePilotCompactTransplantDate_(source){
-  const explicit=bseTransplantExplicitDateContext_(source);
-  if(explicit.present)return explicit;
   const originals=String(source&&source.original||'').split(/\r?\n/);
   const answers=(source&&source.clarifications||[]).map(s=>String(s||'').trim());
+  // This PILOT compact-report adapter uses the latest explicit reporter date correction.
+  // Other grammar/routes continue to use the original strict ambiguity validator.
+  const mostRecent=answers.length?answers[answers.length-1]:'';
+  const recentMatch=mostRecent.match(/^(?:Tarikh\s+Pindah\s*:\s*)?(\d{1,2}\/\d{1,2}\/\d{2,4})\s*$/i);
+  if(!recentMatch){
+    const explicit=bseTransplantExplicitDateContext_(source);
+    if(explicit.present)return explicit;
+  }
   // A plain one-line date reply overrides shorthand ONLY after the human supplies it.
   const replies=answers.filter(s=>/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(s));
-  const raws=replies.length?replies:originals.map(s=>{
+  // Latest explicit date supersedes earlier reply dates in chronological order.
+  const raws=recentMatch?[recentMatch[1]]:replies.length?[replies[replies.length-1]]:originals.map(s=>{
     const m=s.match(/^\s*-\s*(\d{1,2}\/\d{1,2}\/\d{2,4})\s*$/);
     return m?m[1]:'';
   }).filter(Boolean);
@@ -104,7 +111,13 @@ function bseTelegramTransplantDeterministicResult_(book,input){
     }
     const chronology=bsePilotTransplantChronology_(book,match,date.date);
     if(match.kind==='UNIQUE'&&date.ok&&!chronology.ok){
-      candidate.transplant_date_conflict={reported_date:date.date,sowing_date:chronology.sowing_date,plots:parsed.plots};
+      candidate.transplant_date_conflict={
+        reported_date:date.date,sowing_date:chronology.sowing_date,plots:parsed.plots,
+        date_reconfirmed:(source.clarifications||[]).some(answer=>{
+          const recheck=bsePilotCompactTransplantDate_({original:'',clarifications:[answer]});
+          return recheck.ok&&recheck.date===date.date;
+        })
+      };
       f.event_date=''; // Generic schema guard preserves NEED_INFO rather than falsely promoting PASS.
       c.missing=Array.from(new Set(c.missing.concat('event_date')));
       c.validation='NEED_INFO';candidate.validation='NEED_INFO';
@@ -116,6 +129,77 @@ function bseTelegramTransplantDeterministicResult_(book,input){
   const built=bseTelegramTransplantBuildResult_(input,source,parsed,match,reallocation);
   if(reallocation.kind==='MULTIPLE'&&!sourcePlot.plot&&built&&built.candidates&&built.candidates[0]){const c=built.candidates[0];c.fields.crop=explicitCrop.crop;c.fields.source_plot_options=Array.from(new Set((reallocation.matches||[]).map(match=>String(match&&match.from_plot_id||'')).filter(Boolean))).sort(bseCropBatchPlotCompare_);c.missing=Array.from(new Set((c.missing||[]).filter(x=>x!=='batch_match').concat(['source_plot'])));c.validation='NEED_INFO';built.validation='NEED_INFO';}
   return built;
+}
+/**
+ * An older PILOT WAITING_INFO response can be re-queued for ordinary human
+ * review after a verified later date correction. No confirmation/domain write.
+ * Never apply to TEST/PILOT_TEST, other users, or ambiguous candidates.
+ */
+function bsePilotTransplantCorrectionReady_(book,rows){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')throw Error('PILOT_ONLY_CORRECTION_RECOVERY');
+  const ownerChat=String(bseRuntimeLegacyChatId_()),ownerId=String(bseRuntimeLegacyUserId_());
+  const eligible=[];
+  (rows||[]).forEach((row,index)=>{
+    if(String(row[6])!=='WAITING_INFO'||String(row[7])!=='SENT'||
+       String(row[1])!==ownerChat||String(row[2])!==ownerId||
+       !String(row[14]||'')||!String(row[13]||'')||
+       !/^\s*\d{1,2}\/\d{1,2}\/2026\s*$/.test(String(row[4]||'')))return;
+    const context=bseTelegramReportContext_(rows,row);
+    if(!/^\s*Transplant\s*$/im.test(String(context.original||'')))return;
+    const raw=bseTelegramTransplantDeterministicResult_(book,context.input);
+    if(!raw||raw.validation!=='PASS')return;
+    const job={id:String(row[0]),rootId:String(context.rootId),input:context.input,
+      original:context.original,provenance:context.provenance,receivedAt:context.receivedAt};
+    const result=bseTelegramWorkerFinalizeResult_(book,raw,job);
+    const c=result&&result.candidates&&result.candidates[0],fields=c&&c.fields||{};
+    if(result.validation!=='PASS'||bseTelegramQueueStatus_(result)!=='NEEDS_HUMAN_REVIEW'||
+       result.production_write!==false||!c||c.target!=='Transplant_Event_Log'||
+       !/^\d{4}-\d{2}-\d{2}$/.test(String(fields.event_date||''))||
+       !Array.isArray(fields.plot_ids)||fields.plot_ids.join('|')!=='M5P1|M5P2')return;
+    eligible.push({index:index,reference:'BSE-TG-'+String(row[0]),
+      original_reference:'BSE-TG-'+String(context.rootId),
+      event_date:String(fields.event_date),plots:fields.plot_ids.slice(),
+      current_status:'WAITING_INFO',new_status:'RETRY_NEEDED'});
+  });
+  if(eligible.length>1)throw Error('TRANSPLANT_CORRECTION_AMBIGUOUS');
+  return eligible.length?eligible[0]:null;
+}
+function inspectBsePilotTransplantDateCorrection(){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')throw Error('PILOT_ONLY_CORRECTION_INSPECT');
+  const book=boundTestBook_(),sheet=bseTelegramQueue_(book);
+  const rows=sheet.getLastRow()>1?
+    sheet.getRange(2,1,sheet.getLastRow()-1,BSE_TG_QUEUE_HEADERS.length).getValues():[];
+  const ready=bsePilotTransplantCorrectionReady_(book,rows);
+  const result={ready:!!ready,entry:ready||null,read_only:true,
+    production_write:false,official_bse_write:false};
+  console.log('PILOT_TRANSPLANT_CORRECTION_INSPECT '+JSON.stringify(result));
+  return result;
+}
+function recoverBsePilotTransplantDateCorrection(){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')throw Error('PILOT_ONLY_CORRECTION_RECOVERY');
+  const lock=LockService.getScriptLock();
+  if(!lock.tryLock(1000))throw Error('TRANSPLANT_CORRECTION_BUSY');
+  try{
+    const book=boundTestBook_(),sheet=bseTelegramQueue_(book);
+    const rows=sheet.getLastRow()>1?
+      sheet.getRange(2,1,sheet.getLastRow()-1,BSE_TG_QUEUE_HEADERS.length).getValues():[];
+    const ready=bsePilotTransplantCorrectionReady_(book,rows);
+    if(!ready)return {status:'NO_ELIGIBLE_WAITING_CORRECTION',production_write:false,official_bse_write:false};
+    const rowNumber=ready.index+2;
+    const target=sheet.getRange(rowNumber,1,1,BSE_TG_QUEUE_HEADERS.length).getValues()[0];
+    if(String(target[6])!=='WAITING_INFO'||String(target[0])!==
+       ready.reference.replace(/^BSE-TG-/,''))throw Error('TRANSPLANT_CORRECTION_REVISION_CONFLICT');
+    sheet.getRange(rowNumber,7).setValue('RETRY_NEEDED');
+    SpreadsheetApp.flush();
+    const after=String(sheet.getRange(rowNumber,7).getValue());
+    if(after!=='RETRY_NEEDED')throw Error('TRANSPLANT_CORRECTION_PARTIAL_WRITE');
+    const result={status:'REQUEUED_FOR_HUMAN_REVIEW',reference:ready.reference,
+      original_reference:ready.original_reference,event_date:ready.event_date,
+      queue_status:after,transplant_record_written:false,
+      production_write:false,official_bse_write:false};
+    console.log('PILOT_TRANSPLANT_CORRECTION_RECOVERY '+JSON.stringify(result));
+    return result;
+  }finally{lock.releaseLock();}
 }
 function runBseTelegramTransplantDeterministicHarnessTests(){
   const batch=['BSE-TG-1|Crop_Batch_Log','1','BSE-SB-CB-20260910-002','2026-09-10','Peria','Hup Nong','BATCH_START','PROPOSED','PROVISIONAL','','','','hash'];
@@ -341,6 +425,9 @@ function bseTelegramResultText_(reference,result,question) {
   const lines=['Rujukan '+reference+':'];
   if(question) {
     lines.push(question);
+    // A PILOT clarification is NOT an approval; do not append
+    // misleading approval status boilerplate to an information request.
+    if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION')return lines.join('\n');
   } else if(result&&result.validation==='PASS'&&Array.isArray(result.candidates)) {
     result.candidates.forEach(c=>{
       const f=c&&c.fields||{};
@@ -406,7 +493,10 @@ function bseTelegramReportContext_(rows,current) {
     seen.add(String(cursor[0]));answers.unshift(String(cursor[4]));
     const parent=rows.find(r=>String(r[0])===String(cursor[14])&&String(r[1])===String(current[1])&&String(r[2])===String(current[2]));
     const correctionSession=parent&&String(parent[6])==='CORRECTION_WAITING_INFO'&&!String(cursor[13]||'').trim()&&/^\d+$/.test(String(parent[15]||''));
-    if(!parent||!parent[15]||(String(parent[15])!==String(cursor[13])&&!correctionSession))throw new Error('Rujukan penjelasan tidak sepadan.');
+    const pilotNoticeReply=parent&&typeof bseTelegramPilotNoticeParent_==='function'&&
+      bseTelegramPilotNoticeParent_([parent],String(current[1]),String(current[2]),String(cursor[13]))===parent;
+    if(!parent||!parent[15]||(String(parent[15])!==String(cursor[13])&&!correctionSession&&!pilotNoticeReply))
+      throw new Error('Rujukan penjelasan tidak sepadan.');
     cursor=parent;
   }
   const original=String(cursor[4]);
@@ -420,11 +510,17 @@ function bseTelegramReportContext_(rows,current) {
 
 function bseTelegramQuestion_(result) {
   if(!result||result.validation!=='NEED_INFO'||!Array.isArray(result.candidates))return '';
-  if(result.seed_sowing_split_required===true)return 'Laporan semaian mengandungi lebih daripada satu Crop Batch. Sila hantar satu Crop Batch sahaja bagi setiap mesej: satu jenis tanaman/varieti, satu Modul, dan satu Tarikh Semai.';
+  if(result.seed_sowing_split_required===true)return 'Laporan semaian mengandungi lebih daripada satu set tanaman. Sila hantar setiap semaian secara berasingan: satu jenis tanaman/varieti, satu modul, dan satu tarikh semai untuk setiap mesej.';
   if(result.transplant_date_conflict){
     const c=result.transplant_date_conflict;
     const format=ymd=>String(ymd||'').split('-').reverse().join('/');
     const plots=(c.plots||[]).join(' dan ');
+    if(c.date_reconfirmed)return 'Tarikh pindah tanam '+format(c.reported_date)+
+      ' telah diterima semula. Namun, rekod semaian Timun yang ada bagi '+plots+
+      ' bertarikh '+format(c.sowing_date)+', iaitu selepas tarikh pindah tanam yang dilaporkan.'+
+      ' Adakah anak pokok ini daripada semaian lain? Jika ya, sila nyatakan tarikh semai, varieti Timun, dan plot sebenar.'+
+      ' Jika rekod semaian '+format(c.sowing_date)+' yang tersalah, nyatakan pembetulan fakta semaian itu.'+
+      ' Gunakan Reply pada soalan asal. Tiada rekod pindah tanam ditulis.';
     return 'Sila semak tarikh pindah tanam Timun untuk '+plots+'. Laporan menyatakan '+format(c.reported_date)+
       ', tetapi rekod semaian batch yang sepadan ialah '+format(c.sowing_date)+
       '. Tarikh pindah tanam tidak boleh mendahului tarikh semai. Balas tarikh pindah sebenar (format: Tarikh Pindah: DD/MM/YYYY) menggunakan Reply. Jika laporan merujuk batch lain, nyatakan fakta itu. Rekod Transplant belum disahkan.';
@@ -439,7 +535,9 @@ function bseTelegramQuestion_(result) {
   if(pendingTreatment.length){const names=pendingTreatment.join(', '),example=pendingTreatment.length===1?' Balas nilai sahaja (contoh: 100) atau '+pendingTreatment[0]+' - 100.':' Balas setiap bahan bersama nilainya, contoh: '+pendingTreatment[0]+' - 100.';return 'Berapa jumlah/dos '+names+' yang digunakan?'+example+' Sila gunakan Reply pada soalan ini.';}
   const reallocationSource=result.candidates.find(c=>c&&c.target==='Transplant_Event_Log'&&Array.isArray(c.missing)&&c.missing.includes('source_plot'));
   if(reallocationSource){const f=reallocationSource.fields||{},crop=String(f.crop||'tanaman'),to=Array.isArray(f.plot_ids)&&f.plot_ids.length===1?String(f.plot_ids[0]):'plot baharu',options=Array.isArray(f.source_plot_options)?f.source_plot_options.map(String).filter(Boolean):[],optionText=options.length?' Pilihan yang sistem jumpa: '+(options.length===1?options[0]:options.slice(0,-1).join(', ')+' atau '+options[options.length-1])+'.':'';return 'Untuk laporan pindah anak pokok '+crop+' ke '+to+', anak pokok itu berasal dari plot mana?'+optionText+' Balas satu plot sahaja. Sila gunakan Reply pada soalan ini.';}
-  const labels={event_date:isTransplant?'Tarikh Pindah sebenar (hari/bulan/tahun)':'tarikh laporan (hari/bulan/tahun)',plot_id:'plot yang betul',measurement_type:'jenis bacaan',value:'nilai bacaan',item_name:'nama bahan',quantity:'jumlah penggunaan sebenar',unit:'unit penggunaan',decision_subject:'perkara cadangan',approval_status:'status semakan',observation_facts:'fakta gejala/pemerhatian',crop:'jenis tanaman',variety:'varieti tanaman',living_plant_count:'jumlah pokok hidup',reported_dead_count:'bilangan pokok mati',reported_sick_count:'bilangan pokok sakit',plot_capacity_polybag:'kapasiti polybag plot yang sah',census_counts_conflict:'semakan semula bilangan Mati/Sakit kerana melebihi kapasiti plot',census_date_before_active:'Tarikh Banci sebenar pada atau selepas plot menjadi ACTIVE',treatment_dosage:'jumlah/dos bahan rawatan yang belum lengkap',batch_match:'batch Crop Batch dan allocation yang sepadan dengan tarikh/plot laporan',session:'sesi Pagi atau Petang',ec_readings:'baris bacaan EC yang sah',ec_full_report:'laporan EC penuh untuk pembetulan',duplicate_scope:'scope modul/plot yang tidak berganda',module_scope:'baris scope modul hanya boleh menggunakan x : x'};
+  const unmatchedTransplant=result.candidates.find(c=>c&&c.target==='Transplant_Event_Log'&&Array.isArray(c.missing)&&c.missing.includes('batch_match'));
+  if(unmatchedTransplant)return 'Laporan pindah tanam belum dapat dipadankan dengan rekod tanaman yang tersedia. Sila nyatakan jenis/varieti tanaman, plot sebenar, tarikh semai serta tarikh pindah tanam. Jika semaian itu belum direkodkan, maklumkan perkara tersebut. Gunakan Reply pada soalan ini. Tiada rekod pindah tanam ditulis.';
+  const labels={event_date:isTransplant?'Tarikh Pindah sebenar (hari/bulan/tahun)':'tarikh laporan (hari/bulan/tahun)',plot_id:'plot yang betul',measurement_type:'jenis bacaan',value:'nilai bacaan',item_name:'nama bahan',quantity:'jumlah penggunaan sebenar',unit:'unit penggunaan',decision_subject:'perkara cadangan',approval_status:'status semakan',observation_facts:'fakta gejala/pemerhatian',crop:'jenis tanaman',variety:'varieti tanaman',living_plant_count:'jumlah pokok hidup',reported_dead_count:'bilangan pokok mati',reported_sick_count:'bilangan pokok sakit',plot_capacity_polybag:'kapasiti polybag plot yang sah',census_counts_conflict:'semakan semula bilangan Mati/Sakit kerana melebihi kapasiti plot',census_date_before_active:'Tarikh Banci sebenar pada atau selepas plot menjadi ACTIVE',treatment_dosage:'jumlah/dos bahan rawatan yang belum lengkap',batch_match:'jenis tanaman, plot dan tarikh semai yang sepadan dengan kerja ini',session:'sesi Pagi atau Petang',ec_readings:'baris bacaan EC yang sah',ec_full_report:'laporan EC penuh untuk pembetulan',duplicate_scope:'scope modul/plot yang tidak berganda',module_scope:'baris scope modul hanya boleh menggunakan x : x'};
   const missing=[];
   result.candidates.forEach(c=>{if(c&&Array.isArray(c.missing))c.missing.forEach(k=>{if(labels[k])missing.push(labels[k]);});});
   if(!missing.length)return 'Maklumat laporan belum cukup atau tidak konsisten. Sila semak semula laporan dan jawab dengan maklumat yang diminta.';

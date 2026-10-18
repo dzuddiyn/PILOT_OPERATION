@@ -1,7 +1,18 @@
 /** @OnlyCurrentDoc */
 // Manual TEST receiver. Requires Code.gs and TelegramTest.gs. No production writes.
 const BSE_TG_QUEUE_HEADERS=['update_id','chat_id','user_id','message_id','original_note','received_at','status','ack_status','ack_message_id','candidate_json','processing_attempts','next_attempt_at','last_error','reply_to_message_id','parent_update_id','question_message_id','source_metadata_json','source_message_date'];
-function receiveBseTelegramTest() {
+function bseTelegramPilotNoticeParent_(rows,sourceChat,reporter,replyId){
+  if(typeof bseRuntimeEnvironmentName_!=='function'||
+     bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||!/^\d+$/.test(String(replyId||'')))return null;
+  const props=PropertiesService.getScriptProperties();
+  const matches=(rows||[]).filter(row=>
+    String(row[6])==='WAITING_INFO'&&String(row[7])==='SENT'&&
+    String(row[1])===String(sourceChat)&&String(row[2])===String(reporter)&&
+    /^\s*Transplant\s*$/im.test(String(row[4]||''))&&
+    /^\d+$/.test(String(row[15]||''))&&
+    String(props.getProperty('BSE_PILOT_TRANSPLANT_NOTICE_'+String(row[0]))||'')===String(replyId));
+  return matches.length===1?matches[0]:null;
+}function receiveBseTelegramTest() {
   const book=boundTestBook_(),props=PropertiesService.getScriptProperties();
   const chat=bseRuntimeLegacyChatId_();
   const user=bseRuntimeLegacyUserId_();
@@ -108,7 +119,7 @@ function receiveBseTelegramTest() {
         const supported=Boolean(text.trim())&&!command&&text.length<=12000;
         const outOfScope=bseTelegramTestSiteAOutOfScope_(text);
         const assetUnsupported=!outOfScope&&bseTelegramTestAssetObservationUnsupported_(text);
-        const parent=replyId?saved.find(r=>String(r[15])===replyId&&String(r[1])===sourceChat&&String(r[2])===reporter&&r[6]==='WAITING_INFO'):null;
+        const parent=replyId?(saved.find(r=>String(r[15])===replyId&&String(r[1])===sourceChat&&String(r[2])===reporter&&r[6]==='WAITING_INFO')||bseTelegramPilotNoticeParent_(saved,sourceChat,reporter,replyId)):null;
         const used=parent&&saved.some(r=>String(r[14])===String(parent[0]));
         const linked=parent&&!used&&supported;
         const status=outOfScope?'OUT_OF_SCOPE_TEST':assetUnsupported?'ASSET_OBSERVATION_UNSUPPORTED_TEST':command?'COMMAND':(replyId&&!linked||correctionSession.ambiguous)?'UNLINKED_REPLY':supported?'QUEUED':'UNSUPPORTED';
