@@ -119,6 +119,15 @@ function bseTelegramHistorySafeLine_(event,includeWorkDate){
     .concat([event.reference,event.category,event.summary]);
   return parts.map(v=>String(v||'').replace(/[\r\n]+/g,' ').replace(/\s+/g,' ').trim()).join(' | ').slice(0,220);
 }
+function bseTelegramHistoryUserCandidateLine_(candidate){
+  const line=bseTelegramRecordSafeCandidateLine_(candidate);
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')return line;
+  const labels={
+    Crop_Batch_Log:'Semaian',Planting_Event_Log:'Semai benih',
+    Plot_Allocation_Log:'Plot tanaman',Transplant_Event_Log:'Pindah tanam'
+  };
+  return String(line||'').replace(/^([A-Za-z_]+_Log)(?=\s|$)/,target=>labels[target]||target);
+}
 function bseTelegramHistoryApprovalResult_(aggregate,approvalSourceKey,expectedHash){
   if(!aggregate||aggregate.production_write!==false||aggregate.validation!=='PASS')return null;
   const index=bseApprovalCandidateIndexFromSourceKey_(approvalSourceKey);
@@ -166,7 +175,7 @@ function bseTelegramHistoryRecordEvents_(book){
         date:date,
         reference:reference,
         category:category,
-        summary:selected.map(bseTelegramRecordSafeCandidateLine_).filter(Boolean).join(' / ').slice(0,160),
+        summary:selected.map(bseTelegramHistoryUserCandidateLine_).filter(Boolean).join(' / ').slice(0,160),
         reporter_user_id:String(queue[2]||''),
         visibility:visibility
       });
