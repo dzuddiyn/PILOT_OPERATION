@@ -13,6 +13,20 @@ function out(method,text){const k=method==='sendPhoto'?'caption':'text';
 check('PILOT ordinary message has no technical environment prefix',()=>{
  env='PILOT_OPERATION';assert.equal(out('sendMessage','Semakan laporan'),'Semakan laporan');
 });
+check('PILOT ACK removes trailing Mod TEST suffix without changing reference',()=>{
+ env='PILOT_OPERATION';
+ const raw='Laporan diterima dan sudah disimpan untuk diproses. Rujukan: BSE-TG-772257188. (Mod TEST)';
+ assert.equal(out('sendMessage',raw),'Laporan diterima dan sudah disimpan untuk diproses. Rujukan: BSE-TG-772257188.');
+ assert.equal(out('editMessageText',raw),'Laporan diterima dan sudah disimpan untuk diproses. Rujukan: BSE-TG-772257188.');
+});
+check('PILOT does not rewrite unrelated reporter note containing Mod TEST',()=>{
+ env='PILOT_OPERATION';const note='Nota pelapor: (Mod TEST) adalah tulisan asal.';
+ assert.equal(out('sendMessage',note),note);
+});
+check('PILOT_TEST retains historical ACK label',()=>{
+ env='PILOT_TEST';const raw='Laporan diterima dan sudah disimpan untuk diproses. Rujukan: BSE-TG-1. (Mod TEST)';
+ assert(out('sendMessage',raw).includes('(Mod TEST)'));
+});
 check('PILOT old prefixed message becomes normal user message',()=>{
  env='PILOT_OPERATION';assert.equal(out('sendMessage','[PILOT]\nRekod TEST BSE-TG-772257142\nMod TEST - tiada rekod production ditulis.'),'Rekod BSE-TG-772257142');
 });
