@@ -40,3 +40,10 @@ PILOT_OWNER_REGISTRY has one active owner; PILOT_TELEGRAM_USER_REGISTRY still ha
 - Native /start: **LOCAL PASS / SCRIPT HEAD UPDATED / REAL NEW USER LIVE PROOF PENDING**.
 - Group ACK 772257172 still pending; do not claim full group ACK recovery.
 - Gate I remains PARTIAL VERIFIED, HANDOVER PREPARED, NOT DELIVERED. BSE staff questionnaire and receiving sign-off remain pending.
+
+## Final root cause and closure of earlier group ACK (16:30 MYT)
+The actual owner Apps Script bseTelegramTick execution at 16:23:21 logged update 772257172 as ACK_PENDING with precise error "Telegram HTTP 400: Bad Request: message text is empty". Its unsupported-input ACK started with a legacy Mod TEST sentence, which the PILOT presentation filter stripped entirely. This error caused the first ACK to fail; before PR #30, catch-and-break prevented all later owner PM ACKs.
+
+PR #32 merged canonical main 5ba0d709d9f37bb97cb50ba12cf297efc91d650a. It safely translates the exact unsupported-input notice into a nonempty human-readable message before stripping tech labels. All TEST/PILOT_TEST output remains unchanged. 13 Node suites / 154 of 154 checks PASS. Independent Script HEAD pull 70/70 JS exactly matched with 9 Gate F-only helpers preserved; owner Apps Script full regression 47/47 PASS at 16:30:35 MYT, production_write:false. After PR #32 runtime, independent PILOT_TELEGRAM_QUEUE confirms update 772257172 ACK SENT, Telegram message ID 77; owner Transplant 772257174 ACK SENT ID 75, still WAITING_INFO. No Transplant domain row or ACTIVE status event created. Source HEAD update, not official deployment.
+
+Outstanding human facts are unchanged: actual transplant date, correct M5P1/M5P2 plot allocation, and any genuine 282 count must be supplied by reporter. The Telegram original contained no 282. No fake Benar or unauthorized ACTIVE promotion permitted. Live ordinary-user history work-date and new-user native Start proof remain pending.
