@@ -192,11 +192,28 @@ function bseRuntimeBook_(book) {
   };
 }
 
+// Translate inherited fixed TEST UI headings in PILOT_OPERATION outgoing presentation only.
+// Keep source notes, TEST_ONLY markers, TEST and PILOT_TEST environments unchanged.
+function bseRuntimePilotUiLabels_(text) {
+  return String(text||'')
+    .replace(/^Rekod TEST\b/gm,'Rekod PILOT')
+    .replace(/^Mod TEST\b/gm,'Mod PILOT')
+    .replace(/^Status Plot TEST\b/gm,'Status Plot PILOT')
+    .replace(/^Evidence TEST\b/gm,'Evidence PILOT')
+    .replace(/^Makluman TEST\b/gm,'Makluman PILOT')
+    .replace(/^Laporan TEST\b/gm,'Laporan PILOT');
+}
 function bseRuntimeTelegramPayload_(method, payload) {
   const body = Object.assign({}, payload || {});
   const env=bseRuntimeEnvironmentName_();
   if (!['PILOT_TEST','PILOT_OPERATION'].includes(env)) return body;
   const prefix = env==='PILOT_OPERATION'?'[PILOT]':'[PILOT TEST]';
+  if (env==='PILOT_OPERATION') {
+    if (['sendMessage','editMessageText'].includes(method) && typeof body.text==='string')
+      body.text=bseRuntimePilotUiLabels_(body.text);
+    if (['sendPhoto','sendDocument','sendVideo'].includes(method) && typeof body.caption==='string')
+      body.caption=bseRuntimePilotUiLabels_(body.caption);
+  }
   if (['sendMessage','editMessageText'].includes(method) && typeof body.text === 'string' && !body.text.startsWith(prefix)) {
     body.text = prefix + '\n' + body.text;
   }
@@ -391,6 +408,10 @@ function runBseEnvironmentIsolationHarnessTests() {
       const body=bseRuntimeTelegramPayload_('sendMessage',{text:'Semakan',chat_id:'-1001'});
       if (body.text !== '[PILOT TEST]\nSemakan') throw new Error('label hilang');
     });
+    pass('PILOT_TEST inherited TEST heading remains unchanged', function(){
+      const body=bseRuntimeTelegramPayload_('sendMessage',{text:'Rekod TEST BSE-TG-1',chat_id:'-1001'});
+      if (body.text !== '[PILOT TEST]\nRekod TEST BSE-TG-1') throw new Error('PILOT_TEST text changed');
+    });
     pass('PILOT_TEST requires separate spreadsheet binding', function(){
       if (bseRuntimeSpreadsheetId_() !== '1wGty1mg-KwCD0RvfC7YkkyiVV8BOF1L0YUM_NnlKnEs') throw new Error('binding salah');
     });
@@ -427,6 +448,17 @@ function runBseEnvironmentIsolationHarnessTests() {
     pass('PILOT_OPERATION outgoing text labeled', function(){
       const body=bseRuntimeTelegramPayload_('sendMessage',{text:'Semakan',chat_id:'-1002'});
       if (body.text !== '[PILOT]\nSemakan') throw new Error('PILOT label hilang');
+    });
+    pass('PILOT_OPERATION inherited retrieval headings normalize to PILOT', function(){
+      const body=bseRuntimeTelegramPayload_('sendMessage',{text:'Rekod TEST BSE-TG-1\nMod TEST - tiada production write.',chat_id:'-1002'});
+      if (body.text !== '[PILOT]\nRekod PILOT BSE-TG-1\nMod PILOT - tiada production write.') throw new Error('PILOT text normalization failed');
+      const photo=bseRuntimeTelegramPayload_('sendPhoto',{caption:'Evidence TEST BSE-EV-1',chat_id:'-1002'});
+      if(photo.caption !== '[PILOT]\nEvidence PILOT BSE-EV-1')throw new Error('PILOT caption normalization failed');
+    });
+    pass('PILOT_OPERATION user report and TEST_ONLY marker unchanged', function(){
+      const note='Nota asal: 16/10/2026 TEST_ONLY Gate H rawatan; Rekod TEST disebut di tengah ayat.';
+      const body=bseRuntimeTelegramPayload_('sendMessage',{text:note,chat_id:'-1002'});
+      if(body.text !== '[PILOT]\n'+note)throw new Error('User content changed');
     });
     pass('PILOT_OPERATION binding locked to reserved workbook', function(){
       if (bseRuntimeSpreadsheetId_() !== BSE_PILOT_OPERATION_BINDING.spreadsheetId) throw new Error('PILOT binding salah');
