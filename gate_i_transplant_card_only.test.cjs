@@ -68,4 +68,17 @@ check('user-facing PILOT Transplant card summary remains after controller repair
  assert(s.includes('Plot:'));
  assert(s.includes('Tekan Benar hanya jika'));
 });
+check('Transplant one-card callback hashes the same stripped envelope as card creation',()=>{
+ const confirmation=approval.slice(approval.lastIndexOf('function bseTelegramReporterConfirmationCore_('));
+ assert(confirmation.includes('const envelopes=bseApprovalEnvelopes_(aggregate);'));
+ assert(confirmation.includes('const parsed=candidateIndex==null?envelopes[0]:bseApprovalCandidateEnvelope_(aggregate,candidateIndex);'));
+ assert(confirmation.includes("if(bseApprovalHash_(parsed)!==String(row[2]))throw new Error('Hash pengesahan bercanggah.')"));
+ vm.runInContext(extract(approval,'bseApprovalCandidateEnvelope_'),ctx);
+ vm.runInContext(extract(approval,'bseApprovalEnvelopes_'),ctx);
+ const aggregate={...good,transplant_crop_conflict:{declared:' M5P34',canonical:'Timun'}};
+ const card=ctx.bseApprovalEnvelopes_(aggregate);
+ assert.strictEqual(card.length,1);
+ assert.strictEqual(JSON.stringify(card[0]),JSON.stringify(ctx.bseApprovalCandidateEnvelope_(aggregate,0)));
+ assert.notStrictEqual(JSON.stringify(card[0]),JSON.stringify(aggregate));
+});
 console.log('GATE_I_TRANSPLANT_CARD_ONLY '+passed+'/'+passed+' PASS');

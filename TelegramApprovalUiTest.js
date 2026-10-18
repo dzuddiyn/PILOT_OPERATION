@@ -390,7 +390,10 @@ function bseTelegramReporterConfirmationCore_(book,context,input){
   const queue=bseTelegramQueue_(book),qrows=queue.getLastRow()>1?queue.getRange(2,1,queue.getLastRow()-1,BSE_TG_QUEUE_HEADERS.length).getValues():[],q=qrows.findIndex(r=>'BSE-TG-'+String(r[0])===String(row[0]));
   if(q<0)throw new Error('Queue tidak ditemui.');
   let aggregate;try{aggregate=JSON.parse(String(qrows[q][9]||''));}catch(_){throw new Error('candidate_json tidak sah.');}
-  const candidateIndex=bseApprovalCandidateIndexFromSourceKey_(row[1]),parsed=candidateIndex==null?aggregate:bseApprovalCandidateEnvelope_(aggregate,candidateIndex);
+  const candidateIndex=bseApprovalCandidateIndexFromSourceKey_(row[1]);
+  const envelopes=bseApprovalEnvelopes_(aggregate);
+  if(candidateIndex==null&&envelopes.length!==1)throw new Error('Bilangan calon pengesahan tidak sepadan dengan kad.');
+  const parsed=candidateIndex==null?envelopes[0]:bseApprovalCandidateEnvelope_(aggregate,candidateIndex);
   if(bseApprovalHash_(parsed)!==String(row[2]))throw new Error('Hash pengesahan bercanggah.');
 
   if(input.kind==='C'){
