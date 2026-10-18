@@ -29,7 +29,7 @@ function bseTransplantReviewCore_(book,reviewContext){
     bseTransplantRequireDecision_(decision,note);const queue=bseTelegramQueue_(book),rows=bseCropBatchRows_(queue,BSE_TG_QUEUE_HEADERS.length),updateId=reference.slice(7);
     const matches=rows.map((row,index)=>({row:row,sheetRow:index+2})).filter(item=>String(item.row[0])===updateId);
     if(matches.length!==1)throw new Error('Rujukan mesti sepadan dengan tepat satu baris TELEGRAM_TEST_QUEUE.');
-    const selected=matches[0],status=String(selected.row[6]||''),root=bseCropBatchRoot_(rows,selected.row),proposal=bseTransplantProposal_(selected.row[9],root.provenance);
+    const selected=matches[0],status=String(selected.row[6]||''),root=bseCropBatchRoot_(rows,selected.row),proposal=bseTransplantProposal_(bseTransplantReviewEncodedCandidate_(selected.row[9]),root.provenance);
     const sourceKey='BSE-TG-'+root.updateId+'|Transplant_Event_Log',expectedStatus=decision==='APPROVED'?'TRANSPLANT_APPROVED_TEST':'TRANSPLANT_REJECTED_TEST';
     const reviewSheet=book.getSheetByName('TEST_TRANSPLANT_REVIEW')?bseCropBatchSheet_(book,'TEST_TRANSPLANT_REVIEW',BSE_TRANSPLANT_REVIEW_HEADERS):null;
     const eventSheet=book.getSheetByName('TEST_TRANSPLANT_EVENT')?bseCropBatchSheet_(book,'TEST_TRANSPLANT_EVENT',BSE_TRANSPLANT_EVENT_HEADERS):null;
@@ -101,6 +101,19 @@ function bseTransplantFindReallocation_(cropValue,destinationPlots,batches,alloc
 }
 function bseTransplantReallocationForBook_(book,crop,destinationPlots,sourcePlotId){
   return bseTransplantFindReallocation_(crop,destinationPlots,bseTransplantRowsByName_(book,'TEST_CROP_BATCH',BSE_CROP_BATCH_HEADERS),bseTransplantRowsByName_(book,'TEST_PLOT_ALLOCATION',BSE_PLOT_ALLOCATION_HEADERS),bseTransplantRowsByName_(book,'TEST_CROP_BATCH_REVIEW',BSE_CROP_BATCH_REVIEW_HEADERS),bseTransplantRowsByName_(book,'TEST_ALLOCATION_STATUS_EVENT',BSE_ALLOCATION_STATUS_EVENT_HEADERS),sourcePlotId);
+}
+function bseTransplantReviewEncodedCandidate_(encoded){
+  // Only PILOT worker sidecar diagnostic metadata may be stripped; the stored queue stays immutable.
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')return encoded;
+  let result;try{result=JSON.parse(String(encoded||''));}catch(_){return encoded;}
+  if(!result||typeof result!=='object'||Array.isArray(result))return encoded;
+  const keys=Object.keys(result),extras=keys.filter(key=>!['validation','production_write','candidates'].includes(key));
+  if(!extras.length)return encoded;
+  if(extras.some(key=>!['transplant_crop_conflict','transplant_date_conflict'].includes(key)))return encoded;
+  if(result.validation!=='PASS'||result.production_write!==false||
+     !Array.isArray(result.candidates)||result.candidates.length!==1||
+     !result.candidates[0]||result.candidates[0].target!=='Transplant_Event_Log')return encoded;
+  return JSON.stringify({validation:result.validation,production_write:false,candidates:result.candidates});
 }
 function bseTransplantProposal_(encoded,original){
   let result;try{result=JSON.parse(String(encoded||''));}catch(_){throw new Error('candidate_json tidak sah.');}
