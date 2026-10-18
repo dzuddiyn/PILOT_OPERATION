@@ -112,9 +112,29 @@ function bseTelegramHistoryInCommandPeriod_(date,command){
 function bseTelegramHistoryPeriodLabel_(command){
   return command&&command.kind==='WEEK'?String(command.start)+' → '+String(command.end):String(command&&command.period||'');
 }
+function bseTelegramHistoryPilotSummary_(candidates){
+  const list=Array.isArray(candidates)?candidates:[],find=target=>list.find(c=>c&&c.target===target);
+  const sow=find('Crop_Batch_Log'),trans=find('Transplant_Event_Log');
+  const source=sow||trans;
+  if(!source)return '';
+  const f=source.fields||{},plots=Array.from(new Set(list.reduce((acc,c)=>{
+    const z=c&&c.fields||{};
+    if(Array.isArray(z.plot_ids))acc.push.apply(acc,z.plot_ids);
+    if(z.plot_id)acc.push(z.plot_id);
+    return acc;
+  },[]).filter(v=>/^M[1-9]\d*P[1-9]\d*$/.test(String(v)))));
+  const lines=[sow?'Semaian':'Pindah tanam'];
+  if(f.crop)lines.push('Tanaman: '+String(f.crop));
+  if(f.variety)lines.push('Varieti: '+String(f.variety));
+  if(f.event_date)lines.push((sow?'Tarikh semai: ':'Tarikh kerja: ')+String(f.event_date));
+  if(plots.length)lines.push('Plot: '+plots.join(', '));
+  lines.push('Status: Disahkan');
+  return lines.join('\n');
+}
 function bseTelegramHistorySafeLine_(event,includeWorkDate){
   const isPilot=bseRuntimeEnvironmentName_()==='PILOT_OPERATION';
   // PILOT history is work-date history, never approval/recording-date history.
+  if(isPilot&&event.pilot_summary)return event.pilot_summary+'\nRujukan: '+event.reference;
   const parts=(isPilot?(includeWorkDate===false?[]:['Tarikh kerja: '+event.date]):[event.date])
     .concat([event.reference,event.category,event.summary]);
   return parts.map(v=>String(v||'').replace(/[\r\n]+/g,' ').replace(/\s+/g,' ').trim()).join(' | ').slice(0,220);
@@ -176,6 +196,7 @@ function bseTelegramHistoryRecordEvents_(book){
         reference:reference,
         category:category,
         summary:selected.map(bseTelegramHistoryUserCandidateLine_).filter(Boolean).join(' / ').slice(0,160),
+        pilot_summary:pilot?bseTelegramHistoryPilotSummary_(selected):'',
         reporter_user_id:String(queue[2]||''),
         visibility:visibility
       });

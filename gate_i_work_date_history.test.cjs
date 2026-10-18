@@ -107,4 +107,15 @@ check('TEST history retains legacy domain labels unchanged',()=>{
  assert(line.startsWith('Transplant_Event_Log '));
  env='PILOT_OPERATION';
 });
+check('PILOT structured sowing is one readable report with both plots',()=>{
+ env='PILOT_OPERATION';
+ const candidates=[{target:'Crop_Batch_Log',fields:{crop:'Timun',variety:'282',event_date:'2026-10-06'}},{target:'Plot_Allocation_Log',fields:{plot_id:'M5P3',event_date:'2026-10-06'}},{target:'Plot_Allocation_Log',fields:{plot_id:'M5P4',event_date:'2026-10-06'}}];
+ const s=ctx.bseTelegramHistoryPilotSummary_(candidates);
+ assert(s.includes('Semaian'));assert(s.includes('Tanaman: Timun'));assert(s.includes('Varieti: 282'));assert(s.includes('Plot: M5P3, M5P4'));
+ assert(!s.includes('_Log'));assert(ctx.bseTelegramHistorySafeLine_({pilot_summary:s,reference:'BSE-TG-772257186',date:'2026-10-06'}).includes('Rujukan: BSE-TG-772257186'));
+});
+check('PILOT transplant summary uses work date and both plot ids',()=>{
+ const s=ctx.bseTelegramHistoryPilotSummary_([{target:'Transplant_Event_Log',fields:{crop:'Timun',variety:'282',event_date:'2026-10-09',plot_ids:['M5P3','M5P4']}}]);
+ assert(s.includes('Pindah tanam'));assert(s.includes('Tarikh kerja: 2026-10-09'));assert(s.includes('Plot: M5P3, M5P4'));
+});
 console.log('GATE_I_WORK_DATE_HISTORY '+n+'/'+n+' PASS');
