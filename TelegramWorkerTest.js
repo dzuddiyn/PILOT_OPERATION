@@ -397,7 +397,7 @@ function runBseTelegramSeedSowingBoundaryRegressionTests(){
     {id:'single canonical facts and allocations are exact',pass:singleResult.candidates[0].fields.crop==='Timun'&&singleResult.candidates[0].fields.variety==='Lokal (CCB)'&&singleResult.candidates[0].fields.event_date==='2026-09-10'&&allocations.map(c=>c.fields.plot_id).join('|')==='M1P1|M1P2'},
     {id:'deterministic seed parser has no Gemini or credential dependency',pass:!/bseUnifiedProcess_|GEMINI_|PropertiesService/.test(bseTelegramSeedSowingDeterministicResult_.toString())},
     {id:'multi Crop Batch seed-sowing fails closed as Crop Batch',pass:!!boundary&&boundary.validation==='NEED_INFO'&&boundary.production_write===false&&boundary.seed_sowing_split_required===true&&boundary.candidates.length===1&&boundary.candidates[0].target==='Crop_Batch_Log'},
-    {id:'multi Crop Batch prompt asks reporter to split records',pass:/satu Crop Batch sahaja/i.test(question)&&/satu Modul/i.test(question)},
+    {id:'multi Crop Batch prompt asks reporter to split records',pass:/setiap semaian secara berasingan/i.test(question)&&/satu modul/i.test(question)&&!/Crop Batch/i.test(question)},
     {id:'seed deterministic route is evaluated before treatment and Gemini fallback',pass:seedPos>=0&&treatmentPos>seedPos&&fallbackPos>seedPos}
   ];
   console.log('TELEGRAM_SEED_SOWING_BOUNDARY_REGRESSION: '+JSON.stringify(tests));
