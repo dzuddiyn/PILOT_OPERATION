@@ -95,4 +95,21 @@ check('PILOT retrieval hides raw schema/category/status tokens',()=>{
  const expected='Rekod BSE-TG-772257163\nStatus: Disahkan oleh penghantar\nRawatan / Racun | Timun 2026-10-13 M5P1,M5P2 Serenade - 80';
  assert.equal(out('sendMessage',raw),expected);
 });
+check('PILOT history references confirmation date and hides raw schema category',()=>{
+ env='PILOT_OPERATION';
+ const raw='Sejarah TEST - 2026-10-18\n2026-10-18 | BSE-TG-772257163 | PRIVATE_SUBMISSION | Treatment_Event_Log | Timun 2026-10-13 M5P1,M5P2\nMod TEST - tiada production write.';
+ const shown=out('sendMessage',raw);
+ assert.equal(shown,'Sejarah pengesahan - 2026-10-18\n2026-10-18 | BSE-TG-772257163 | Rawatan / Racun | Timun 2026-10-13 M5P1,M5P2');
+});
+check('PILOT empty history explicitly means no confirmation in requested period',()=>{
+ env='PILOT_OPERATION';
+ const shown=out('sendMessage','Sejarah TEST - 2026-10-13\nTiada rekod TEST yang boleh dipaparkan dalam sela masa ini.\nMod TEST - tiada production write.');
+ assert.equal(shown,'Sejarah pengesahan - 2026-10-13\nTiada rekod disahkan dalam tempoh ini.');
+});
+check('PILOT nonactive plot status uses plain language without inventing ACTIVE',()=>{
+ env='PILOT_OPERATION';
+ const shown=out('sendMessage','Status Plot TEST M5P1\nTiada allocation ACTIVE TEST yang diluluskan.\nMod TEST - tiada production write.');
+ assert.equal(shown,'Status Plot M5P1\nTiada rekod tanaman berstatus aktif untuk plot ini.');
+ assert(!shown.includes('PLANNED'));
+});
 console.log('GATE_I_PILOT_USER_UX '+n+'/'+n+' PASS');
