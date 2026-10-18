@@ -73,3 +73,9 @@ Status production ialah **belum layak**. Sebelum sebarang production/final corpo
 handover, OpsMate memerlukan `PILOT_OPERATION` yang diverifikasi, bukti penerimaan BSE,
 dan kelulusan production gate yang berasingan. Google Task completion tidak pernah
 menjadi kelulusan automatik atau bukti penerimaan pilot.
+
+## Gate I truth checkpoint — 2026-10-18
+- Canonical main at I-00 start: eaa6e72 (PR #16 merged). Gate H PILOT_OPERATION Telegram automation LIVE PASS and final independent audit ON / one bseTelegramTick trigger / no webhook; earlier B/automation OFF statements are historical only.
+- Gate I-00 PILOT_OPERATION Daily/Friday scheduler feature: LOCAL PASS only (12/12 targeted, 80/80 Gate E/F/H), unmerged and Script HEAD not updated at this checkpoint. Do not claim digest LIVE PASS until actual Telegram scheduled receipt and independent PILOT_* audit.
+- Gate I ordinary-user positive store/retrieve, fresh audits and handover remain PENDING. Real operation confirmation and BSE questionnaire/sign-off cannot be manufactured.
+- production_write:false; official_bse_write:false; production gate separately authorized.
