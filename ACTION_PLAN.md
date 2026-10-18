@@ -1,5 +1,10 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## Gate I fresh post-treatment integrity audit - 2026-10-18 15:28 MYT
+- Owner Apps Script read-only runBsePilotOperationReadOnlyIntegrityAudit (15:26:38-15:28:46 MYT) completed with OPTIONAL_TABS_ABSENT; 61 registered schemas, 31 CURRENT / 30 optional absent, zero STALE/SOURCE_MISMATCH; 11/11 required CURRENT; 39 source entries and 0 source-key issues; read_only:true, production_write:false, official_bse_write:false. This replaces the earlier 26 CURRENT / 35 optional missing / 16 source entry count as latest integrity observation.
+- This verifies schema/source-key state AFTER the two actual reporter-confirmed treatment writes and Telegram /retrieve /history /status audit additions; no synthetic tab or domain write was produced by the inspector. Private evidence: GATE_I_20261018_REAL_TREATMENT_AND_TELEGRAM_UX_LIVE_PASS.md.
+- Latest canonical source from PR #28 was merged at main af8a89055c8a6282d34bd80fec480fa9c2ee6b97, tracking documentation-only. Gate I still NOT DELIVERED pending real non-owner visibility proof, history date semantics, latency acceptance and BSE questionnaire/receiving sign-off.
+
 ## Gate I final Telegram UX LIVE proof - 2026-10-18 15:07 MYT
 - PR #27 merged canonical main efc4e9188e4e185e41ad70622bbcbdda22fbce03. PILOT-only history/plot status text fix; no change to domain, date semantics, authorization or production state.
 - Latest Script HEAD 70/70 source and nine preserved Gate F helpers independently READBACK VERIFIED, zero mismatches; 131/131 local test checks; Apps Script full regression 47/47 PASS at 15:06:17 MYT.
