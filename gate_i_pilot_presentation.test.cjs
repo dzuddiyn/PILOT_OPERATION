@@ -89,4 +89,10 @@ check('PILOT card closure uses human-readable confirmation status',()=>{
  const expected='Semakan laporan BSE-TG-772257163 â€” Disahkan oleh dzuddiyn pada 18/10/2026';
  assert.equal(out('sendMessage',original),expected);
 });
+check('PILOT retrieval hides raw schema/category/status tokens',()=>{
+ env='PILOT_OPERATION';
+ const raw='Rekod TEST BSE-TG-772257163\nKategori: PRIVATE_SUBMISSION\nStatus: REPORTER_CONFIRMED\nTreatment_Event_Log | Timun 2026-10-13 M5P1,M5P2 Serenade - 80';
+ const expected='Rekod BSE-TG-772257163\nStatus: Disahkan oleh penghantar\nRawatan / Racun | Timun 2026-10-13 M5P1,M5P2 Serenade - 80';
+ assert.equal(out('sendMessage',raw),expected);
+});
 console.log('GATE_I_PILOT_USER_UX '+n+'/'+n+' PASS');
