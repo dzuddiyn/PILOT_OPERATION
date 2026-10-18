@@ -49,13 +49,20 @@ function bseTelegramSeedSowingDeterministicResult_(input){
 }
 
 function bsePilotCompactTransplantDate_(source){
-  const explicit=bseTransplantExplicitDateContext_(source);
-  if(explicit.present)return explicit;
   const originals=String(source&&source.original||'').split(/\r?\n/);
   const answers=(source&&source.clarifications||[]).map(s=>String(s||'').trim());
+  // This PILOT compact-report adapter uses the latest explicit reporter date correction.
+  // Other grammar/routes continue to use the original strict ambiguity validator.
+  const mostRecent=answers.length?answers[answers.length-1]:'';
+  const recentMatch=mostRecent.match(/^(?:Tarikh\s+Pindah\s*:\s*)?(\d{1,2}\/\d{1,2}\/\d{2,4})\s*$/i);
+  if(!recentMatch){
+    const explicit=bseTransplantExplicitDateContext_(source);
+    if(explicit.present)return explicit;
+  }
   // A plain one-line date reply overrides shorthand ONLY after the human supplies it.
   const replies=answers.filter(s=>/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(s));
-  const raws=replies.length?replies:originals.map(s=>{
+  // Latest explicit date supersedes earlier reply dates in chronological order.
+  const raws=recentMatch?[recentMatch[1]]:replies.length?[replies[replies.length-1]]:originals.map(s=>{
     const m=s.match(/^\s*-\s*(\d{1,2}\/\d{1,2}\/\d{2,4})\s*$/);
     return m?m[1]:'';
   }).filter(Boolean);
@@ -122,6 +129,77 @@ function bseTelegramTransplantDeterministicResult_(book,input){
   const built=bseTelegramTransplantBuildResult_(input,source,parsed,match,reallocation);
   if(reallocation.kind==='MULTIPLE'&&!sourcePlot.plot&&built&&built.candidates&&built.candidates[0]){const c=built.candidates[0];c.fields.crop=explicitCrop.crop;c.fields.source_plot_options=Array.from(new Set((reallocation.matches||[]).map(match=>String(match&&match.from_plot_id||'')).filter(Boolean))).sort(bseCropBatchPlotCompare_);c.missing=Array.from(new Set((c.missing||[]).filter(x=>x!=='batch_match').concat(['source_plot'])));c.validation='NEED_INFO';built.validation='NEED_INFO';}
   return built;
+}
+/**
+ * An older PILOT WAITING_INFO response can be re-queued for ordinary human
+ * review after a verified later date correction. No confirmation/domain write.
+ * Never apply to TEST/PILOT_TEST, other users, or ambiguous candidates.
+ */
+function bsePilotTransplantCorrectionReady_(book,rows){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')throw Error('PILOT_ONLY_CORRECTION_RECOVERY');
+  const ownerChat=String(bseRuntimeLegacyChatId_()),ownerId=String(bseRuntimeLegacyUserId_());
+  const eligible=[];
+  (rows||[]).forEach((row,index)=>{
+    if(String(row[6])!=='WAITING_INFO'||String(row[7])!=='SENT'||
+       String(row[1])!==ownerChat||String(row[2])!==ownerId||
+       !String(row[14]||'')||!String(row[13]||'')||
+       !/^\s*\d{1,2}\/\d{1,2}\/2026\s*$/.test(String(row[4]||'')))return;
+    const context=bseTelegramReportContext_(rows,row);
+    if(!/^\s*Transplant\s*$/im.test(String(context.original||'')))return;
+    const raw=bseTelegramTransplantDeterministicResult_(book,context.input);
+    if(!raw||raw.validation!=='PASS')return;
+    const job={id:String(row[0]),rootId:String(context.rootId),input:context.input,
+      original:context.original,provenance:context.provenance,receivedAt:context.receivedAt};
+    const result=bseTelegramWorkerFinalizeResult_(book,raw,job);
+    const c=result&&result.candidates&&result.candidates[0],fields=c&&c.fields||{};
+    if(result.validation!=='PASS'||bseTelegramQueueStatus_(result)!=='NEEDS_HUMAN_REVIEW'||
+       result.production_write!==false||!c||c.target!=='Transplant_Event_Log'||
+       !/^\d{4}-\d{2}-\d{2}$/.test(String(fields.event_date||''))||
+       !Array.isArray(fields.plot_ids)||fields.plot_ids.join('|')!=='M5P1|M5P2')return;
+    eligible.push({index:index,reference:'BSE-TG-'+String(row[0]),
+      original_reference:'BSE-TG-'+String(context.rootId),
+      event_date:String(fields.event_date),plots:fields.plot_ids.slice(),
+      current_status:'WAITING_INFO',new_status:'RETRY_NEEDED'});
+  });
+  if(eligible.length>1)throw Error('TRANSPLANT_CORRECTION_AMBIGUOUS');
+  return eligible.length?eligible[0]:null;
+}
+function inspectBsePilotTransplantDateCorrection(){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')throw Error('PILOT_ONLY_CORRECTION_INSPECT');
+  const book=boundTestBook_(),sheet=bseTelegramQueue_(book);
+  const rows=sheet.getLastRow()>1?
+    sheet.getRange(2,1,sheet.getLastRow()-1,BSE_TG_QUEUE_HEADERS.length).getValues():[];
+  const ready=bsePilotTransplantCorrectionReady_(book,rows);
+  const result={ready:!!ready,entry:ready||null,read_only:true,
+    production_write:false,official_bse_write:false};
+  console.log('PILOT_TRANSPLANT_CORRECTION_INSPECT '+JSON.stringify(result));
+  return result;
+}
+function recoverBsePilotTransplantDateCorrection(){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')throw Error('PILOT_ONLY_CORRECTION_RECOVERY');
+  const lock=LockService.getScriptLock();
+  if(!lock.tryLock(1000))throw Error('TRANSPLANT_CORRECTION_BUSY');
+  try{
+    const book=boundTestBook_(),sheet=bseTelegramQueue_(book);
+    const rows=sheet.getLastRow()>1?
+      sheet.getRange(2,1,sheet.getLastRow()-1,BSE_TG_QUEUE_HEADERS.length).getValues():[];
+    const ready=bsePilotTransplantCorrectionReady_(book,rows);
+    if(!ready)return {status:'NO_ELIGIBLE_WAITING_CORRECTION',production_write:false,official_bse_write:false};
+    const rowNumber=ready.index+2;
+    const target=sheet.getRange(rowNumber,1,1,BSE_TG_QUEUE_HEADERS.length).getValues()[0];
+    if(String(target[6])!=='WAITING_INFO'||String(target[0])!==
+       ready.reference.replace(/^BSE-TG-/,''))throw Error('TRANSPLANT_CORRECTION_REVISION_CONFLICT');
+    sheet.getRange(rowNumber,7).setValue('RETRY_NEEDED');
+    SpreadsheetApp.flush();
+    const after=String(sheet.getRange(rowNumber,7).getValue());
+    if(after!=='RETRY_NEEDED')throw Error('TRANSPLANT_CORRECTION_PARTIAL_WRITE');
+    const result={status:'REQUEUED_FOR_HUMAN_REVIEW',reference:ready.reference,
+      original_reference:ready.original_reference,event_date:ready.event_date,
+      queue_status:after,transplant_record_written:false,
+      production_write:false,official_bse_write:false};
+    console.log('PILOT_TRANSPLANT_CORRECTION_RECOVERY '+JSON.stringify(result));
+    return result;
+  }finally{lock.releaseLock();}
 }
 function runBseTelegramTransplantDeterministicHarnessTests(){
   const batch=['BSE-TG-1|Crop_Batch_Log','1','BSE-SB-CB-20260910-002','2026-09-10','Peria','Hup Nong','BATCH_START','PROPOSED','PROVISIONAL','','','','hash'];
