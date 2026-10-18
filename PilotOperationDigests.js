@@ -96,7 +96,7 @@ function bsePilotDigestRender_(book,kind,owner,window){
   else shown.forEach(e=>lines.push(bseTelegramHistorySafeLine_(e)));
   if(events.length>shown.length)lines.push('Dipaparkan '+shown.length+' daripada '+events.length+' rekod.');
   lines.push('','Komen Gemini — NON_CANONICAL, bukan fakta dan tidak mengubah rekod:',
-    gemini.ok?gemini.text:'Komen Gemini tidak tersedia buat masa ini.',
+    gemini.ok?String(gemini.text).replace(/mod TEST/gi,'mod PILOT_OPERATION'):'Komen Gemini tidak tersedia buat masa ini.',
     '','Shadow pilot sahaja — tiada rekod production atau sistem rasmi BSE ditulis.');
   return {text:lines.join('\n'),matched:events.length,gemini:gemini.ok?'SENT':gemini.reason};
 }

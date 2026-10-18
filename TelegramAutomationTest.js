@@ -1,4 +1,4 @@
-﻿/** @NotOnlyCurrentDoc */
+/** @NotOnlyCurrentDoc */
 // Opens only the fixed BSE TEST spreadsheet for unattended triggers.
 // Install manually after reviewing the TEST receiver and worker.
 function bseTelegramAutomationBook_() {
@@ -49,7 +49,19 @@ function bseTelegramTick() {
        t.getHandlerFunction()==='bseTelegramTick'&&t.getUniqueId()===authorizedId))
       throw Error('GATE_H_TRIGGER_AUTHORITY_MISSING');
     bseTelegramAutomationBook_();
-    receiveBseTelegramTest(); // Durable receive + approval/evidence/registration callbacks.
+    try {
+      receiveBseTelegramTest(); // Durable receive + approval/evidence/registration callbacks.
+    } catch (error) {
+      // Another authorized receive may own ScriptLock (e.g. a pilot digest trigger).
+      // The next minute tick resumes from the unchanged durable Telegram offset.
+      if (String(error && error.message || error) === 'Penerimaan lain sedang berjalan.') {
+        console.log('GATE_H_RECEIVER_BUSY_DEFERRED '+JSON.stringify({
+          status:'RETRY_NEXT_TICK',production_write:false,official_bse_write:false
+        }));
+        return {status:'RETRY_NEXT_TICK',production_write:false,official_bse_write:false};
+      }
+      throw error; // Never mask actual Telegram/network/API or authority failures.
+    }
     processBseTelegramApprovalCallbacks(); // Drains one additional durable callback.
     processBseTelegramTestQueue();
     return;

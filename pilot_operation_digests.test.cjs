@@ -64,7 +64,15 @@ check('render pilot terminology and noncanonical fallback',()=>{
  assert(x.text.includes('Komen Gemini tidak tersedia'));
  assert(!x.text.includes('Laporan TEST'));
 });
-check('no production/official writer',()=>assert(!/\b(?:bseProduction|officialBse|production_write\s*:\s*true)\b/i.test(source)));
+check('Gemini TEST-mode label is normalized for PILOT display',()=>{
+ const prev=context.bseTelegramReportGeminiCommentary_;
+ context.bseTelegramReportGeminiCommentary_=()=>({ok:true,text:'Berikut komen operasi bagi mod TEST: tiada rekod.'});
+ const x=context.bsePilotDigestRender_({},'FRIDAY',{telegram_user_id:'123'},
+  {start:'2026-10-09',end:'2026-10-15'});
+ assert(x.text.includes('mod PILOT_OPERATION'));
+ assert(!x.text.includes('mod TEST'));
+ context.bseTelegramReportGeminiCommentary_=prev;
+});check('no production/official writer',()=>assert(!/\b(?:bseProduction|officialBse|production_write\s*:\s*true)\b/i.test(source)));
 check('distinct trigger handlers and props',()=>{
   const x=vm.runInContext("BSE_PILOT_DIGEST_CONFIG",context);
   assert(x.DAILY.handler!==x.FRIDAY.handler);assert(x.DAILY.property!==x.FRIDAY.property);
