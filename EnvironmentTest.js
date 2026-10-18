@@ -211,7 +211,7 @@ function bseRuntimePilotUiLabels_(text) {
     .replace(/^Status Plot TEST\b/gm,'Status Plot')
     .replace(/^Rumusan Plot TEST\b/gm,'Rumusan Plot')
     .replace(/^Makluman TEST\b/gm,'Makluman')
-    .replace(/^Laporan diterima dan sudah disimpan untuk diproses\. Rujukan: (BSE-TG-\d+)\.(?: \(Mod TEST\))?$/gm,'Laporan diterima untuk diproses. Rujukan: $1.')
+    .replace(/^Laporan diterima dan sudah disimpan untuk diproses\. Rujukan: (BSE-TG-\d+)\.(?: \(Mod TEST\))?$/gm,'Memproses Rekod / Laporan.\n<i>Rujukan: $1</i>')
     .replace(/^Laporan TEST\b/gm,'Laporan')
     .replace(/^TREATMENT_EVENT$/gm,'Rawatan / Racun')
     .replace(/^Treatment_Event_Log\s*\|/gm,'Rawatan / Racun |')
@@ -242,7 +242,8 @@ function bseRuntimeTelegramPayload_(method, payload) {
   const env=bseRuntimeEnvironmentName_();
   if(env==='PILOT_OPERATION'){
     if(['sendMessage','editMessageText'].includes(method) && typeof body.text==='string')
-      body.text=bseRuntimePilotUiLabels_(body.text);
+    { body.text=bseRuntimePilotUiLabels_(body.text);
+      if(/^Memproses Rekod \/ Laporan\.\n<i>Rujukan: BSE-TG-\d+<\/i>$/.test(body.text))body.parse_mode='HTML'; }
     if(['sendPhoto','sendDocument','sendVideo'].includes(method) && typeof body.caption==='string')
       body.caption=bseRuntimePilotUiLabels_(body.caption);
     return body;
