@@ -43,7 +43,9 @@ function bsePilotOperationAuditRegistry_(){
 }
 function bsePilotOperationSourceIssues_(snapshots){
   const entries=snapshots.flatMap(bsePilotAuditSourceEntries_);
-  const issues=bsePilotAuditDuplicateIssues_(entries,new Set(BSE_PILOT_OP_DUPLICATE_ALLOWED));
+  // Append-only audit history may repeat a reference for distinct user requests.
+  const uniqueRows=entries.filter(e=>!/_AUDIT$/i.test(e.sheet));
+  const issues=bsePilotAuditDuplicateIssues_(uniqueRows,new Set(BSE_PILOT_OP_DUPLICATE_ALLOWED));
   entries.forEach(e=>{
     if(/^(true|yes|1)$/i.test(e.production))
       issues.push({type:'PRODUCTION_WRITE_TRUE',sheet:e.sheet,row:e.row});
@@ -52,8 +54,10 @@ function bsePilotOperationSourceIssues_(snapshots){
   });
   const queue=snapshots.find(s=>s.sheet==='PILOT_TELEGRAM_QUEUE');
   const qi=queue?bsePilotAuditIndex_(queue.headers):{};
-  const ids=new Set(queue?queue.rows.map(r=>bsePilotAuditCell_(r,qi,'update_id')).filter(Boolean):[]);
-  entries.filter(e=>e.sheet!=='PILOT_TELEGRAM_QUEUE'&&/^BSE-TG-\d+/.test(e.key))
+  // Clarification replaces the queue update while its source key preserves parent update identity.
+  const ids=new Set(queue?queue.rows.flatMap(r=>[bsePilotAuditCell_(r,qi,'update_id'),
+    bsePilotAuditCell_(r,qi,'parent_update_id')]).filter(Boolean):[]);
+  entries.filter(e=>e.sheet!=='PILOT_TELEGRAM_QUEUE'&&!/_AUDIT$/i.test(e.sheet)&&/^BSE-TG-\d+/.test(e.key))
     .forEach(e=>{
       const m=e.key.match(/^BSE-TG-(\d+)/);
       if(m&&!ids.has(m[1]))issues.push({type:'ORPHAN_SOURCE_KEY',sheet:e.sheet,row:e.row});
