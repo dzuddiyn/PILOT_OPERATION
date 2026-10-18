@@ -99,12 +99,12 @@ check('PILOT history references confirmation date and hides raw schema category'
  env='PILOT_OPERATION';
  const raw='Sejarah TEST - 2026-10-18\n2026-10-18 | BSE-TG-772257163 | PRIVATE_SUBMISSION | Treatment_Event_Log | Timun 2026-10-13 M5P1,M5P2\nMod TEST - tiada production write.';
  const shown=out('sendMessage',raw);
- assert.equal(shown,'Sejarah pengesahan - 2026-10-18\n2026-10-18 | BSE-TG-772257163 | Rawatan / Racun | Timun 2026-10-13 M5P1,M5P2');
+ assert.equal(shown,'Sejarah operasi - 2026-10-18\n2026-10-18 | BSE-TG-772257163 | Rawatan / Racun | Timun 2026-10-13 M5P1,M5P2');
 });
 check('PILOT empty history explicitly means no confirmation in requested period',()=>{
  env='PILOT_OPERATION';
  const shown=out('sendMessage','Sejarah TEST - 2026-10-13\nTiada rekod TEST yang boleh dipaparkan dalam sela masa ini.\nMod TEST - tiada production write.');
- assert.equal(shown,'Sejarah pengesahan - 2026-10-13\nTiada rekod disahkan dalam tempoh ini.');
+ assert.equal(shown,'Sejarah operasi - 2026-10-13\nTiada rekod operasi dalam tempoh ini.');
 });
 check('PILOT nonactive plot status uses plain language without inventing ACTIVE',()=>{
  env='PILOT_OPERATION';

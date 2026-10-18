@@ -112,8 +112,12 @@ function bseTelegramHistoryInCommandPeriod_(date,command){
 function bseTelegramHistoryPeriodLabel_(command){
   return command&&command.kind==='WEEK'?String(command.start)+' → '+String(command.end):String(command&&command.period||'');
 }
-function bseTelegramHistorySafeLine_(event){
-  return [event.date,event.reference,event.category,event.summary].map(v=>String(v||'').replace(/[\r\n]+/g,' ').replace(/\s+/g,' ').trim()).join(' | ').slice(0,220);
+function bseTelegramHistorySafeLine_(event,includeWorkDate){
+  const isPilot=bseRuntimeEnvironmentName_()==='PILOT_OPERATION';
+  // PILOT history is work-date history, never approval/recording-date history.
+  const parts=(isPilot?(includeWorkDate===false?[]:['Tarikh kerja: '+event.date]):[event.date])
+    .concat([event.reference,event.category,event.summary]);
+  return parts.map(v=>String(v||'').replace(/[\r\n]+/g,' ').replace(/\s+/g,' ').trim()).join(' | ').slice(0,220);
 }
 function bseTelegramHistoryApprovalResult_(aggregate,approvalSourceKey,expectedHash){
   if(!aggregate||aggregate.production_write!==false||aggregate.validation!=='PASS')return null;
@@ -142,14 +146,24 @@ function bseTelegramHistoryRecordEvents_(book){
     const privateSource=String(meta.source_chat_type||'')==='private';
     const category=bseTelegramRecordCandidateCategory_(result,privateSource);
     const visibility=privateSource?'PRIVATE_SUBMISSION':(['FIELD_OPERATION','ASSET_EQUIPMENT'].includes(category)?'GROUP_STANDARD':'RESTRICTED');
-    const candidates=(result.candidates||[]).map(bseTelegramRecordSafeCandidateLine_).filter(Boolean);
-    events.push({
-      date:bseTelegramHistoryDate_(approval[15]||queue[17]||queue[5]),
-      reference:reference,
-      category:category,
-      summary:candidates.join(' / ').slice(0,160),
-      reporter_user_id:String(queue[2]||''),
-      visibility:visibility
+    const candidates=result.candidates||[],pilot=bseRuntimeEnvironmentName_()==='PILOT_OPERATION';
+    // Each approved canonical candidate owns its own work date; a multi-date
+    // message must not be stamped with the reporter confirmation timestamp.
+    const dates=pilot?Array.from(new Set(candidates.map(c=>
+      bseTelegramHistoryDate_(c&&c.fields&&c.fields.event_date))))
+        .filter(date=>bseTelegramHistoryDateParts_(date)):
+      [bseTelegramHistoryDate_(approval[15]||queue[17]||queue[5])];
+    dates.forEach(date=>{
+      const selected=pilot?candidates.filter(c=>
+        bseTelegramHistoryDate_(c&&c.fields&&c.fields.event_date)===date):candidates;
+      events.push({
+        date:date,
+        reference:reference,
+        category:category,
+        summary:selected.map(bseTelegramRecordSafeCandidateLine_).filter(Boolean).join(' / ').slice(0,160),
+        reporter_user_id:String(queue[2]||''),
+        visibility:visibility
+      });
     });
   });
   return events;
@@ -210,9 +224,9 @@ function bseTelegramHistoryRetrieve_(book,m){
     return {handled:true,text:'History hanya boleh diminta melalui PM oleh owner/admin atau user TEST yang aktif.'};
   }
   const all=bseTelegramHistoryEventsFor_(book,command,user,access.is_owner),displayed=all.slice(0,BSE_TG_HISTORY_MAX_DISPLAY);
-  const lines=['Sejarah TEST — '+bseTelegramHistoryPeriodLabel_(command)];
+  const lines=[(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'Sejarah operasi':'Sejarah TEST')+' — '+bseTelegramHistoryPeriodLabel_(command)];
   if(!displayed.length)lines.push('Tiada rekod TEST yang boleh dipaparkan dalam sela masa ini.');
-  else displayed.forEach(event=>lines.push(bseTelegramHistorySafeLine_(event)));
+  else displayed.forEach(event=>lines.push(bseTelegramHistorySafeLine_(event,command.kind!=='DAY')));
   if(all.length>displayed.length)lines.push('Dipaparkan '+displayed.length+' daripada '+all.length+' rekod yang dipadankan.');
   lines.push('Mod TEST — tiada rekod production ditulis.');
   audit('SENT',access.reason,all.length,displayed.length);
