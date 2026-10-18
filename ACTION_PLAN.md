@@ -1,5 +1,13 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## Gate I final Telegram UX LIVE proof - 2026-10-18 15:07 MYT
+- PR #27 merged canonical main efc4e9188e4e185e41ad70622bbcbdda22fbce03. PILOT-only history/plot status text fix; no change to domain, date semantics, authorization or production state.
+- Latest Script HEAD 70/70 source and nine preserved Gate F helpers independently READBACK VERIFIED, zero mismatches; 131/131 local test checks; Apps Script full regression 47/47 PASS at 15:06:17 MYT.
+- Live owner /history 2026-10-18 returned refs 772257161 and 772257163 as Rawatan / Racun with human-readable Sejarah pengesahan; independent PILOT Telegram History Audit 2026-10-18T07:07:25.282Z SENT OWNER_ACTIVE, matched/displayed 2/2.
+- Live owner /status plot M5P1 returned Tiada rekod tanaman berstatus aktif untuk plot ini; independent PILOT Plot Status Audit 2026-10-18T07:07:29.636Z NOT_FOUND STATUS_NONE. Source allocations are PLANNED, with no ACTIVE status events; do not auto-activate.
+- Both previously confirmed real treatment events and four plot links remain unchanged and unique; daily/Friday digest audits remain exactly one SENT each; no production/official BSE write.
+- Open decisions/gates: /history confirmation-date vs event-date authority (also affects digests), actual non-owner negative visibility test, optional UI speed/one-minute polling redesign, genuine BSE ops/admin questionnaire and receiving signoff. Gate I PARTIAL VERIFIED; NOT DELIVERED.
+
 ## Gate I real treatment confirmation and user Telegram UX — 2026-10-18 14:48 MYT
 - CURRENT GitHub main 9c176d9de0139ffc6791fa6d0931044ec7f850c4 (PR #25 merged); Apps Script Script HEAD 70/70 source files independently matched, 9 Gate F helpers preserved; local 128/128 regression PASS; final owner Apps Script 47/47 PASS at 14:45 MYT. No official production deployment/write.
 - Owner submitted two genuine treatment reports, personally selected Benar, and independently verified PILOT Sheet records: BSE-TG-772257161 -> BSE-SB-TX-20261015-001 and BSE-TG-772257163 -> BSE-SB-TX-20261013-001; both Treatment Review APPROVED, callbacks PROCESSED, two Treatment Events + four M5P1/M5P2 allocation links, no duplicate event. Work itself is reporter-declared, not physically witnessed by software. Gate I positive real record acceptance is LIVE PASS for software persistence.
