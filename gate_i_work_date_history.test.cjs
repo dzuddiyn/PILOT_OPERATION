@@ -16,8 +16,12 @@ const ctx={
   bseRuntimeEnvironmentName_:()=>env,
   BSE_TG_QUEUE_HEADERS:Array(18).fill(''),BSE_APPROVAL_UI_HEADERS:Array(26).fill(''),
   bseTelegramRecordReadRows_:(_,name)=>name==='TELEGRAM_TEST_QUEUE'?queue:approvals,
-  bseApprovalHash_:()=> 'HASH',
+  bseApprovalHash_:v=>v&&v.transplant_crop_conflict?'SIDE_CAR_HASH_INVALID':'HASH',
   bseApprovalCandidateIndexFromSourceKey_:()=>null,
+  bseApprovalEnvelopes_:v=>v.candidates.length===1?
+    [{validation:v.validation,production_write:false,candidates:v.candidates}]:
+    v.candidates.map(c=>({validation:c.validation,production_write:false,candidates:[c]})),
+  bseApprovalCandidateEnvelope_:(v,i)=>({validation:v.candidates[i].validation,production_write:false,candidates:[v.candidates[i]]}),
   bseTelegramRecordCandidateCategory_:()=> 'PRIVATE_SUBMISSION',
   bseTelegramRecordSafeCandidateLine_:c=>c.target+' '+c.fields.event_date,
   SpreadsheetApp:{flush:()=>{}}
@@ -66,5 +70,26 @@ check('PILOT candidate without work date cannot be invented from received_at',()
  const old=queue[0][9];queue[0][9]=JSON.stringify(copy);
  const all=ctx.bseTelegramHistoryRecordEvents_({});
  assert.equal(all.length,1);assert.equal(all[0].reference,'BSE-TG-772257163');queue[0][9]=old;
+});
+check('PILOT source 772257188 with worker sidecar is shown on true 9 Oct work date',()=>{
+ env='PILOT_OPERATION';
+ const result={validation:'PASS',production_write:false,candidates:[{target:'Transplant_Event_Log',validation:'PASS',fields:{event_date:'2026-10-09',crop:'Timun',plot_ids:['M5P3','M5P4']}}],transplant_crop_conflict:{declared:' M5P34',canonical:'Timun'}};
+ queue.push(row(18,{0:'772257188',2:'913',5:'2026-10-18T12:52:00Z',6:'REPORTER_CONFIRMED',9:JSON.stringify(result),16:'{"source_chat_type":"private"}'}));
+ approvals.push(row(26,{0:'BSE-TG-772257188',1:'BSE-TG-772257188|Transplant_Event_Log',2:'HASH',15:'2026-10-18T12:52:44Z',17:'REPORTER_CONFIRMED'}));
+ const work=ctx.bseTelegramHistoryEventsFor_({},ctx.bseTelegramHistoryCommand_('/history 2026-10-09'),'913',true);
+ assert.equal(work.length,1);assert.equal(work[0].reference,'BSE-TG-772257188');
+ assert.equal(work[0].date,'2026-10-09');
+ assert.equal(ctx.bseTelegramHistoryEventsFor_({},ctx.bseTelegramHistoryCommand_('/history 2026-10-18'),'913',true).length,0);
+ assert.equal(ctx.bseTelegramHistoryEventsFor_({},ctx.bseTelegramHistoryCommand_('/history 2026-10-09'),'999',false).length,0);
+ approvals.pop();queue.pop();
+});
+check('PILOT bare-key history rejects ambiguous multi-candidate source',()=>{
+ const multi={validation:'PASS',production_write:false,candidates:[{target:'Treatment_Event_Log',validation:'PASS',fields:{event_date:'2026-10-09'}},{target:'Treatment_Event_Log',validation:'PASS',fields:{event_date:'2026-10-10'}}]};
+ assert.equal(ctx.bseTelegramHistoryApprovalResult_(multi,'BSE-TG-123|Treatment_Event_Log','HASH'),null);
+});
+check('TEST legacy remains unchanged for matched full aggregate',()=>{
+ env='TEST';const result={validation:'PASS',production_write:false,candidates:[{target:'Transplant_Event_Log',fields:{event_date:'2026-10-09'}}],transplant_crop_conflict:{}};
+ assert(ctx.bseTelegramHistoryApprovalResult_(result,'BSE-TG-123|Transplant_Event_Log','SIDE_CAR_HASH_INVALID'));
+ env='PILOT_OPERATION';
 });
 console.log('GATE_I_WORK_DATE_HISTORY '+n+'/'+n+' PASS');

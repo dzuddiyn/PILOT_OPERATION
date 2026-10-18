@@ -121,11 +121,17 @@ function bseTelegramHistorySafeLine_(event,includeWorkDate){
 }
 function bseTelegramHistoryApprovalResult_(aggregate,approvalSourceKey,expectedHash){
   if(!aggregate||aggregate.production_write!==false||aggregate.validation!=='PASS')return null;
-  let selected=aggregate;
   const index=bseApprovalCandidateIndexFromSourceKey_(approvalSourceKey);
-  if(index!=null){
-    try{selected=bseApprovalCandidateEnvelope_(aggregate,index);}catch(_){return null;}
-  }
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'&&index==null)
+    return bseApprovalHash_(aggregate)===String(expectedHash||'')?aggregate:null;
+  let selected;
+  try {
+    if(index==null){
+      const envelopes=bseApprovalEnvelopes_(aggregate);
+      if(envelopes.length!==1)return null; // Bare source key cannot select between multiple cards.
+      selected=envelopes[0];
+    } else selected=bseApprovalCandidateEnvelope_(aggregate,index);
+  }catch(_){return null;}
   return bseApprovalHash_(selected)===String(expectedHash||'')?selected:null;
 }
 function bseTelegramHistoryRecordEvents_(book){
