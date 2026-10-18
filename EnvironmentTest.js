@@ -226,6 +226,10 @@ function bseRuntimePilotUiLabels_(text) {
     .replace(/REPORTER_CONFIRMED oleh /g,'Disahkan oleh ')
     .replace(/DISCARDED_BY_REPORTER oleh /g,'Dibatalkan oleh ')
     .replace(/^Status: PROVISIONAL[^\r\n]*/gm,'Menunggu pengesahan laporan.')
+    // Preserve this user-actionable unsupported-input notice BEFORE stripping
+    // the legacy mode prefix; otherwise Telegram rejects the empty message.
+    .replace(/^Mod TEST ini menerima laporan teks sahaja\. Sila hantar semula sebagai teks\.$/gm,
+      'Mesej bukan teks tidak diproses. Sila hantar laporan dalam bentuk teks.')
     .replace(/^Mod (?:TEST|PILOT|PILOT_OPERATION)\b[^\r\n]*(?:\r?\n)?/gm,'')
     .replace(/^Tiada rekod production[^\r\n]*(?:\r?\n)?/gm,'')
     .replace(/^Shadow pilot sahaja[^\r\n]*(?:\r?\n)?/gm,'')

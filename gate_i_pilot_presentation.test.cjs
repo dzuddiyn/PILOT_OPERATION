@@ -112,4 +112,16 @@ check('PILOT nonactive plot status uses plain language without inventing ACTIVE'
  assert.equal(shown,'Status Plot M5P1\nTiada rekod tanaman berstatus aktif untuk plot ini.');
  assert(!shown.includes('PLANNED'));
 });
+check('PILOT unsupported group ACK remains nonempty and actionable',()=>{
+ env='PILOT_OPERATION';
+ const raw='Mod TEST ini menerima laporan teks sahaja. Sila hantar semula sebagai teks.';
+ const text=out('sendMessage',raw);
+ assert.equal(text,'Mesej bukan teks tidak diproses. Sila hantar laporan dalam bentuk teks.');
+ assert(text.length>0&&!text.includes('Mod TEST'));
+});
+check('legacy TEST and PILOT_TEST unsupported notice remains unchanged',()=>{
+ const raw='Mod TEST ini menerima laporan teks sahaja. Sila hantar semula sebagai teks.';
+ env='TEST';assert.equal(out('sendMessage',raw),raw);
+ env='PILOT_TEST';assert.equal(out('sendMessage',raw),'[PILOT TEST]\n'+raw);
+});
 console.log('GATE_I_PILOT_USER_UX '+n+'/'+n+' PASS');
