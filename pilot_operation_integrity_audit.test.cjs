@@ -56,4 +56,28 @@ check('unsafe source hash conflict is fatal',()=>{reset();state.issues=[
 check('unknown Telegram offset handled as source row, not modified',()=>{reset();
  state.bodyRows=[['BSE-TG-3','APPROVED']];const x=ctx.runBsePilotOperationReadOnlyIntegrityAudit();
  assert.equal(x.read_only,true);assert.equal(x.production_write,false);});
+check('clarified queue parent identity is valid source-key lineage',()=>{
+ reset();const snaps=[
+  {sheet:'PILOT_TELEGRAM_QUEUE',headers:['update_id','parent_update_id'],rows:[['772257142','772257141']]},
+  {sheet:'PILOT_CROP_BATCH',headers:['source_key'],rows:[['BSE-TG-772257141|Crop_Batch_Log']]}
+ ];
+ const out=ctx.bsePilotOperationSourceIssues_(snaps);
+ assert.equal(out.issues.length,0);
+});
+check('genuinely absent source key remains flagged',()=>{
+ reset();const snaps=[
+  {sheet:'PILOT_TELEGRAM_QUEUE',headers:['update_id','parent_update_id'],rows:[['772257142','772257141']]},
+  {sheet:'PILOT_CROP_BATCH',headers:['source_key'],rows:[['BSE-TG-999999|Crop_Batch_Log']]}
+ ];
+ const out=ctx.bsePilotOperationSourceIssues_(snaps);
+ assert.equal(out.issues.filter(x=>x.type==='ORPHAN_SOURCE_KEY').length,1);
+});
+check('repeatable audit retrieval requests are not canonical source duplicates',()=>{
+ reset();let checked=[];
+ ctx.bsePilotAuditDuplicateIssues_=entries=>{checked=entries;return []};
+ const snaps=[{sheet:'PILOT_TELEGRAM_RECORD_RETRIEVAL_AUDIT',headers:['reference','status'],
+  rows:[['BSE-TG-772257142','SENT'],['BSE-TG-772257142','SENT']]}];
+ const out=ctx.bsePilotOperationSourceIssues_(snaps);
+ assert.equal(checked.length,0);assert.equal(out.issues.length,0);
+});
 console.log('GATE_I_PILOT_READONLY_AUDIT '+count+'/'+count+' PASS');
