@@ -1,5 +1,10 @@
 # OpsMate BSE site B v1.0 Final Handover
 
+## Latest Gate I — 2026-10-18 22:08 MYT, technical freeze READY
+- Main PR #52 merged at `48e0343342ce4db69bb52c196f0d0805a60012c6`; three previously WAITING_INFO records now CLOSED_BY_OWNER, with owner authorization, preserved lineage and notes. 0 active WAITING_INFO and 0 OPEN approval cards. Callback 772257190 remains a reconciled historical failure, not a pending domain write.
+- Targeted closure 8/8, Node 21/21, Apps Script 47/47 PASS; Script HEAD exact 62/62 canonical + 9 helpers. Read-only PILOT integrity status OPTIONAL_TABS_ABSENT, 11/11 required current, 0 stale/mismatch, source 86 entries/0 issues. `production_write:false`, `official_bse_write:false`.
+- READY TO FREEZE technical scope; Gate I HANDOVER PREPARED, NOT DELIVERED until corporate acceptance. Contract docs/GATE_I_OWNER_QUEUE_CLOSURE_CONTRACT_20261018.md.
+
 ## Gate I recovery checkpoint 18 October 2026 20:52 MYT — LIVE VERIFIED
 - Main `6ed8b8a17c38546695457256468e04fd007c46a6`, PR #44/#45/#46 MERGED, canonical Script HEAD 62/62 exact files, runtime 71 JS with Gate F helpers. Local Node suites 20/20; Apps Script regression 47/47 PASS at 20:49 MYT.
 - Genuine owner Transplant BSE-TG-772257188 callback 772257189 recovered once; independent Sheets confirm exactly one APPROVED review, one event BSE-SB-TR-20261009-001 and two M5P3/M5P4 PLANNED→ACTIVE records, card 111 and queue REPORTER_CONFIRMED. Callback 772257190 preserved as prior terminal failure, not replayed. Independent Telegram Desktop saw same card edited to Disahkan plus receipt notice at 20:52 MYT.
