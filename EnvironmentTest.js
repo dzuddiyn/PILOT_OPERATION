@@ -124,6 +124,9 @@ function bseRuntimeRegexEscape_(value) {
 function bseRuntimeStartCommandMatches_(text, botUsernameOverride) {
   const username=String(botUsernameOverride || bseRuntimeBotUsername_()).replace(/^@/, '');
   const pattern=new RegExp('^/start(?:@'+bseRuntimeRegexEscape_(username)+')?\\s+'+bseRuntimeRegexEscape_(bseRuntimeStartToken_())+'\\s*$','i');
+  if (bseRuntimeEnvironmentName_()==='PILOT_OPERATION' &&
+      new RegExp('^/start(?:@'+bseRuntimeRegexEscape_(username)+')?\\s*$','i').test(String(text || '')))
+    return true; // Native Telegram Start creates REGISTRATION_PENDING; only owner can approve.
   return pattern.test(String(text || ''));
 }
 
@@ -213,8 +216,8 @@ function bseRuntimePilotUiLabels_(text) {
     .replace(/^Treatment_Event_Log\s*\|/gm,'Rawatan / Racun |')
     .replace(/^Kategori: PRIVATE_SUBMISSION[^\r\n]*(?:\r?\n)?/gm,'')
     .replace(/^Status: REPORTER_CONFIRMED\b/gm,'Status: Disahkan oleh penghantar')
-    .replace(/^Sejarah TEST\b/gm,'Sejarah pengesahan')
-    .replace(/^Tiada rekod TEST yang boleh dipaparkan dalam sela masa ini\.$/gm,'Tiada rekod disahkan dalam tempoh ini.')
+    .replace(/^Sejarah TEST\b/gm,'Sejarah operasi')
+    .replace(/^Tiada rekod TEST yang boleh dipaparkan dalam sela masa ini\.$/gm,'Tiada rekod operasi dalam tempoh ini.')
     .replace(/ \| PRIVATE_SUBMISSION \| /g,' | ')
     .replace(/ \| Treatment_Event_Log \| /g,' | Rawatan / Racun | ')
     .replace(/^Tiada allocation ACTIVE TEST yang diluluskan\.$/gm,'Tiada rekod tanaman berstatus aktif untuk plot ini.')

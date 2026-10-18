@@ -136,7 +136,16 @@ function receiveBseTelegramTest() {
         if(['OUT_OF_SCOPE_TEST','ASSET_OBSERVATION_UNSUPPORTED_TEST','UNLINKED_REPLY'].includes(r[6])&&/^\d+$/.test(String(r[3]||'')))payload.reply_parameters={message_id:Number(r[3]),allow_sending_without_reply:true};
         const reply=bseTelegramApi_('sendMessage',payload);
         queue.getRange(i+2,8,1,2).setValues([['SENT',String(reply.message_id)]]);sent++;
-      } catch(_) {console.log('ACK_PENDING: mesej tersimpan; balasan akan dicuba pada run berikutnya.');break;}
+      } catch(error) {
+        // One unreachable group must not indefinitely block independent owner PM reports.
+        // Keep this row PENDING; retry on the next authorized clock tick.
+        console.log('ACK_PENDING: '+JSON.stringify({
+          update_id:String(r[0]),retry:'NEXT_TICK',
+          reason:bseTelegramSafeErrorDescription_(error&&error.message||'ACK_ERROR'),
+          production_write:false
+        }));
+        continue;
+      }
     }
     console.log('TELEGRAM_RECEIVE_DONE: '+JSON.stringify({stored:added,replies_sent:sent,queue:'TELEGRAM_TEST_QUEUE',production_write:false}));
   } catch(error) {receiverError=error;console.log('TELEGRAM_RECEIVE_ERROR: '+String(error.message||''));} finally {lock.releaseLock();}
