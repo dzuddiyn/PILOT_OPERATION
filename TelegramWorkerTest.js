@@ -48,8 +48,34 @@ function bseTelegramSeedSowingDeterministicResult_(input){
   return {validation:pass?'PASS':'NEED_INFO',production_write:false,candidates:candidates};
 }
 
-function bseTelegramTransplantBuildResult_(input,source,parsed,match,reallocation){
-  const explicitDate=bseTransplantExplicitDateContext_(source),missing=[],resolved=reallocation&&reallocation.kind==='UNIQUE'?reallocation:match;
+function bsePilotCompactTransplantDate_(source){
+  const explicit=bseTransplantExplicitDateContext_(source);
+  if(explicit.present)return explicit;
+  const originals=String(source&&source.original||'').split(/\r?\n/);
+  const answers=(source&&source.clarifications||[]).map(s=>String(s||'').trim());
+  // A plain one-line date reply overrides shorthand ONLY after the human supplies it.
+  const replies=answers.filter(s=>/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(s));
+  const raws=replies.length?replies:originals.map(s=>{
+    const m=s.match(/^\s*-\s*(\d{1,2}\/\d{1,2}\/\d{2,4})\s*$/);
+    return m?m[1]:'';
+  }).filter(Boolean);
+  if(raws.length!==1)return {present:raws.length>0,ok:false,date:''};
+  const p=raws[0].match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+  if(!p)return {present:true,ok:false,date:''};
+  const day=Number(p[1]),month=Number(p[2]),year=p[3].length===2?2000+Number(p[3]):Number(p[3]);
+  const date=new Date(Date.UTC(year,month-1,day));
+  if(year!==2026||date.getUTCFullYear()!==year||date.getUTCMonth()!==month-1||date.getUTCDate()!==day)
+    return {present:true,ok:false,date:''};
+  return {present:true,ok:true,date:year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0')};
+}
+function bsePilotTransplantChronology_(book,match,eventDate){
+  if(!match||match.kind!=='UNIQUE'||!eventDate)return {ok:false,sowing_date:''};
+  const batches=bseTransplantRowsByName_(book,'TEST_CROP_BATCH',BSE_CROP_BATCH_HEADERS);
+  const batch=batches.find(row=>String(row[2])===String(match.batch_id));
+  const sowing=batch&&String(batch[3]||'');
+  return {ok:!!sowing&&eventDate>=sowing,sowing_date:sowing};
+}function bseTelegramTransplantBuildResult_(input,source,parsed,match,reallocation,dateOverride){
+  const explicitDate=dateOverride||bseTransplantExplicitDateContext_(source),missing=[],resolved=reallocation&&reallocation.kind==='UNIQUE'?reallocation:match;
   if(!parsed.ok)missing.push('plot_id');
   if(!resolved||resolved.kind!=='UNIQUE')missing.push('batch_match');
   if(!explicitDate.ok)missing.push('event_date');
@@ -59,8 +85,32 @@ function bseTelegramTransplantBuildResult_(input,source,parsed,match,reallocatio
 }
 function bseTelegramTransplantDeterministicResult_(book,input){
   const source=typeof bseUnifiedSourceContext_==='function'?bseUnifiedSourceContext_(input):{original:String(input||''),clarifications:[]};
-  if(!/\bpindah\s+anak\s+pokok\b/i.test(String(source.original||'')))return null;
-  const parsed=bseTransplantPlots_(source.original),match=parsed.ok?bseTransplantPlannedBatchByPlotsForBook_(book,parsed.plots):{kind:'NONE',matches:[]};
+  const compact=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&/^\s*Transplant\s*$/im.test(String(source.original||''));
+  if(!compact&&!/\bpindah\s+anak\s+pokok\b/i.test(String(source.original||'')))return null;
+  // Reuse canonical M5P12 -> M5P1/M5P2 parser, never promote M5P12 to a new plot.
+  const normalized=compact?String(source.original).replace(/^\s*Transplant\s*$/im,'Pindah anak pokok'):source.original;
+  const parsed=bseTransplantPlots_(normalized),match=parsed.ok?bseTransplantPlannedBatchByPlotsForBook_(book,parsed.plots):{kind:'NONE',matches:[]};
+  if(compact){
+    const date=bsePilotCompactTransplantDate_(source);
+    const candidate=bseTelegramTransplantBuildResult_(input,source,parsed,match,null,date);
+    const c=candidate.candidates[0],f=c.fields;
+    const cropText=String(source.original).split(/\r?\n/).map(line=>line.match(/^\s*-\s*(?!M\d+P)(?!\d{1,2}\/)(.+?)\s*$/i)).filter(Boolean)[0];
+    const declaredCrop=cropText?String(cropText[1]||''):'';
+    if(match.kind==='UNIQUE'&&declaredCrop&&
+       bseTransplantNormalizeCrop_(declaredCrop)!==bseTransplantNormalizeCrop_(match.crop)){
+      c.missing=Array.from(new Set(c.missing.concat('batch_match')));c.validation='NEED_INFO';candidate.validation='NEED_INFO';
+      candidate.transplant_crop_conflict={declared:declaredCrop,canonical:match.crop};
+      return candidate;
+    }
+    const chronology=bsePilotTransplantChronology_(book,match,date.date);
+    if(match.kind==='UNIQUE'&&date.ok&&!chronology.ok){
+      candidate.transplant_date_conflict={reported_date:date.date,sowing_date:chronology.sowing_date,plots:parsed.plots};
+      f.event_date=''; // Generic schema guard preserves NEED_INFO rather than falsely promoting PASS.
+      c.missing=Array.from(new Set(c.missing.concat('event_date')));
+      c.validation='NEED_INFO';candidate.validation='NEED_INFO';
+    }
+    return candidate;
+  }
   if(match.kind==='UNIQUE')return bseTelegramTransplantBuildResult_(input,source,parsed,match,null);
   const explicitCrop=bseTransplantExplicitCropContext_(source),sourcePlot=bseTransplantExplicitSourcePlotContext_(source),reallocation=parsed.ok&&!explicitCrop.conflict&&explicitCrop.crop&&!sourcePlot.conflict?bseTransplantReallocationForBook_(book,explicitCrop.crop,parsed.plots,sourcePlot.plot):{kind:'NONE',reason:explicitCrop.conflict?'CROP_CONFLICT':sourcePlot.conflict?'SOURCE_PLOT_CONFLICT':'CROP_REQUIRED'};
   const built=bseTelegramTransplantBuildResult_(input,source,parsed,match,reallocation);
@@ -371,7 +421,18 @@ function bseTelegramReportContext_(rows,current) {
 function bseTelegramQuestion_(result) {
   if(!result||result.validation!=='NEED_INFO'||!Array.isArray(result.candidates))return '';
   if(result.seed_sowing_split_required===true)return 'Laporan semaian mengandungi lebih daripada satu Crop Batch. Sila hantar satu Crop Batch sahaja bagi setiap mesej: satu jenis tanaman/varieti, satu Modul, dan satu Tarikh Semai.';
-  const isTransplant=result.candidates.some(c=>c&&c.target==='Transplant_Event_Log');
+  if(result.transplant_date_conflict){
+    const c=result.transplant_date_conflict;
+    const format=ymd=>String(ymd||'').split('-').reverse().join('/');
+    const plots=(c.plots||[]).join(' dan ');
+    return 'Sila semak tarikh pindah tanam Timun untuk '+plots+'. Laporan menyatakan '+format(c.reported_date)+
+      ', tetapi rekod semaian batch yang sepadan ialah '+format(c.sowing_date)+
+      '. Tarikh pindah tanam tidak boleh mendahului tarikh semai. Balas tarikh pindah sebenar (format: Tarikh Pindah: DD/MM/YYYY) menggunakan Reply. Jika laporan merujuk batch lain, nyatakan fakta itu. Rekod Transplant belum disahkan.';
+  }
+  if(result.transplant_crop_conflict){
+    const c=result.transplant_crop_conflict;
+    return 'Tanaman dalam laporan ('+String(c.declared)+') tidak sepadan dengan tanaman pada plot yang direkodkan ('+String(c.canonical)+'). Sila nyatakan tanaman dan plot sebenar menggunakan Reply. Tiada Transplant direkod.';
+  }  const isTransplant=result.candidates.some(c=>c&&c.target==='Transplant_Event_Log');
   const censusCandidate=result.candidates.find(c=>c&&c.target==='Plant_Census_Log'&&Array.isArray(c.missing)&&c.missing.includes('living_plant_count'));
   if(censusCandidate){const f=censusCandidate.fields||{},entry=Array.isArray(f.census_entries)&&f.census_entries.length===1?f.census_entries[0]:null;if(entry&&entry.plot_id){const known=[];if(Number.isInteger(entry.reported_dead_count))known.push('Mati '+entry.reported_dead_count);if(Number.isInteger(entry.reported_sick_count))known.push('Sakit '+entry.reported_sick_count);return (known.length?known.join(', ')+' telah disimpan. ':'')+'Berapa jumlah pokok hidup untuk '+entry.plot_id+'? Balas nilai sahaja (contoh: 2000) atau Hidup: 2000. Sila gunakan Reply pada soalan ini.';}}
   const pendingTreatment=Array.from(new Set(result.candidates.filter(c=>c&&c.target==='Treatment_Event_Log').flatMap(c=>Array.isArray(c.fields&&c.fields.pending_treatment_items)?c.fields.pending_treatment_items:[]).map(String).filter(Boolean)));
@@ -385,7 +446,38 @@ function bseTelegramQuestion_(result) {
   return 'Sila nyatakan '+Array.from(new Set(missing)).join(' dan ')+'. Sila gunakan Reply pada soalan ini.';
 }
 
-function bseTelegramQueueStatus_(result){
+/** Controlled PILOT-only edit of an existing unanswered Transplant question. */
+function repairBsePilotTransplantWaitingQuestion(){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')throw Error('PILOT_ONLY_QUESTION_REPAIR');
+  const book=boundTestBook_(),lock=LockService.getScriptLock();
+  if(!lock.tryLock(1000))throw Error('QUESTION_REPAIR_BUSY');
+  try{
+    const sheet=bseTelegramQueue_(book),rows=sheet.getLastRow()>1?
+      sheet.getRange(2,1,sheet.getLastRow()-1,BSE_TG_QUEUE_HEADERS.length).getValues():[];
+    const candidates=rows.filter(row=>String(row[6])==='WAITING_INFO'&&
+      String(row[7])==='SENT'&&/^\d+$/.test(String(row[15]||''))&&
+      String(row[1])===String(bseRuntimeLegacyChatId_())&&
+      String(row[2])===String(bseRuntimeLegacyUserId_())&&
+      /^\s*Transplant\s*$/im.test(String(row[4]||'')));
+    const matches=candidates.map(row=>({row:row,result:bseTelegramTransplantDeterministicResult_(book,String(row[4]))}))
+      .filter(entry=>entry.result&&entry.result.validation==='NEED_INFO'&&entry.result.transplant_date_conflict);
+    if(matches.length!==1)throw Error('QUESTION_REPAIR_REQUIRES_ONE_MATCHING_OWNER_WAITING_INFO');
+    const entry=matches[0],row=entry.row,question=bseTelegramQuestion_(entry.result);
+    if(!/Tarikh Pindah/.test(question)||!/M5P1/.test(question)||!/M5P2/.test(question))
+      throw Error('QUESTION_REPAIR_CONTRACT_MISMATCH');
+    const edited=bseTelegramApi_('editMessageText',{
+      chat_id:String(row[1]),message_id:Number(row[15]),
+      text:bseTelegramResultText_('BSE-TG-'+String(row[0]),entry.result,question)
+    });
+    if(!edited||String(edited.message_id)!==String(row[15]))
+      throw Error('QUESTION_REPAIR_TELEGRAM_READBACK_MISMATCH');
+    const result={status:'EDITED',reference:'BSE-TG-'+String(row[0]),
+      message_id:String(row[15]),transplant_record_written:false,
+      production_write:false,official_bse_write:false};
+    console.log('PILOT_TRANSPLANT_QUESTION_REPAIR '+JSON.stringify(result));
+    return result;
+  }finally{lock.releaseLock();}
+}function bseTelegramQueueStatus_(result){
   if(result&&result.validation==='NEED_INFO')return 'WAITING_INFO';
   const actionable=!!(result&&result.validation==='PASS'&&result.production_write===false&&Array.isArray(result.candidates)&&result.candidates.some(candidate=>candidate&&candidate.validation==='PASS'));
   return actionable?'NEEDS_HUMAN_REVIEW':'NEEDS_ATTENTION';
