@@ -165,6 +165,14 @@ function runBseTelegramInventoryClarifyTraceHarnessTests(){
 function bseTelegramReporterReceipt_(book,userId,text){const row=bseTelegramPrivateOptInRows_(bseTelegramPrivateOptInSheet_(book)).find(r=>String(r[0])===String(userId));if(!row||!/^\d+$/.test(String(row[1])))return {sent:false};bseTelegramApi_('sendMessage',{chat_id:String(row[1]),text:text});return {sent:true};}
 function bseTelegramOwnerNotice_(book,text){return bseTestOwnerRows_(book).map(bseTestOwnerFromRow_).filter(o=>o.is_active&&/^\d+$/.test(o.private_chat_id)).filter((o,i,a)=>a.findIndex(x=>x.private_chat_id===o.private_chat_id)===i).map(o=>{try{bseTelegramApi_('sendMessage',{chat_id:o.private_chat_id,text:text});return o.owner_id;}catch(error){console.log('OWNER_NOTICE_PENDING: '+bseTelegramSafeErrorDescription_(error.message||''));return '';}}).filter(Boolean);}
 function bseTelegramOwnerDeleteInstruction_(reference){return 'Untuk DELETE: /delete '+String(reference||'BSE-TG-[NOMBOR_LAPORAN]')+' [SEBAB].';}
+function bseTelegramPilotConfirmedOwnerNotice_(book,row,candidateIndex,recordSummary){
+  const raw=String(bseTelegramReporterDisplayName_(book,String(row[0]))||'');
+  const reporterName=raw.replace(/[\r\n\t<>]/g,' ').replace(/\s+/g,' ').trim().slice(0,90)||
+    ('Telegram '+String(row[3]));
+  return (recordSummary?recordSummary+'\n\n':'')+'Makluman TEST '+row[0]+
+    (candidateIndex==null?'':' rekod '+(candidateIndex+1))+
+    ' telah direkodkan oleh '+reporterName+'.';
+}
 function bseTelegramReporterDisplayName_(book,reference){try{const queue=bseTelegramQueue_(book),rows=queue.getLastRow()>1?queue.getRange(2,1,queue.getLastRow()-1,BSE_TG_QUEUE_HEADERS.length).getValues():[],row=rows.find(item=>'BSE-TG-'+String(item[0])===String(reference));if(!row)return 'penghantar';const meta=JSON.parse(String(row[16]||'{}')),name=String(meta.reporter_name||'').replace(/\s+/g,' ').trim(),username=String(meta.reporter_username||'').replace(/^@/,'').trim();return name||(username?'@'+username:'Telegram '+String(row[2]||'penghantar'));}catch(_){return 'penghantar';}}
 const bseTelegramOwnerNoticeBase_=bseTelegramOwnerNotice_;
 bseTelegramOwnerNotice_=function(book,text){const message=String(text||''),match=message.match(/^Semakan TEST (BSE-TG-\d+)/m);if(!match||message.indexOf('Makluman TEST: disahkan oleh penghantar.')<0)return bseTelegramOwnerNoticeBase_(book,message);const reporter=bseTelegramReporterDisplayName_(book,match[1]),deleteInstruction=message.indexOf('EC Leaching |')>=0?'':'\n'+bseTelegramOwnerDeleteInstruction_(match[1]),notice=message.replace('Makluman TEST: disahkan oleh penghantar.','Makluman TEST: disahkan oleh '+reporter+'.')+deleteInstruction;return bseTelegramOwnerNoticeBase_(book,notice);};
@@ -303,7 +311,10 @@ function bseTelegramReporterConfirmationCore_(book,context,input){
   const status=bseApprovalRecomputeQueueStatus_(book,String(row[0])),recordSummary=domain.target==='Plant_Census_Log'?bseCensusConfirmedSummary_(book,String(row[0]),outcome):domain.target==='Plant_Replacement_Event_Log'?bsePlantReplacementConfirmedSummary_(book,String(row[0]),outcome):domain.target==='EC_Leachate_Log'?bseEcLeachateConfirmedSummary_(book,String(row[0]),outcome):domain.target==='Observation_Log'?bseObservationConfirmedSummary_(book,String(row[0]),outcome):domain.target==='Operation_Log'?bseOperationConfirmedSummary_(book,String(row[0]),outcome):domain.target==='Input_Usage_Log'?bseInputUsageConfirmedSummary_(book,String(row[0]),outcome):domain.target==='Decision_Approval_Log'?bseDecisionApprovalConfirmedSummary_(book,String(row[0]),outcome):domain.target==='Claim_Request_Log'?bseClaimConfirmedSummary_(book,String(row[0]),outcome):'';
   bseTelegramApprovalCloseCard_(row,'REPORTER_CONFIRMED',context.actor_name,recordSummary||'');
   try{bseTelegramReporterReceipt_(book,row[3],recordSummary||('Resit TEST '+row[0]+(candidateIndex==null?'':' rekod '+(candidateIndex+1))+' — direkodkan.'));}catch(_){}
-  bseTelegramOwnerNotice_(book,(recordSummary?recordSummary+'\n\n':'')+'Makluman TEST '+row[0]+(candidateIndex==null?'':' rekod '+(candidateIndex+1))+' telah direkodkan oleh penghantar.');
+  const ownerNotice=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'
+    ?bseTelegramPilotConfirmedOwnerNotice_(book,row,candidateIndex,recordSummary)
+    :(recordSummary?recordSummary+'\n\n':'')+'Makluman TEST '+row[0]+(candidateIndex==null?'':' rekod '+(candidateIndex+1))+' telah direkodkan oleh penghantar.';
+  bseTelegramOwnerNotice_(book,ownerNotice);
   outcome.candidate_index=candidateIndex;outcome.queue_status=status;return outcome;
 }
 function reconcileBseTelegramApprovalQueueStatusTest(reference){

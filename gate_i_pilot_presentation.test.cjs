@@ -1,49 +1,92 @@
 'use strict';
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
-const src=fs.readFileSync(__dirname+'/EnvironmentTest.js','utf8');
+const dir=__dirname;
+const source=fs.readFileSync(dir+'/EnvironmentTest.js','utf8');
+const noticeSource=fs.readFileSync(dir+'/TelegramApprovalUiTest.js','utf8');
 let env='PILOT_OPERATION';
-const ctx={
- PropertiesService:{getScriptProperties:()=>({getProperty:k=>k==='BSE_RUNTIME_ENV'?env:''})},
- console
-};
-vm.createContext(ctx);vm.runInContext(src,ctx);
-let count=0;function check(title,fn){fn();count++;console.log('PASS '+title)}
-check('PILOT retrieval title and mode normalized',()=>{
- env='PILOT_OPERATION';const x=ctx.bseRuntimeTelegramPayload_('sendMessage',{
- text:'Rekod TEST BSE-TG-772257142\nMod TEST - tiada rekod production ditulis.'});
- assert.equal(x.text,'[PILOT]\nRekod PILOT BSE-TG-772257142\nMod PILOT - tiada rekod production ditulis.');
+const ctx={PropertiesService:{getScriptProperties:()=>({getProperty:k=>k==='BSE_RUNTIME_ENV'?env:''})},console};
+vm.createContext(ctx);vm.runInContext(source,ctx);
+let n=0;
+function check(name,fn){fn();n++;console.log('PASS '+name);}
+function out(method,text){const k=method==='sendPhoto'?'caption':'text';
+ return ctx.bseRuntimeTelegramPayload_(method,{[k]:text})[k];}
+check('PILOT ordinary message has no technical environment prefix',()=>{
+ env='PILOT_OPERATION';assert.equal(out('sendMessage','Semakan laporan'),'Semakan laporan');
 });
-check('PILOT evidence caption normalized',()=>{
- env='PILOT_OPERATION';const x=ctx.bseRuntimeTelegramPayload_('sendPhoto',{caption:'Evidence TEST BSE-EV-1'});
- assert.equal(x.caption,'[PILOT]\nEvidence PILOT BSE-EV-1');
+check('PILOT old prefixed message becomes normal user message',()=>{
+ env='PILOT_OPERATION';assert.equal(out('sendMessage','[PILOT]\nRekod TEST BSE-TG-772257142\nMod TEST - tiada rekod production ditulis.'),'Rekod BSE-TG-772257142');
 });
-check('PILOT plot and daily UI headings normalized',()=>{
- env='PILOT_OPERATION';for(const [old,next] of [['Status Plot TEST M5P1','Status Plot PILOT M5P1'],
-  ['Laporan TEST - 2026-10-02','Laporan PILOT - 2026-10-02'],
-  ['Makluman TEST BSE-TG','Makluman PILOT BSE-TG']]){
-  assert.equal(ctx.bseRuntimeTelegramPayload_('sendMessage',{text:old}).text,'[PILOT]\n'+next);
- }
+check('PILOT evidence caption is plain-language',()=>{
+ env='PILOT_OPERATION';assert.equal(out('sendPhoto','Evidence TEST BSE-EV-1'),'Lampiran BSE-EV-1');
 });
-check('PILOT original notes remain verbatim',()=>{
- env='PILOT_OPERATION';const note='Original note: Rekod TEST near midline, TEST_ONLY Gate H';
- assert.equal(ctx.bseRuntimeTelegramPayload_('sendMessage',{text:note}).text,'[PILOT]\n'+note);
+check('PILOT report headings contain no TEST suffix',()=>{
+ env='PILOT_OPERATION';for(const [before,after] of [
+ ['Semakan TEST BSE-TG-1','Semakan laporan BSE-TG-1'],
+ ['Status Plot TEST M5P1','Status Plot M5P1'],
+ ['Laporan TEST - 2026-10-18','Laporan - 2026-10-18'],
+ ['Makluman TEST BSE-TG-1 telah direkodkan oleh dzuddiyn.','Makluman BSE-TG-1 telah direkodkan oleh dzuddiyn.'],
+ ['Resit TEST BSE-TG-1 - direkodkan.','Resit BSE-TG-1 - direkodkan.']
+ ])assert.equal(out('sendMessage',before),after);
 });
-check('PILOT existing prefix does not duplicate',()=>{
- env='PILOT_OPERATION';const r=ctx.bseRuntimeTelegramPayload_('sendMessage',{
-  text:'[PILOT]\nRekod TEST BSE-TG-1'});
- assert.equal(r.text,'[PILOT]\nRekod PILOT BSE-TG-1');
+check('PILOT Treatment technical-only worker notice becomes action-oriented',()=>{
+ env='PILOT_OPERATION';
+ const result=out('sendMessage','Rujukan BSE-TG-772257163:\nTREATMENT_EVENT\nStatus: PROVISIONAL — menunggu semakan manusia.\nMod TEST — tiada rekod production ditulis.');
+ assert(result.includes('Laporan racun'));
+ assert(result.includes('BSE-TG-772257163'));
+ assert(result.includes('Benar, Betulkan atau Batal'));
+ assert(!/PROVISIONAL|TREATMENT_EVENT|production|Mod TEST|\[PILOT\]/i.test(result));
 });
-check('PILOT_TEST output unchanged',()=>{
- env='PILOT_TEST';const r=ctx.bseRuntimeTelegramPayload_('sendMessage',{text:'Rekod TEST BSE-TG-1'});
- assert.equal(r.text,'[PILOT TEST]\nRekod TEST BSE-TG-1');
+check('PILOT original user note TEST_ONLY and original middle sentence remain verbatim',()=>{
+ env='PILOT_OPERATION';const txt='Nota asal: TEST_ONLY pada hari ini; Rekod TEST ada dalam nota asal.';
+ assert.equal(out('sendMessage',txt),txt);
 });
-check('TEST output unchanged',()=>{
- env='TEST';const r=ctx.bseRuntimeTelegramPayload_('sendMessage',{text:'Rekod TEST BSE-TG-1'});
- assert.equal(r.text,'Rekod TEST BSE-TG-1');
+check('PILOT mixed message retains meaningful status but strips technical mode line',()=>{
+ env='PILOT_OPERATION';const txt='Rujukan BSE-TG-22:\nRawatan / Racun\nStatus: PROVISIONAL — menunggu semakan manusia.\nMod PILOT - tiada rekod production ditulis.';
+ const result=out('sendMessage',txt);assert(result.includes('Rujukan BSE-TG-22'));assert(result.includes('Menunggu pengesahan'));assert(!result.includes('Mod PILOT'));
 });
-check('PILOT transport does not rewrite non-text fields',()=>{
- env='PILOT_OPERATION';const p={chat_id:123,parse_mode:'HTML',text:'Rekod TEST BSE-TG-1'};
- const r=ctx.bseRuntimeTelegramPayload_('sendMessage',p);
- assert.equal(r.chat_id,123);assert.equal(r.parse_mode,'HTML');assert.equal(p.text,'Rekod TEST BSE-TG-1');
+check('PILOT_TEST unchanged including explicit prefix and old text',()=>{
+ env='PILOT_TEST';assert.equal(out('sendMessage','Rekod TEST BSE-TG-1'),'[PILOT TEST]\nRekod TEST BSE-TG-1');
 });
-console.log('GATE_I_PILOT_PRESENTATION '+count+'/'+count+' PASS');
+check('TEST unchanged including technical text',()=>{
+ env='TEST';assert.equal(out('sendMessage','Mod TEST - tiada production write'),'Mod TEST - tiada production write');
+});
+check('original transport fields preserved and payload not mutated',()=>{
+ env='PILOT_OPERATION';const before={text:'Rekod TEST BSE-TG-1',chat_id:123,parse_mode:'HTML'};
+ const after=ctx.bseRuntimeTelegramPayload_('sendMessage',before);
+ assert.equal(after.text,'Rekod BSE-TG-1');assert.equal(after.chat_id,123);assert.equal(after.parse_mode,'HTML');assert.equal(before.text,'Rekod TEST BSE-TG-1');
+});
+const helper=noticeSource.match(/function bseTelegramPilotConfirmedOwnerNotice_\([\s\S]*?\n\}/);
+assert(helper,'PILOT notice helper missing');
+ctx.bseTelegramReporterDisplayName_=()=> 'dzuddiyn';
+vm.runInContext(helper[0],ctx);
+check('owner notice includes real reporter name and reference',()=>{
+ const row=['BSE-TG-772257163','','','913757987'];
+ const v=ctx.bseTelegramPilotConfirmedOwnerNotice_({},row,null,'');
+ assert(v.includes('BSE-TG-772257163'));assert(v.endsWith('oleh dzuddiyn.'));
+ assert.equal(out('sendMessage',v),'Makluman BSE-TG-772257163 telah direkodkan oleh dzuddiyn.');
+});
+check('owner notice preserves meaningful category summary',()=>{
+ const row=['BSE-TG-772257161','','','913757987'];
+ const v=ctx.bseTelegramPilotConfirmedOwnerNotice_({},row,1,'Rawatan disahkan');
+ assert(v.includes('Rawatan disahkan\n\nMakluman TEST BSE-TG-772257161 rekod 2'));
+});
+check('owner notice sanitizes control characters in name',()=>{
+ ctx.bseTelegramReporterDisplayName_=()=> 'abc\nxyz<> ';
+ const v=ctx.bseTelegramPilotConfirmedOwnerNotice_({},['BSE-TG-1','','','123'],null,'');
+ assert(v.includes('oleh abc xyz.'));ctx.bseTelegramReporterDisplayName_=()=> 'dzuddiyn';
+});
+check('owner notice fails safe to Telegram identity if no display name',()=>{
+ ctx.bseTelegramReporterDisplayName_=()=> '';
+ const v=ctx.bseTelegramPilotConfirmedOwnerNotice_({},['BSE-TG-1','','','123'],null,'');
+ assert(v.includes('oleh Telegram 123.'));
+});
+check('owner name branch is only enabled in PILOT_OPERATION',()=>{
+ assert(/bseRuntimeEnvironmentName_\(\)==='PILOT_OPERATION'\s*\?\s*bseTelegramPilotConfirmedOwnerNotice_/.test(noticeSource));
+});
+check('PILOT card closure uses human-readable confirmation status',()=>{
+ env='PILOT_OPERATION';
+ const original='Semakan TEST BSE-TG-772257163 â€” REPORTER_CONFIRMED oleh dzuddiyn pada 18/10/2026';
+ const expected='Semakan laporan BSE-TG-772257163 â€” Disahkan oleh dzuddiyn pada 18/10/2026';
+ assert.equal(out('sendMessage',original),expected);
+});
+console.log('GATE_I_PILOT_USER_UX '+n+'/'+n+' PASS');
