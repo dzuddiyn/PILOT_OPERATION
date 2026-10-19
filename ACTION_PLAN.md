@@ -1,5 +1,8 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## Isolated Evidence Field Proof Preparation — 2026-10-19
+- READ-ONLY preflight confirmed PILOT root category structure, nested Evidence_Files folder and zero active Evidence rows. Prepared isolated synthetic-image test plan, parent/permissions checks, callback dedup and fault-injection steps, uncertain-write reconciliation, run-scoped cleanup/read-back and explicit acceptance criteria. **PREPARED ONLY**: no photo, Telegram, Drive or Sheets write, no field proof. See `docs/ISOLATED_EVIDENCE_FIELD_PROOF_PREPARATION_20261019.md`.
+
 ## Evidence Writer Safety Fix — 2026-10-19
 - PILOT-only writer routes newly approved Evidence to existing `01_Source_Evidence/Evidence_Files` under locked root, validates deterministic ID/metadata, stages DRIVE_CREATE_PENDING before create, reconciles exactly one known file, fails closed on uncertain/no match or duplicates. Local 10/10 targeted fault injection + 27/27 complete Node suites PASS; no real media used. See `docs/EVIDENCE_WRITER_SAFETY_FIX_20261019.md`.
 - Post-merge Script HEAD 64/64 exact + 9 helper files, Apps Script 47/47 PASS at 09:50 MYT, nested Evidence_Files read-back empty and PILOT_FILE_EVIDENCE/callback rows 0/0. Real media field proof remains UNVERIFIED; Full parity IN PROGRESS.
