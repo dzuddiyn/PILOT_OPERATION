@@ -1,0 +1,1 @@
+'use strict';class FakeClock{constructor(t=1000){this.t=t;}now(){return this.t;}advance(ms){if(ms<0||!Number.isFinite(ms))throw Error('INVALID_TIME');return this.t+=ms;}}module.exports={FakeClock};
