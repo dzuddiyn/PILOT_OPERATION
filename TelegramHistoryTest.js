@@ -70,6 +70,14 @@ function bseTelegramHistoryCommand_(text,now){
   if(!/^\/history\b/i.test(raw))return null;
   let m=raw.match(/^\/history\s+(?:week|minggu)\s+(?:last|lepas)\s*$/i);
   if(m)return bseTelegramHistoryLastCompleteWeek_(now||new Date());
+  m=raw.match(/^\/history\s+(?:week|minggu)\s+(\d)\s+\(([a-z]{3})\s+(\d{4})\)\s*$/i);
+  if(m){
+    const names=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+    const index=names.indexOf(m[2].toLowerCase());
+    if(index<0)return {invalid:true,reason:'MONTH'};
+    const month=m[3]+'-'+String(index+1).padStart(2,'0');
+    return bseTelegramHistoryNthWeekOfMonth_(month,Number(m[1]))||{invalid:true,reason:'WEEK_NOT_IN_MONTH'};
+  }
   m=raw.match(/^\/history\s+(?:week|minggu)\s+(\d)\s+(\d{4}-\d{2})\s*$/i);
   if(m){
     const week=bseTelegramHistoryNthWeekOfMonth_(m[2],Number(m[1]));
@@ -110,7 +118,10 @@ function bseTelegramHistoryInCommandPeriod_(date,command){
   return bseTelegramHistoryInPeriod_(d,command.period);
 }
 function bseTelegramHistoryPeriodLabel_(command){
-  return command&&command.kind==='WEEK'?(command.week_number?'Minggu '+command.week_number+' ('+command.month+'): ':'Minggu: ')+String(command.start)+' → '+String(command.end):String(command&&command.period||'');
+  if(!command||command.kind!=='WEEK')return String(command&&command.period||'');
+  const monthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const named=command.month?monthNames[Number(String(command.month).slice(5,7))-1]+' '+String(command.month).slice(0,4):'';
+  return (command.week_number?'Minggu '+command.week_number+' ('+named+')':'Minggu')+' : '+String(command.start)+' hingga '+String(command.end);
 }
 function bseTelegramHistoryPilotSummary_(candidates){
   const list=Array.isArray(candidates)?candidates:[],find=target=>list.find(c=>c&&c.target===target);
@@ -278,7 +289,7 @@ function bseTelegramHistoryRetrieve_(book,m){
   };
   if(command.invalid){
     audit('DENIED',command.reason||'INVALID_PERIOD',0,0);
-    return {handled:true,text:'Cara guna: /history 2026-10-14 (harian) | /history 2026-10 (bulanan) | /history week 1 2026-10 (minggu 1) | /history week 2 2026-10 (minggu 2) | /history week last (minggu lepas). Setiap minggu bermula Jumaat hingga Khamis; minggu 1 bermula Jumaat pertama bulan tersebut.'};
+    return {handled:true,text:'Cara guna: /history 2026-10-14 (harian) | /history 2026-10 (bulanan) | /history week 1 (Oct 2026) | /history week 2 (Oct 2026) | /history week last (minggu lepas). Setiap minggu bermula Jumaat hingga Khamis; minggu 1 bermula Jumaat pertama bulan tersebut.'};
   }
   const access=bseTelegramHistoryAccess_(book,m);
   if(!access.ok){
