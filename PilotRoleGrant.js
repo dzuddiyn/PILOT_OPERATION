@@ -18,7 +18,7 @@ function bseRoleTransaction_(request,api){
          e.event_id!=='role-'+request.operationId||e.digest!==api.hashEvent(e)||
          request.expectedRevision!==undefined&&e.revision-1!==request.expectedRevision)return reply('REVISION_CONFLICT');
       if(e.state==='COMMITTED'){
-        if(!api.validateLedger(events,barriers,request.target))return reply('UNVERIFIED');
+        if(!api.validateLedger(events,request.action==='REVOKE_ADMIN'?[]:barriers,request.target))return reply('UNVERIFIED');
         if(request.action==='REVOKE_ADMIN'){
           if(barriers.some(b=>b.operation_id===request.operationId&&b.active===true)){
             api.closeBarrier(request.operationId);api.flush();barriers=api.readBarriers();
