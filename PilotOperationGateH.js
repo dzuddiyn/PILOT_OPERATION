@@ -49,7 +49,7 @@ function bsePilotGateHReadiness_(){
   const evidence=bseTelegramRecordReadRows_(book,'TEST_FILE_EVIDENCE',BSE_TG_EVIDENCE_HEADERS.length),
         evidenceAudit=bseTelegramRecordReadRows_(book,'TEST_TELEGRAM_RETRIEVAL_AUDIT',BSE_TG_RETRIEVAL_AUDIT_HEADERS.length),
         evidenceCallbacks=bseTelegramRecordReadRows_(book,'TEST_FILE_EVIDENCE_CALLBACK_PENDING',BSE_TG_EVIDENCE_CALLBACK_HEADERS.length);
-  const verified=evidence.filter(x=>String(x[16])==='CONFIRMED_TEST'&&
+  const verified=evidence.filter(x=>bseRuntimeEvidenceIsConfirmed_(x[16])&&
      String(x[19]||'').trim()&&
      evidenceAudit.some(a=>String(a[3]).toUpperCase()===String(x[0]).toUpperCase()&&
        String(a[4])==='SENT'&&String(a[1])===String(ownerId)));

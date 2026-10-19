@@ -208,7 +208,7 @@ function bseTelegramHistoryEvidenceEvents_(book){
   const sheet=book.getSheetByName('TEST_FILE_EVIDENCE');
   if(!sheet)return [];
   return bseTelegramRecordReadRows_(book,'TEST_FILE_EVIDENCE',BSE_TG_EVIDENCE_HEADERS.length)
-    .filter(row=>String(row[16])==='CONFIRMED_TEST')
+    .filter(row=>bseRuntimeEvidenceIsConfirmed_(row[16]))
     .map(row=>({
       date:bseTelegramHistoryDate_(row[20]||row[6]),
       reference:String(row[0]||''),
