@@ -222,12 +222,30 @@ function bseTelegramHistoryPilotOperationalEvents_(book){
   if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||typeof bseTransplantRowsByName_!=='function'||typeof BSE_TRANSPLANT_EVENT_HEADERS==='undefined')return [];
   return bseTransplantRowsByName_(book,'TEST_TRANSPLANT_EVENT',BSE_TRANSPLANT_EVENT_HEADERS)
     .filter(row=>String(row[9])==='COMPLETED'&&String(row[10])==='VERIFIED_TEST'&&/^\d{4}-\d{2}-\d{2}$/.test(String(row[4]||'')))
-    .map(row=>({date:String(row[4]),reference:String(row[2]),category:'Pindah tanam',
+    .map(row=>({date:String(row[4]),reference:String(row[2]),source_update_id:String(row[1]||''),category:'Pindah tanam',
       summary:'Pindah tanam — '+String(row[6]||'Tanaman tidak dinyatakan')+(row[7]?' ('+String(row[7])+')':'')+'; plot '+String(row[8]||'').split('|').join(', '),
       reporter_user_id:'',visibility:'GROUP_STANDARD',pilot_summary:'Pindah tanam\nTanaman: '+String(row[6]||'')+'\nVarieti: '+String(row[7]||'')+'\nTarikh kerja: '+String(row[4])+'\nPlot: '+String(row[8]||'').split('|').join(', ')+'\nStatus: Disahkan'}));
 }
+function bseTelegramHistoryPilotTreatmentEvents_(book){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||typeof bseTransplantRowsByName_!=='function'||typeof BSE_TREATMENT_EVENT_HEADERS==='undefined')return [];
+  return bseTransplantRowsByName_(book,'TEST_TREATMENT_EVENT',BSE_TREATMENT_EVENT_HEADERS)
+    .filter(row=>String(row[8])==='COMPLETED'&&String(row[9])==='VERIFIED_TEST'&&/^\d{4}-\d{2}-\d{2}$/.test(String(row[4]||'')))
+    .map(row=>{
+      let plots=[];try{const parsed=JSON.parse(String(row[7]||'[]'));if(Array.isArray(parsed))plots=parsed.filter(p=>/^M[1-9]\d*P[1-9]\d*$/.test(String(p)));}catch(_){}
+      const crop=String(row[5]||'Tanaman tidak dinyatakan'),ref=String(row[2]||''),date=String(row[4]),desc=String(row[6]||'').trim().slice(0,350);
+      return {date:date,reference:ref,source_update_id:String(row[1]||''),category:'Rawatan tanaman',summary:'Rawatan tanaman — '+crop,reporter_user_id:'',visibility:'GROUP_STANDARD',
+        pilot_summary:['Rawatan tanaman','Tanaman: '+crop,'Tarikh kerja: '+date,plots.length?'Plot: '+plots.join(', '):'',desc?'Bahan/rawatan: '+desc:'','Status: Disahkan'].filter(Boolean).join('\n')};
+    });
+}
 function bseTelegramHistoryAllEvents_(book){
-  return bseTelegramHistoryRecordEvents_(book).concat(bseTelegramHistoryEvidenceEvents_(book),bseTelegramHistoryPilotOperationalEvents_(book));
+  const records=bseTelegramHistoryRecordEvents_(book),evidence=bseTelegramHistoryEvidenceEvents_(book);
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')return records.concat(evidence);
+  const operations=bseTelegramHistoryPilotOperationalEvents_(book).concat(bseTelegramHistoryPilotTreatmentEvents_(book));
+  const operationalRefs=new Set(operations.map(e=>String(e.reference||'')));
+  const sourceUpdates=new Set(operations.map(e=>String(e.source_update_id||'')).filter(Boolean));
+  const unique=new Set();
+  return records.filter(e=>!operationalRefs.has(String(e.reference||''))&&!sourceUpdates.has(String(e.reference||'').replace(/^BSE-TG-/,'')))
+    .concat(evidence,operations).filter(e=>{const key=String(e.date||'')+'|'+String(e.reference||'');if(unique.has(key))return false;unique.add(key);return true;});
 }
 function bseTelegramHistoryEventVisibleTo_(event,userId,isOwner){
   if(isOwner)return true;
@@ -265,14 +283,14 @@ function bseTelegramHistoryRetrieve_(book,m){
   const access=bseTelegramHistoryAccess_(book,m);
   if(!access.ok){
     audit('DENIED',access.reason,0,0);
-    return {handled:true,text:'History hanya boleh diminta melalui PM oleh owner/admin atau user TEST yang aktif.'};
+    return {handled:true,text:bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'Sejarah operasi hanya untuk ahli aktif melalui PM bot.':'History hanya boleh diminta melalui PM oleh owner/admin atau user TEST yang aktif.'};
   }
   const all=bseTelegramHistoryEventsFor_(book,command,user,access.is_owner),displayed=all.slice(0,BSE_TG_HISTORY_MAX_DISPLAY);
   const lines=[(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'Sejarah operasi':'Sejarah TEST')+' — '+bseTelegramHistoryPeriodLabel_(command)];
-  if(!displayed.length)lines.push('Tiada rekod TEST yang boleh dipaparkan dalam sela masa ini.');
+  if(!displayed.length)lines.push(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'Tiada rekod operasi disahkan untuk tempoh ini.':'Tiada rekod TEST yang boleh dipaparkan dalam sela masa ini.');
   else displayed.forEach(event=>lines.push(bseTelegramHistorySafeLine_(event,command.kind!=='DAY')));
   if(all.length>displayed.length)lines.push('Dipaparkan '+displayed.length+' daripada '+all.length+' rekod yang dipadankan.');
-  lines.push('Mod TEST — tiada rekod production ditulis.');
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')lines.push('Mod TEST — tiada rekod production ditulis.');
   audit('SENT',access.reason,all.length,displayed.length);
   return {handled:true,text:lines.join('\n'),production_write:false};
 }
