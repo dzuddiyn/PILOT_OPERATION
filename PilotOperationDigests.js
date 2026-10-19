@@ -89,12 +89,22 @@ function bsePilotDigestRender_(book,kind,owner,window){
     bseTelegramHistoryEventsFor_(book,window,owner.telegram_user_id,true);
   const shown=events.slice(0,BSE_TG_HISTORY_MAX_DISPLAY);
   const period=kind==='DAILY'?window.start:window.start+' → '+window.end;
+  const today=Utilities.formatDate(new Date(),'Asia/Kuala_Lumpur','yyyy-MM-dd');
+  const todayEvents=kind==='DAILY'?bseTelegramReportCanonicalEvents_(book,today):[];
   const gemini=bseTelegramReportGeminiCommentary_(period,shown);
-  const lines=[kind==='DAILY'?'DAILY MORNING DIGEST — '+period:'FRIDAY WEEKLY DIGEST — '+period,
-    'Fakta canonical PILOT_OPERATION:'];
+  const lines=[kind==='DAILY'?'DAILY MORNING DIGEST — '+today:'FRIDAY WEEKLY DIGEST — '+period,
+    kind==='DAILY'?'RINGKASAN SEMALAM — '+period+':':'Fakta canonical PILOT_OPERATION:'];
   if(!shown.length)lines.push('Tiada rekod PILOT yang disahkan dalam sela masa ini.');
   else shown.forEach(e=>lines.push(bseTelegramHistorySafeLine_(e)));
   if(events.length>shown.length)lines.push('Dipaparkan '+shown.length+' daripada '+events.length+' rekod.');
+  if(kind==='DAILY'){
+    lines.push('','STATUS SEMASA — '+today+':');
+    if(!todayEvents.length)lines.push('Belum ada rekod operasi hari ini yang disahkan dalam PILOT.');
+    else todayEvents.slice(0,BSE_TG_HISTORY_MAX_DISPLAY).forEach(e=>lines.push(bseTelegramHistorySafeLine_(e)));
+    lines.push('','PERHATIAN HARI INI:');
+    lines.push('Semak laporan belum disahkan, tindakan lapangan dan ketepatan rekod bersama penyelia.');
+    lines.push('Jangan anggap tiada rekod bermaksud tiada aktiviti; sahkan dengan laporan sebenar.');
+  }
   lines.push('','Komen Gemini — NON_CANONICAL, bukan fakta dan tidak mengubah rekod:',
     gemini.ok?String(gemini.text).replace(/mod TEST/gi,'mod PILOT_OPERATION'):'Komen Gemini tidak tersedia buat masa ini.',
     '','Shadow pilot sahaja — tiada rekod production atau sistem rasmi BSE ditulis.');
