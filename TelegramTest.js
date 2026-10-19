@@ -13,7 +13,7 @@ function bseTelegramApi_(method,payload) {
   // Keep the token out of logs and exception messages: Telegram embeds it in the URL.
   const token=(PropertiesService.getScriptProperties().getProperty('TELEGRAM_BOT_TOKEN')||'').trim();
   if(!token)throw new Error('TELEGRAM_BOT_TOKEN belum disimpan.');
-  if(!['getMe','getWebhookInfo','getUpdates','getFile','getMyCommands','setMyCommands','sendMessage','sendPhoto','sendDocument','sendVideo','answerCallbackQuery','editMessageText','editMessageReplyMarkup'].includes(method))throw new Error('Kaedah Telegram tidak dibenarkan.');
+  if(!['getMe','getChat','getWebhookInfo','getUpdates','getFile','getMyCommands','setMyCommands','sendMessage','sendPhoto','sendDocument','sendVideo','answerCallbackQuery','editMessageText','editMessageReplyMarkup'].includes(method))throw new Error('Kaedah Telegram tidak dibenarkan.');
   let body=Object.assign({},payload||{});const inboundPrivateReply=body.__bse_inbound_private_reply===true;
   delete body.__bse_inbound_private_reply;
   body=bseRuntimeTelegramPayload_(method,body);
