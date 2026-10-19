@@ -204,6 +204,10 @@ function bseRuntimePilotUiLabels_(text) {
     .replace(/^\[PILOT\]\r?\n/,'')
     .replace(/^Rujukan (BSE-TG-\d+):\r?\nTREATMENT_EVENT\r?\nStatus: PROVISIONAL[^\r\n]*\r?\nMod TEST[^\r\n]*/gm,
       'Laporan racun telah disediakan untuk semakan.\nRujukan: $1\nSila pilih Benar, Betulkan atau Batal pada kad semakan.')
+    .replace(/^EC LEACHING TEST\b/gm,'EC Leaching')
+    .replace(/^Tiada rekod EC Leaching TEST yang disahkan dalam sela masa ini\.$/gm,'Tiada rekod EC Leaching yang disahkan dalam tempoh ini.')
+    .replace(/^Bot BSE TEST sedia menerima laporan teks\. Tiada rekod production akan ditulis\.$/gm,'Bot BSE OpsMate sedia menerima laporan teks.')
+    .replace(/^Pemerhatian aset belum disokong dalam TEST\.$/gm,'Pemerhatian aset belum disokong buat masa ini.')
     .replace(/^Semakan TEST\b/gm,'Semakan laporan')
     .replace(/^Rekod TEST\b/gm,'Rekod')
     .replace(/^Resit TEST\b/gm,'Resit')
