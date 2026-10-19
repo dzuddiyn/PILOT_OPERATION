@@ -1,5 +1,9 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## Telegram Command & UX Parity — Synthetic Regression (2026-10-19)
+- New bounded parser/presentation suite: 16/16 targeted checks PASS across `/history`, `/ec_history`, `/ocr`, image commands, `/delete` parsing, ACK formatting, source-note preservation; 23/23 entire Node suites PASS. No Telegram sends, callbacks, official farm writes, actual OCR or deletion attempted.
+- Matrix and limitations in `docs/TELEGRAM_COMMAND_UX_PARITY_SYNTHETIC_20261019.md`; negative-user visibility, real media, callback and daily/weekly field delivery remain UNVERIFIED. Do not label full parity DELIVERED.
+
 ## Full PILOT_TEST parity scope — 19 October 2026 (IN PROGRESS)
 - Owner authorized autonomous full functional parity, not MVP-only. Drive scaffolding 9 main + 5 nested folders read-back verified; 28 missing canonical registry tabs plus two EC domain tabs provisioned EMPTY in PILOT_OPERATION, registry read-back 61/61 exact, EC 2/2 exact. No TEST data copied or existing evidence moved.
 - PR #57/#58 MERGED. Node suites 22/22 and UX 27/27 PASS, independent Script HEAD 63/63 canonical exact with 9 Gate F helper files retained. Post-write Apps Script regression 47/47 PASS at 09:02 MYT and independent read-only live schema/source integrity 61/61 CURRENT, 86 source keys, 0 issues at 09:05 MYT after owner Chrome editor tab was located; functional field parity and BSE handover remain UNVERIFIED / NOT DELIVERED.
