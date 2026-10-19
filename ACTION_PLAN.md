@@ -1,5 +1,8 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## PILOT_OPERATION Group-to-PM Registration Recovery — 2026-10-19
+- Rechecked historical PR #30: native `/start` in private chat already implemented; group membership alone never registers user. PILOT live User Registry/Card/Registration Callback sheets each 0 rows, owner registry active. Added PILOT-only group `/start` response with PM bot link and plain-language onboarding; no automatic member approval, no data exposure. 8/8 targeted, 32/32 Node suites, 64/64 JS syntax PASS. See `docs/PILOT_REGISTRATION_GROUP_RECOVERY_20261019.md`. Actual new-user Start and owner card live proof still UNVERIFIED.
+
 ## PILOT_OPERATION Owner Retrieval Client Acceptance — 2026-10-19
 - Owner-provided screenshot confirms bot returned pump photo at 11:09 MYT after `/retrieve BSE-EV-126-AQADNxNr`; previous independent PILOT server retrieval audit records owner-to-owner SENT at 11:09 MYT. **Owner client retrieval LIVE PASS**. Historical 10:15 `CONFIRMED_TEST` Telegram message predates current Sheet `CONFIRMED`; preserve historical message. Non-owner negative access remains UNVERIFIED. Evidence documented in `docs/PILOT_LIVE_EVIDENCE_RETRIEVAL_CHECK_20261019.md`; full parity IN PROGRESS — NOT DELIVERED.
 

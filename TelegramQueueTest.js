@@ -59,7 +59,8 @@ function bseTelegramPilotNoticeParent_(rows,sourceChat,reporter,replyId){
       const inventoryClarificationPrompt=inventoryClarificationReply||(!replyId&&typeof bseInventoryFindActiveClarificationPrompt_==='function'&&bseInventoryFindActiveClarificationPrompt_(book,sourceChat,reporter));
       const correctionSession=!replyId&&typeof bseTelegramCorrectionSessionMatch_==='function'?bseTelegramCorrectionSessionMatch_(book,sourceChat,reporter,saved):{match:null,ambiguous:false};
       let evidence=null;
-      if(privateStart){const registration=typeof bseTelegramRegistrationHandleStart_==='function'?bseTelegramRegistrationHandleStart_(book,m,me.username):bseTelegramPrivateOptInRegister_(book,m,me.username);if(registration&&registration.text)bseTelegramPrivateCommandReply_(m,registration.text);}
+      if(m&&allowedGroup&&typeof bsePilotRegistrationGroupStartHint_==='function'&&bsePilotRegistrationGroupStartHint_(m,me.username).handled){const hint=bsePilotRegistrationGroupStartHint_(m,me.username);bseTelegramApi_('sendMessage',{chat_id:sourceChat,text:hint.text,reply_markup:hint.reply_markup,reply_parameters:{message_id:Number(m.message_id),allow_sending_without_reply:true}});}
+      else if(privateStart){const registration=typeof bseTelegramRegistrationHandleStart_==='function'?bseTelegramRegistrationHandleStart_(book,m,me.username):bseTelegramPrivateOptInRegister_(book,m,me.username);if(registration&&registration.text)bseTelegramPrivateCommandReply_(m,registration.text);}
       else if(m&&m.chat&&m.from&&m.chat.type==='private'&&bseTelegramDeleteCommand_(m.text)){
         const deletion=bseTelegramDeleteReceiveCommand_(book,m);
         if(deletion.text)bseTelegramPrivateCommandReply_(m,deletion.text);
