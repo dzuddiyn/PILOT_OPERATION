@@ -42,7 +42,7 @@ function bsePilotEvidenceStoreOnce_(book,row,blob){
   if(String(canonical[10])!==String(row[10])||String(canonical[9])!==String(row[9]))
     throw Error('EVIDENCE_SOURCE_IDENTITY_MISMATCH');
   const state=String(canonical[16]||'');
-  if(!['OPEN','DRIVE_CREATE_PENDING','CONFIRMED_TEST'].includes(state))
+  if(!['OPEN','DRIVE_CREATE_PENDING','CONFIRMED','CONFIRMED_TEST'].includes(state))
     throw Error('EVIDENCE_REVIEW_STATE_INVALID_'+state);
   const folder=bsePilotEvidenceStorageFolder_(),name=bsePilotEvidenceStoredName_(canonical);
   const found=bsePilotEvidenceExactMatch_(folder,name,canonical);

@@ -167,6 +167,8 @@ function bseRuntimeEvidenceFolderId_() {
   return id;
 }
 
+function bseRuntimeEvidenceConfirmedStatus_(){return bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'CONFIRMED':'CONFIRMED_TEST';}
+function bseRuntimeEvidenceIsConfirmed_(status){const env=bseRuntimeEnvironmentName_(),value=String(status||'');return value===(env==='PILOT_OPERATION'?'CONFIRMED':'CONFIRMED_TEST')||(env==='PILOT_OPERATION'&&value==='CONFIRMED_TEST');}
 function bseRuntimeEvidenceFolderProperty_() {
   return bseRuntimeEnvironmentConfig_().evidenceFolderProperty;
 }
@@ -213,6 +215,11 @@ function bseRuntimePilotUiLabels_(text) {
     .replace(/^Resit TEST\b/gm,'Resit')
     .replace(/^Evidence TEST\b/gm,'Lampiran')
     .replace(/^Semakan Evidence TEST\b/gm,'Semakan lampiran')
+    .replace(/^Resit Evidence TEST\b/gm,'Resit lampiran')
+    .replace(/^Rujukan Evidence TEST\b/gm,'Rujukan lampiran')
+    .replace(/^OCR CONFIRMED TEST\b/gm,'OCR disahkan')
+    .replace(/^OCR hanya untuk Evidence yang sudah CONFIRMED_TEST\.$/gm,'OCR hanya untuk lampiran yang sudah disahkan.')
+    .replace(/^Status: CONFIRMED_TEST$/gm,'Status: Disahkan')
     .replace(/^Kategori dicadang: FIELD_OPERATION$/gm,'Kategori dicadang: Operasi ladang / peralatan')
     .replace(/^Kategori dicadang: UNCLASSIFIED_TEST$/gm,'Kategori dicadang: Belum dikenal pasti')
     .replace(/^Kategori: FIELD_OPERATION$/gm,'Kategori: Operasi ladang / peralatan')

@@ -10,6 +10,7 @@ const ctx=vm.createContext({
  PropertiesService:{getScriptProperties:()=>({getProperty:(k)=>state.props[k]||null,setProperty:(k,v)=>{state.props[k]=v;},deleteProperty:(k)=>{delete state.props[k];}})},
  getBsePilotOperationRuntimeBindingStatus:()=>({environment:state.env,spreadsheet_bound:state.bound,evidence_folder_bound:state.bound,production_write:false,official_bse_write:false,automation:state.props.BSE_TELEGRAM_AUTOMATION}),
  bseRuntimeLegacyUserId_:()=> '913757987',
+ bseRuntimeEvidenceIsConfirmed_:s=>['CONFIRMED','CONFIRMED_TEST'].includes(String(s)),
  bseTestOwnerForTelegramUser_:()=>({ok:true,private_chat_id:'913757987'}),
  bseRuntimeBook_:x=>x,SpreadsheetApp:{openById:()=>({})},
  BSE_PILOT_OPERATION_BINDING:{spreadsheetId:'pilot-sheet'},

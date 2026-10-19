@@ -1,5 +1,9 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## PILOT_OPERATION Evidence branding & real-media field evidence — 2026-10-19
+- Owner rejected TEST-labelled root and status. Root Google Drive folder renamed in place to `BSE_OpsMate_SB_PILOT_OPERATION`, same ID, read-back verified. Real photo `BSE-EV-126-AQADNxNr` caption `Pam rosak M2P2` confirmed, under nested Evidence_Files, category corrected to FIELD_OPERATION, file preserved. Former synthetic-image cleanup requirement is CANCELLED as not applicable to this actual operational evidence.
+- PILOT Evidence status migration from `CONFIRMED_TEST` to `CONFIRMED` requires source + Script HEAD parity before exact cell write, with read-back. Other TEST-labelled technical contracts require separate scope/verification; do not falsely mark full parity complete. Evidence: `docs/PILOT_OPERATION_EVIDENCE_STATUS_CLEANUP_20261019.md`. Full PILOT_TEST functional parity **IN PROGRESS — NOT DELIVERED**.
+
 ## Isolated Evidence Field Proof Preparation — 2026-10-19
 - READ-ONLY preflight confirmed PILOT root category structure, nested Evidence_Files folder and zero active Evidence rows. Prepared isolated synthetic-image test plan, parent/permissions checks, callback dedup and fault-injection steps, uncertain-write reconciliation, run-scoped cleanup/read-back and explicit acceptance criteria. **PREPARED ONLY**: no photo, Telegram, Drive or Sheets write, no field proof. See `docs/ISOLATED_EVIDENCE_FIELD_PROOF_PREPARATION_20261019.md`.
 

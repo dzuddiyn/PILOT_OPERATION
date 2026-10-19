@@ -68,7 +68,7 @@ function bseEvidenceOcrRetrieve_(book,message){
   if(!evidence)return {handled:true,text:'Evidence TEST tidak ditemui.'};
   const row=evidence.row,access=bseEvidenceOcrAccess_(book,message,evidence);
   if(!access.ok)return {handled:true,text:access.reason==='NOT_PRIVATE'?'OCR hanya melalui PM bot.':'Anda tidak mempunyai akses kepada Evidence ini.'};
-  if(String(row[16]||'')!=='CONFIRMED_TEST')return {handled:true,text:'OCR hanya untuk Evidence yang sudah CONFIRMED_TEST.'};
+  if(!bseRuntimeEvidenceIsConfirmed_(row[16]))return {handled:true,text:'OCR hanya untuk Evidence yang sudah CONFIRMED_TEST.'};
   if(String(row[8]||'')!=='PHOTO'||!/^image\//i.test(String(row[11]||'')))return {handled:true,text:'OCR minimum PoC hanya menyokong PHOTO/image.'};
   const driveId=String(row[19]||''),telegramFileId=String(row[9]||'');
   if(!driveId)return {handled:true,text:'Evidence ini belum mempunyai fail Drive TEST.'};

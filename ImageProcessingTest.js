@@ -458,9 +458,9 @@ function bseImageProcessingCallback_(callback){
     }
     const category=String(row[18]||'UNCLASSIFIED_TEST'),visibility=bseImageProcessingVisibility_(evidence.row[2],category),stamp=new Date().toISOString();
     bseTelegramEvidenceSheet_(book).getRange(evidence.index+2,15,1,7).setValues([[
-      category,visibility,'CONFIRMED_TEST',String(evidence.row[17]||''),String(row[22]||''),driveId,stamp
+      category,visibility,bseRuntimeEvidenceConfirmedStatus_(),String(evidence.row[17]||''),String(row[22]||''),driveId,stamp
     ]]);
-    sheet.getRange(rowIndex,15).setValue('CONFIRMED_TEST');
+    sheet.getRange(rowIndex,15).setValue(bseRuntimeEvidenceConfirmedStatus_());
     sheet.getRange(rowIndex,25).setValue(stamp);
     SpreadsheetApp.flush();
     const saved=sheet.getRange(rowIndex,1,1,BSE_IMAGE_PROCESSING_HEADERS.length).getValues()[0];
@@ -468,7 +468,7 @@ function bseImageProcessingCallback_(callback){
       bseTelegramApi_('editMessageReplyMarkup',{chat_id:chat,message_id:Number(row[22]),reply_markup:{inline_keyboard:[]}});
       bseTelegramApi_('editMessageText',{chat_id:chat,message_id:Number(row[22]),text:bseImageProcessingSavedSummary_(saved),parse_mode:'HTML'});
     }catch(_){}
-    return {production_write:false,status:'CONFIRMED_TEST',drive_file_id:driveId};
+    return {production_write:false,status:bseRuntimeEvidenceConfirmedStatus_(),drive_file_id:driveId};
   }finally{lock.releaseLock();}
 }
 function processBseImageProcessingCallbacksTest(){
