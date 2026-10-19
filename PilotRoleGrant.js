@@ -25,6 +25,7 @@ function bseRoleTransaction_(request,api){
             if(barriers.some(b=>b.operation_id===request.operationId&&b.active!==false))return reply('WRITE_OUTCOME_UNKNOWN');
           }
         }
+        if(typeof bseRolePostCommit_==='function')bseRolePostCommit_(request,api);
         return reply('ALREADY_APPLIED',e.revision);
       }
       // PREPARED is never silently promoted: manual investigation until provably safe resume.
@@ -54,6 +55,7 @@ function bseRoleTransaction_(request,api){
       api.closeBarrier(request.operationId);api.flush();barriers=api.readBarriers();
       if(barriers.some(b=>b.operation_id===request.operationId&&b.active!==false))return reply('WRITE_OUTCOME_UNKNOWN');
     }
+    if(typeof bseRolePostCommit_==='function')bseRolePostCommit_(request,api);
     return reply('APPLIED_VERIFIED',revision);
   }catch(_){return reply('WRITE_OUTCOME_UNKNOWN');}
   finally{lock.releaseLock();}
