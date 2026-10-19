@@ -65,8 +65,7 @@ Scope lock platform yang diluluskan untuk roadmap ialah:
     + komen Gemini berasingan/non-canonical, PM kepada semua owner/admin/user
     TEST yang aktif mengikut visibility/access boundary;
   - pembetulan kontrak `/history` oleh owner pada 2026-10-19: sejarah operasi
-    mingguan menggunakan **Isnin hingga Ahad**; minggu 1 bermula **Isnin pertama
-    bulan berkenaan**, diikuti minggu 2/3/4/5 jika sah. Input fleksibel termasuk
+    mingguan menggunakan kalendar **Isnin hingga Ahad**, terhad pada bulan yang dipilih: **Minggu 1 bermula pada 1 haribulan hingga Ahad pertama**, minggu berikutnya Isnin hingga Ahad, dan minggu terakhir tamat pada hari terakhir bulan. Setiap tarikh termasuk dalam tepat satu minggu, dengan sehingga enam minggu bernombor apabila perlu. Input fleksibel termasuk
     `/history week 2 (Oct 2026)`, `/history week 2 Oct 2026`,
     `/history week 2 - Oct 2026`, `/history week last`, harian `/history 14/10`
     (DD/MM, tahun semasa MYT), dan bulanan `/history Oct 2026`,

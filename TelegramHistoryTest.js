@@ -55,13 +55,17 @@ function bseTelegramHistoryExplicitWeek_(start){
 }
 function bseTelegramHistoryNthWeekOfMonth_(monthKey,weekNumber){
   const m=String(monthKey||'').match(/^(\d{4})-(\d{2})$/),n=Number(weekNumber);
-  if(!m||!Number.isInteger(n)||n<1||n>5)return null;
+  if(!m||!Number.isInteger(n)||n<1||n>6)return null;
   const y=Number(m[1]),mo=Number(m[2]);
   if(mo<1||mo>12)return null;
-  const first=new Date(Date.UTC(y,mo-1,1)),daysUntilMonday=(1-first.getUTCDay()+7)%7;
-  const startDate=new Date(Date.UTC(y,mo-1,1+daysUntilMonday+(n-1)*7));
+  const first=new Date(Date.UTC(y,mo-1,1));
+  const firstSundayOffset=(7-first.getUTCDay())%7;
+  const firstEnd=new Date(Date.UTC(y,mo-1,1+firstSundayOffset));
+  const startDate=n===1?first:new Date(Date.UTC(y,mo-1,2+firstSundayOffset+(n-2)*7));
   if(startDate.getUTCMonth()!==mo-1)return null;
-  const start=bseTelegramHistoryIsoDateFromUtc_(startDate),end=bseTelegramHistoryAddDays_(start,6);
+  const lastDay=new Date(Date.UTC(y,mo,0));
+  const endDate=n===1?firstEnd:new Date(Date.UTC(startDate.getUTCFullYear(),startDate.getUTCMonth(),startDate.getUTCDate()+6));
+  const start=bseTelegramHistoryIsoDateFromUtc_(startDate),end=bseTelegramHistoryIsoDateFromUtc_(endDate>lastDay?lastDay:endDate);
   return {start:start,end:end,kind:'WEEK',period:start+'..'+end,month:monthKey,week_number:n};
 }
 
@@ -347,7 +351,7 @@ function runBseTelegramHistoryHarnessTests(){
     {id:'D-048 candidate hash selects only confirmed candidate envelope',pass:bseTelegramHistoryApprovalResult_(multi,'BSE-TG-1|Input_Usage_Log|C2',bseApprovalHash_(c2))&&bseTelegramHistoryApprovalResult_(multi,'BSE-TG-1|Input_Usage_Log|C2',bseApprovalHash_(c2)).candidates.length===1&&bseTelegramHistoryApprovalResult_(multi,'BSE-TG-1|Input_Usage_Log|C2',bseApprovalHash_(c2)).candidates[0].target==='Input_Usage_Log'&&!bseTelegramHistoryApprovalResult_(multi,'BSE-TG-1|Input_Usage_Log|C2',bseApprovalHash_(multi))},
     {id:'day month and month alias remain accepted',pass:day.period==='2026-09-21'&&month.kind==='MONTH'&&alias.period==='2026-09'&&bseTelegramHistoryCommand_('/history 2026-02-30').invalid===true},
     {id:'weekly history uses completed Monday to Sunday window',pass:last.kind==='WEEK'&&last.start==='2026-10-05'&&last.end==='2026-10-11'&&explicit.start==='2026-10-12'&&explicit.end==='2026-10-18'},
-    {id:'user can select nth Monday week inside a month',pass:nth.kind==='WEEK'&&nth.week_number===2&&nth.month==='2026-10'&&nth.start==='2026-10-12'&&nth.end==='2026-10-18'&&nthMalay.start===nth.start&&bseTelegramHistoryCommand_('/history week 5 2026-02').invalid===true},
+    {id:'week 1 starts on day 1 and numbered calendar weeks cover month',pass:nth.kind==='WEEK'&&nth.week_number===2&&nth.month==='2026-10'&&nth.start==='2026-10-05'&&nth.end==='2026-10-11'&&nthMalay.start===nth.start&&bseTelegramHistoryCommand_('/history week 1 (Oct 2026)').start==='2026-10-01'&&bseTelegramHistoryCommand_('/history week 1 (Oct 2026)').end==='2026-10-04'&&bseTelegramHistoryCommand_('/history week 6 2026-02').invalid===true},
     {id:'explicit weekly history requires Monday anchor',pass:bseTelegramHistoryCommand_('/history week 2026-10-10').invalid===true},
     {id:'week period matching is bounded',pass:bseTelegramHistoryInCommandPeriod_('2026-10-12',explicit)&&bseTelegramHistoryInCommandPeriod_('2026-10-18',explicit)&&!bseTelegramHistoryInCommandPeriod_('2026-10-19',explicit)},
     {id:'visibility allows owner reporter or group-standard only',pass:bseTelegramHistoryEventVisibleTo_(privateEvent,'2',true)&&bseTelegramHistoryEventVisibleTo_(privateEvent,'1',false)&&!bseTelegramHistoryEventVisibleTo_(privateEvent,'2',false)&&bseTelegramHistoryEventVisibleTo_(standard,'2',false)},

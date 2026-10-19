@@ -43,7 +43,7 @@ check('PILOT confirmation date 18 Oct does not falsely contain 13/15 Oct work',(
   assert.equal(ctx.bseTelegramHistoryEventsFor_({},ctx.bseTelegramHistoryCommand_('/history 2026-10-18'),'913',true).length,0);
 });
 check('PILOT completed Monday-Sunday window includes 13/15 Oct operations',()=>{
-  const q=ctx.bseTelegramHistoryCommand_('/history week 2 (Oct 2026)');
+  const q=ctx.bseTelegramHistoryCommand_('/history week 3 (Oct 2026)');
   assert.equal(ctx.bseTelegramHistoryEventsFor_({},q,'913',true).length,2);
 });
 check('PILOT day response omits report approval timestamp and keeps work date in heading',()=>{
@@ -53,7 +53,7 @@ check('PILOT day response omits report approval timestamp and keeps work date in
   assert(!q.text.includes('2026-10-18'));assert(!q.text.includes('Tarikh kerja:'));
 });
 check('PILOT weekly summary date is explicitly WORK date, never approval date',()=>{
- const x=ctx.bseTelegramHistoryEventsFor_({},ctx.bseTelegramHistoryCommand_('/history week 2 (Oct 2026)'),'913',true);
+ const x=ctx.bseTelegramHistoryEventsFor_({},ctx.bseTelegramHistoryCommand_('/history week 3 (Oct 2026)'),'913',true);
  assert(ctx.bseTelegramHistorySafeLine_(x[0]).includes('Tarikh kerja: 2026-10-13'));
  assert(!ctx.bseTelegramHistorySafeLine_(x[0]).includes('2026-10-18'));
 });
