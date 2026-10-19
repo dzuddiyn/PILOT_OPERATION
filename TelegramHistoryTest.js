@@ -301,8 +301,7 @@ function bseTelegramHistoryEventsFor_(book,command,userId,isOwner){
 function bseTelegramHistoryAccess_(book,message){
   const user=String(message&&message.from&&message.from.id||''),chat=String(message&&message.chat&&message.chat.id||'');
   if(!message||!message.chat||message.chat.type!=='private'||user!==chat)return {ok:false,reason:'NOT_PRIVATE',user:user,chat:chat,is_owner:false};
-  const owner=bseTestOwnerForTelegramUser_(book,user);
-  if(owner.ok&&String(owner.private_chat_id)===chat)return {ok:true,reason:'OWNER_ACTIVE',user:user,chat:chat,is_owner:true};
+  if(bseRoleControllerCapability_('TelegramHistoryTest.js:bseTelegramHistoryAccess_',book,user,chat,message.chat.type))return {ok:true,reason:'OWNER_ACTIVE',user:user,chat:chat,is_owner:true};
   const access=bseTelegramRegistrationPrivateAccess_(book,message);
   if(access.status==='REGISTERED_ACTIVE')return {ok:true,reason:'REGISTERED_ACTIVE',user:user,chat:chat,is_owner:false};
   return {ok:false,reason:'NOT_REGISTERED_ACTIVE',user:user,chat:chat,is_owner:false};

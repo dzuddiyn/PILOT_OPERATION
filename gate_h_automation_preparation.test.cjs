@@ -47,6 +47,8 @@ const ctx=vm.createContext({
  processBseTelegramApprovalCallbacks:()=>state.calls.push('approval'),
  processBseTelegramTestQueue:()=>state.calls.push('worker')
 });
+ctx.bseRoleTrustedAdaptersForBook_=()=>({sourceAuthenticated:true,readBootstrapOwner:()=>({user_id:'913757987',verified:true}),readRegistration:()=> 'INACTIVE',readLedger:()=>[],readBarriers:()=>[],sha256:()=>''});
+for(const f of ['PilotRoleContract.js','PilotRoleResolver.js','PilotRoleLegacyCallsiteAdapter.js','PilotRoleLegacyControllerBridge.js'])vm.runInContext(fs.readFileSync(root+f,'utf8'),ctx);
 vm.runInContext(fs.readFileSync(root+'PilotOperationGateH.js','utf8'),ctx);
 vm.runInContext(fs.readFileSync(root+'TelegramAutomationTest.js','utf8'),ctx);
 ctx.bseTelegramAutomationBook_=()=>state.calls.push('book');
