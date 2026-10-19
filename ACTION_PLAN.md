@@ -1,5 +1,8 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## PILOT_OPERATION Live Telegram UX & Retrieval Verification — 2026-10-19
+- Real Evidence `BSE-EV-126-AQADNxNr` CONFIRMED/FIELD_OPERATION and Drive JPEG nested parent independently read back. Retrieval audit has no SENT for this record; real Telegram `/retrieve` field delivery remains UNVERIFIED. Identified/fixed retrieval audit routing TEST_ → PILOT_ via runtime mapper; 5/5 no-transport authorization/retrieval checks PASS, entire Node 31/31 PASS. See `docs/PILOT_LIVE_EVIDENCE_RETRIEVAL_CHECK_20261019.md`. Full parity IN PROGRESS — NOT DELIVERED.
+
 ## PILOT_OPERATION TEST Label Audit & Cleanup — 2026-10-19
 - Audited outgoing PILOT text vs internal TEST/PILOT_TEST contract keys and historical raw notes. Narrow Telegram UX mappings remove bracketed PILOT TEST, OCR and Evidence labels in PILOT-only presentation while preserving source captions/TEST_ONLY evidence. Targeted 8/8 PASS, Node 30/30 PASS. See `docs/PILOT_OPERATION_TEST_LABEL_AUDIT_20261019.md`. Remaining legacy source strings are not globally renamed; live outbound proof pending. Functional parity **IN PROGRESS — NOT DELIVERED**.
 
