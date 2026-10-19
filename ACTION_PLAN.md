@@ -2,7 +2,7 @@
 
 ## Full PILOT_TEST parity scope — 19 October 2026 (IN PROGRESS)
 - Owner authorized autonomous full functional parity, not MVP-only. Drive scaffolding 9 main + 5 nested folders read-back verified; 28 missing canonical registry tabs plus two EC domain tabs provisioned EMPTY in PILOT_OPERATION, registry read-back 61/61 exact, EC 2/2 exact. No TEST data copied or existing evidence moved.
-- PR #57/#58 MERGED. Node suites 22/22 and UX 27/27 PASS, independent Script HEAD 63/63 canonical exact with 9 Gate F helper files retained. Post-write Apps Script regression and runtime proof are UNVERIFIED owing to editor account/access blocker; do not mark parity LIVE PASS or DELIVERED.
+- PR #57/#58 MERGED. Node suites 22/22 and UX 27/27 PASS, independent Script HEAD 63/63 canonical exact with 9 Gate F helper files retained. Post-write Apps Script regression 47/47 PASS at 09:02 MYT and independent read-only live schema/source integrity 61/61 CURRENT, 86 source keys, 0 issues at 09:05 MYT after owner Chrome editor tab was located; functional field parity and BSE handover remain UNVERIFIED / NOT DELIVERED.
 - Outstanding scope includes TEST-only support-tab classification, Telegram/media/OCR/negative access verification, evidence/KB lineage, runtime integrity and BSE acceptance. See docs/PILOT_OPERATION_FULL_PARITY_CHECKPOINT_20261019.md.
 
 ## Gate I 18 October 2026 22:08 MYT — FINAL TECHNICAL FREEZE READINESS VERIFIED
