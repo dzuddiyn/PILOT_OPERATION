@@ -2,7 +2,7 @@
 
 ## Evidence Writer Safety Fix — 2026-10-19
 - PILOT-only writer routes newly approved Evidence to existing `01_Source_Evidence/Evidence_Files` under locked root, validates deterministic ID/metadata, stages DRIVE_CREATE_PENDING before create, reconciles exactly one known file, fails closed on uncertain/no match or duplicates. Local 10/10 targeted fault injection + 27/27 complete Node suites PASS; no real media used. See `docs/EVIDENCE_WRITER_SAFETY_FIX_20261019.md`.
-- Runtime Script HEAD/live full regression and real media field proof must be verified separately. Full parity remains IN PROGRESS.
+- Post-merge Script HEAD 64/64 exact + 9 helper files, Apps Script 47/47 PASS at 09:50 MYT, nested Evidence_Files read-back empty and PILOT_FILE_EVIDENCE/callback rows 0/0. Real media field proof remains UNVERIFIED; Full parity IN PROGRESS.
 
 ## Evidence cleanup & writer failover — 2026-10-19
 - Explicit owner-directed deletion VERIFIED: `BSE-EV-22-AQADiBBr` one Evidence row, one callback row, linked Drive JPEG permanently deleted; independent Sheets readback both 0 records and Drive 404. No OCR/domain links existed and no other file moved.
