@@ -1,5 +1,8 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## Gate I Current Invite Welcome Delivery — 2026-10-19
+- Owner approved Telegram getChat current operational-group invite replacing obsolete link hash. PR #83 merged, PILOT Script HEAD synced and independently verified 64/64 canonical JS plus nine runtime helpers preserved. 13:58 MYT UIA inspection GROUP_LINK_MATCH valid:true. 13:59 MYT guarded one-time live function GROUP_LINK_MATCH valid:true then WELCOME_DELIVERY_SENT {sent:true,recipient_verified:true,group_verified:true}; Telegram sendMessage returned message_id to runtime. No retry, no registration replay, no version/deployment promotion. LIVE API SEND ACKNOWLEDGED; recipient read/join state not independently verified. Evidence docs/GATE_I_WELCOME_CURRENT_INVITE_LIVE_DELIVERY_20261019.md. Full functional parity IN PROGRESS — NOT DELIVERED.
+
 ## Gate I Group Link Inspector UIA Live Proof — 2026-10-19
 - Public wrapper PR #81 merged and synced to PILOT Script HEAD. Independent clasp pull 64/64 canonical JS match and nine Gate F runtime helpers preserved. Owner Apps Script editor found by Windows UIA; inspectBsePilotGroupLink executed at 13:50 MYT. Live log GROUP_LINK_MATCH {valid:false,type:"group",link_visible:true}: bot can now see getChat invite_link but its digest differs from previously owner-authorized invite hash. Exact group identity guard succeeded; fail-closed **BLOCKED — LINK_MISMATCH / NOT SENT**. No welcome PM/registration/write. See docs/GATE_I_GROUP_LINK_UIA_LIVE_20261019.md. Full parity IN PROGRESS — NOT DELIVERED.
 
