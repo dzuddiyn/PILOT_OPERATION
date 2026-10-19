@@ -143,4 +143,16 @@ check('legacy TEST and PILOT_TEST unsupported notice remains unchanged',()=>{
  env='TEST';assert.equal(out('sendMessage',raw),raw);
  env='PILOT_TEST';assert.equal(out('sendMessage',raw),'[PILOT TEST]\n'+raw);
 });
+check('PILOT EC leaching history and operational command strips TEST-only jargon',()=>{
+ env='PILOT_OPERATION';
+ assert.equal(out('sendMessage','EC LEACHING TEST - 2026-10-18'),'EC Leaching - 2026-10-18');
+ assert.equal(out('sendMessage','Tiada rekod EC Leaching TEST yang disahkan dalam sela masa ini.'),'Tiada rekod EC Leaching yang disahkan dalam tempoh ini.');
+ assert.equal(out('sendMessage','Bot BSE TEST sedia menerima laporan teks. Tiada rekod production akan ditulis.'),'Bot BSE OpsMate sedia menerima laporan teks.');
+ assert.equal(out('sendMessage','Pemerhatian aset belum disokong dalam TEST.'),'Pemerhatian aset belum disokong buat masa ini.');
+});
+check('TEST and PILOT_TEST retain original EC labels',()=>{
+ const raw='EC LEACHING TEST - 2026-10-18';
+ env='TEST';assert.equal(out('sendMessage',raw),raw);
+ env='PILOT_TEST';assert.equal(out('sendMessage',raw),'[PILOT TEST]\n'+raw);
+});
 console.log('GATE_I_PILOT_USER_UX '+n+'/'+n+' PASS');
