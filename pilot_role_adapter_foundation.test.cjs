@@ -1,0 +1,25 @@
+'use strict';
+const assert=require('node:assert/strict'),crypto=require('node:crypto');
+const {FakeClock}=require('./test_support/rbac/fake_clock.cjs');
+const {FakeLockService}=require('./test_support/rbac/fake_lock.cjs');
+const {FaultScheduler}=require('./test_support/rbac/fault_scheduler.cjs');
+const {FakeSheets}=require('./test_support/rbac/fake_sheets.cjs');
+const {inspectRaw}=require('./test_support/rbac/independent_oracle.cjs');
+let passed=0;function test(n,fn){fn();passed++;console.log('PASS '+n);}
+const make=(operation_id,action='GRANT_ADMIN',revision=1,previous_hash='')=>{const e={event_id:'evt-'+operation_id,operation_id,target:'200',actor:'100',action,revision,previous_hash,state:'COMMITTED'};e.digest=crypto.createHash('sha256').update(JSON.stringify([e.event_id,e.operation_id,e.target,e.actor,e.action,e.revision,e.previous_hash])).digest('hex');return e;};
+test('clock deterministic and monotonic',()=>{const c=new FakeClock();assert.equal(c.now(),1000);assert.equal(c.advance(5),1005);assert.throws(()=>c.advance(-1));});
+test('lock ownership and contention',()=>{const l=new FakeLockService(),a=l.getScriptLock('A'),b=l.getScriptLock('B');assert(a.tryLock());assert.equal(b.tryLock(),false);assert.throws(()=>b.releaseLock());a.releaseLock();assert(b.tryLock());b.releaseLock();});
+test('scheduler reached and injected failure',()=>{const f=new FaultScheduler();f.inject('set:ledger');assert.throws(()=>f.checkpoint('set:ledger'));f.assertDrained();});
+test('sheets copy-on-read and append',()=>{const s=new FakeSheets();s.seed('T',[[1]]);const r=s.read('T');r[0][0]=2;assert.equal(s.read('T')[0][0],1);s.append('T',[3]);assert.equal(s.read('T').length,2);});
+test('Apps Script-shaped range setValues/read',()=>{const s=new FakeSheets();s.seed('T',[['a','b']]);const range=s.getBook().getSheetByName('T').getRange(1,2);range.setValue('c');assert.equal(range.getValues()[0][0],'c');});
+test('torn write injected',()=>{const f=new FaultScheduler(),s=new FakeSheets(f);f.inject('append:ledger','torn');s.append('ledger',{event_id:'1'});assert.equal(s.snapshot().ledger[0].partial,true);});
+test('stale read injected',()=>{const f=new FaultScheduler(),s=new FakeSheets(f);s.seed('ledger',[['fresh']]);f.inject('read:ledger','stale',[['old']]);assert.equal(s.read('ledger')[0][0],'old');assert.equal(s.read('ledger')[0][0],'fresh');});
+test('flush failure',()=>{const f=new FaultScheduler(),s=new FakeSheets(f);f.inject('flush:*');assert.throws(()=>s.flush());assert.equal(s.flushCount,0);});
+test('independent raw oracle grant verified',()=>{assert.equal(inspectRaw({ledger:[make('1')],target:'200'}).elevated,true);});
+test('independent raw oracle prepared denies',()=>{const e=make('1');e.state='PREPARED';assert.equal(inspectRaw({ledger:[e],target:'200'}).elevated,false);});
+test('oracle revoke and barrier deny',()=>{const g=make('1'),r=make('2','REVOKE_ADMIN',2,g.digest);assert.equal(inspectRaw({ledger:[g,r],target:'200'}).elevated,false);assert.equal(inspectRaw({ledger:[g],barriers:[{target:'200',active:true}],target:'200'}).elevated,false);});
+test('oracle detects corruption',()=>{const e=make('1');e.digest='bad';assert.equal(inspectRaw({ledger:[e],target:'200'}).elevated,false);});
+test('oracle detects duplicate revision',()=>{const a=make('1'),b=make('2','REVOKE_ADMIN',1,'');assert.equal(inspectRaw({ledger:[a,b],target:'200'}).elevated,false);});
+test('oracle denies inactive',()=>{assert.equal(inspectRaw({ledger:[make('1')],registration:'REJECTED',target:'200'}).elevated,false);});
+console.log('RBAC_ADAPTER_FOUNDATION '+passed+'/14 LOCAL_PASS; infrastructure-only, NO REAL RBAC');
+assert.equal(passed,14);
