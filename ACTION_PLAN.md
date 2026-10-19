@@ -1,5 +1,9 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## Telegram Media, OCR & Evidence Parity — Synthetic Regression (2026-10-19)
+- Targeted 15/15 PASS; full Node suite 25/25 PASS. Synthetic media metadata, image captions, OCR command, visibility, callback action, ingress dedup keys, file limits and Drive confirmation guards exercised; no real Telegram/Drive/Sheets writes. Evidence: `docs/TELEGRAM_MEDIA_OCR_EVIDENCE_PARITY_20261019.md`.
+- Live media/OCR, evidence lineage read-back, reporter callback and ordinary-user field proof remain UNVERIFIED. Full parity IN PROGRESS / NOT DELIVERED.
+
 ## Negative Access & Callback Safety — Synthetic Regression (2026-10-19)
 - Guarded fixture-only regression 17/17 PASS covering private identity, negative history and OCR visibility, expired and retry-limit callbacks, due scheduling, callback ID/update dedup and invalid actions. Entire Node suite 24/24 PASS; zero live Telegram sends and zero PILOT-domain writes. See `docs/TELEGRAM_NEGATIVE_ACCESS_CALLBACK_REGRESSION_20261019.md`.
 - Real non-owner field proof and end-to-end callback processing are still UNVERIFIED; no Full Parity LIVE PASS or BSE DELIVERED claim.
