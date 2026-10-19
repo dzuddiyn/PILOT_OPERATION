@@ -64,12 +64,18 @@ Scope lock platform yang diluluskan untuk roadmap ialah:
     sebelumnya (Jumaat lepas -> Khamis semalam)**, weekly canonical history
     + komen Gemini berasingan/non-canonical, PM kepada semua owner/admin/user
     TEST yang aktif mengikut visibility/access boundary;
-  - weekly retrieval menggunakan command `/history` yang sama. Bentuk canonical:
-    `/history YYYY-MM`, `/history week last`, `/history week N YYYY-MM`, dan
-    `/history week YYYY-MM-DD` dengan tarikh mula wajib Jumaat. `week N YYYY-MM`
-    bermaksud Jumaat ke-N yang jatuh dalam bulan pilihan user hingga Khamis
-    berikutnya; window boleh melintasi sempadan bulan dan perkara itu dipaparkan
-    melalui tarikh mula/akhir sebenar;
+  - pembetulan kontrak `/history` oleh owner pada 2026-10-19: sejarah operasi
+    mingguan menggunakan **Isnin hingga Ahad**; minggu 1 bermula **Isnin pertama
+    bulan berkenaan**, diikuti minggu 2/3/4/5 jika sah. Input fleksibel termasuk
+    `/history week 2 (Oct 2026)`, `/history week 2 Oct 2026`,
+    `/history week 2 - Oct 2026`, `/history week last`, harian `/history 14/10`
+    (DD/MM, tahun semasa MYT), dan bulanan `/history Oct 2026`,
+    `/history 10-2026`, `/history 10/2026`, `/history week Oct`
+    (bulan dalam tahun semasa MYT). Format ISO terdahulu masih diterima.
+    Semua sejarah mengikut `event_date` dan visibility sebenar; tiada
+    promosi rekod PROVISIONAL kepada VERIFIED.
+    **Friday Weekly Digest kekal berasingan:** Jumaat hingga Khamis menurut
+    jadual automatik terkunci di atas; pindaan `/history` tidak mengubah digest.
 - File Evidence: gambar/dokumen/video -> caption -> kategori dicadang ->
   pengesahan manusia -> Google Drive + metadata + retrieval.
 - **Image processing TEST** menggantikan UX `/ocr` lama. Pengguna boleh attach PHOTO
