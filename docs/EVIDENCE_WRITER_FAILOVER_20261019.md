@@ -1,0 +1,11 @@
+# Evidence Writer & Retrieval Failover — 2026-10-19
+
+Status: **SAFETY FAIL / PARTIAL_WRITE_RISK CONFIRMED**. Synthetic regression only. No live Evidence or Telegram writes.
+
+Owner explicitly ordered deletion of `BSE-EV-22-AQADiBBr`, its callback record and associated JPEG. Exact preflight found one PILOT_FILE_EVIDENCE row, one PILOT_FILE_EVIDENCE_CALLBACK_PENDING row, no OCR/domain link/image processing rows. Google Sheets removed exactly these two rows; Google Drive permanently deleted file `1useUAcXs32BVsKsG9---TpKjwVNrGIor`. Read-back: both sheets have zero data rows, file metadata returns 404 NOT_FOUND. No other Evidence files moved; original root Evidence folder remains configured as writer target, despite new `01_Source_Evidence/Evidence_Files` directory. User wants future files inside proper evidence subfolder — **NOT IMPLEMENTED**.
+
+Synthetic regression `evidence_writer_failover.test.cjs` executes 5 scenario assertions against actual `bseTelegramEvidenceStoreDrive_` in a sandboxed VM with mock Telegram and Drive. Download failure and Drive create failure do not claim IDs; ordinary success returns ID. Critically, repeating a write after successful Drive creation but before Sheets metadata persistence creates a second mock file for the same row. Writer has no reconciliation by evidence ID, prior drive_file_id, or existing Drive file. **5/5 scenarios characterized; safety outcome FAIL, NOT SAFE PASS.** Full Node suite 26/26 PASS describes executable test suite health only.
+
+Required fix before real field media tests: atomic/reconcilable Evidence write state machine (PENDING → file-created with persisted file ID → confirmed); deterministic deduplication / safe recovery when a Drive create succeeded but Sheets failed; treat uncertain create as OUTCOME_UNKNOWN and reconcile rather than blindly retry; target a verified `Evidence_Files` folder within locked PILOT root without changing canonical root binding; independent readback of folder, file identity, sheet record and callback; targeted failover tests and full regression. Do not delete, move, or create live PILOT Evidence during synthetic fix proof. production_write:false, official_bse_write:false.
+
+Full functional parity IN PROGRESS; BSE HANDOVER NOT DELIVERED.

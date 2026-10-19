@@ -1,5 +1,9 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## Evidence cleanup & writer failover — 2026-10-19
+- Explicit owner-directed deletion VERIFIED: `BSE-EV-22-AQADiBBr` one Evidence row, one callback row, linked Drive JPEG permanently deleted; independent Sheets readback both 0 records and Drive 404. No OCR/domain links existed and no other file moved.
+- Synthetic fault injection 5/5 scenarios characterized, Node 26/26 suites PASS, but **SAFETY FAIL**: Drive file is duplicated if write repeats after create succeeded and before Sheets ID persistence. Root remains active writer destination although owner requires future Evidence_Files subfolder. **No live field media test until idempotent write/reconciliation and subfolder routing safely verified**. Evidence: `docs/EVIDENCE_WRITER_FAILOVER_20261019.md`.
+
 ## Telegram Media, OCR & Evidence Parity — Synthetic Regression (2026-10-19)
 - Targeted 15/15 PASS; full Node suite 25/25 PASS. Synthetic media metadata, image captions, OCR command, visibility, callback action, ingress dedup keys, file limits and Drive confirmation guards exercised; no real Telegram/Drive/Sheets writes. Evidence: `docs/TELEGRAM_MEDIA_OCR_EVIDENCE_PARITY_20261019.md`.
 - Live media/OCR, evidence lineage read-back, reporter callback and ordinary-user field proof remain UNVERIFIED. Full parity IN PROGRESS / NOT DELIVERED.
