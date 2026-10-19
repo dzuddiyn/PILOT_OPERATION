@@ -4,7 +4,7 @@ const c=vm.createContext({});
 for(const f of ['PilotRolePostCommit.js','PilotRoleGrant.js'])vm.runInContext(fs.readFileSync(__dirname+'/'+f,'utf8'),c);
 const digest=e=>crypto.createHash('sha256').update(JSON.stringify([e.event_id,e.operation_id,e.target,e.actor,e.action,e.revision,e.previous_hash])).digest('hex');
 function setup(){
-const ledger=[],barriers=[],audits=[],notices=[];let busy=false;
+const ledger=[],barriers=[],audits=[],notices=[],outbox=[];let busy=false;
 const api={isOwnerPrivate:()=>true,confirmed:()=>true,registration:()=> 'REGISTERED_ACTIVE',
 lock:()=>({tryLock:()=>{if(busy)return false;busy=true;return true;},releaseLock:()=>{busy=false;}}),
 readLedger:()=>structuredClone(ledger),readBarriers:()=>structuredClone(barriers),
@@ -13,6 +13,7 @@ hashEvent:digest,sameEvent:(a,b)=>JSON.stringify(a)===JSON.stringify(b),
 commitEvent:op=>{const e=ledger.find(e=>e.operation_id===op);e.state='COMMITTED';},
 closeBarrier:op=>{barriers.find(b=>b.operation_id===op).active=false;},
 validateLedger:(events,b)=>{if(b.some(x=>x.active))return false;return events.every((e,i)=>e.state==='COMMITTED'&&e.digest===digest(e)&&e.revision===i+1);},
+readOutbox:()=>structuredClone(outbox),appendOutbox:r=>outbox.push(structuredClone(r)),updateOutbox:r=>{const i=outbox.findIndex(x=>x.key===r.key);outbox[i]=structuredClone(r);},
 appendAudit:r=>audits.push(r),notify:r=>notices.push(r)};
 return {api,ledger,barriers,audits,notices,req:{operationId:'g',target:'200',actor:'100',chat:'100',confirmed:true,action:'GRANT_ADMIN'}};
 }
