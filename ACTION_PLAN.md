@@ -1,5 +1,8 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## Gate I Group Link Inspector UIA Live Proof — 2026-10-19
+- Public wrapper PR #81 merged and synced to PILOT Script HEAD. Independent clasp pull 64/64 canonical JS match and nine Gate F runtime helpers preserved. Owner Apps Script editor found by Windows UIA; inspectBsePilotGroupLink executed at 13:50 MYT. Live log GROUP_LINK_MATCH {valid:false,type:"group",link_visible:true}: bot can now see getChat invite_link but its digest differs from previously owner-authorized invite hash. Exact group identity guard succeeded; fail-closed **BLOCKED — LINK_MISMATCH / NOT SENT**. No welcome PM/registration/write. See docs/GATE_I_GROUP_LINK_UIA_LIVE_20261019.md. Full parity IN PROGRESS — NOT DELIVERED.
+
 ## Gate I New User & Private Evidence Negative Access — 2026-10-19
 - Genuine new user already REGISTERED_ACTIVE; existing PILOT Telegram retrieval audit records the user's real attempted retrieval of owner-only PRIVATE_SUBMISSION Evidence BSE-EV-126-AQADNxNr at 11:54:28 MYT as DENIED / VISIBILITY_DENIED, while prior owner retrieval was SENT. Independent registry/Evidence/audit readback confirms negative access live. Local stubbed retrieval 5/5 and negative access/callback synthetic 17/17 PASS; no Telegram send or production write by this verification. Evidence: docs/GATE_I_NEW_USER_PRIVATE_EVIDENCE_NEGATIVE_ACCESS_20261019.md. This scoped live negative access is VERIFIED; full functional parity remains IN PROGRESS — NOT DELIVERED.
 
