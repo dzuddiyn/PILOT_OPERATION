@@ -1,5 +1,9 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## Negative Access & Callback Safety — Synthetic Regression (2026-10-19)
+- Guarded fixture-only regression 17/17 PASS covering private identity, negative history and OCR visibility, expired and retry-limit callbacks, due scheduling, callback ID/update dedup and invalid actions. Entire Node suite 24/24 PASS; zero live Telegram sends and zero PILOT-domain writes. See `docs/TELEGRAM_NEGATIVE_ACCESS_CALLBACK_REGRESSION_20261019.md`.
+- Real non-owner field proof and end-to-end callback processing are still UNVERIFIED; no Full Parity LIVE PASS or BSE DELIVERED claim.
+
 ## Telegram Command & UX Parity — Synthetic Regression (2026-10-19)
 - New bounded parser/presentation suite: 16/16 targeted checks PASS across `/history`, `/ec_history`, `/ocr`, image commands, `/delete` parsing, ACK formatting, source-note preservation; 23/23 entire Node suites PASS. No Telegram sends, callbacks, official farm writes, actual OCR or deletion attempted.
 - Matrix and limitations in `docs/TELEGRAM_COMMAND_UX_PARITY_SYNTHETIC_20261019.md`; negative-user visibility, real media, callback and daily/weekly field delivery remain UNVERIFIED. Do not label full parity DELIVERED.
