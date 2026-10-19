@@ -37,6 +37,9 @@ function bseTelegramPilotNoticeParent_(rows,sourceChat,reporter,replyId){
       if(!Number.isSafeInteger(update.update_id))throw new Error('Update ID tidak sah.');
       if(update.callback_query){if(typeof bseImageActionIsCallback_==='function'&&bseImageActionIsCallback_(update))bseImageActionPersistCallback_(book,update);else if(typeof bseImageProcessingIsCallback_==='function'&&bseImageProcessingIsCallback_(update))bseImageProcessingPersistCallback_(book,update);else if(typeof bseTelegramEvidenceIsCallback_==='function'&&bseTelegramEvidenceIsCallback_(update))bseTelegramEvidencePersistCallback_(book,update);else if(typeof bseTelegramRegistrationIsCallback_==='function'&&bseTelegramRegistrationIsCallback_(update))bseTelegramRegistrationPersistCallback_(book,update);else bseTelegramApprovalPersistCallback_(book,update);props.setProperty('BSE_TELEGRAM_OFFSET',String(update.update_id+1));continue;}
       const m=update.message||update.edited_message,edited=!!update.edited_message;
+      // Telegram service updates (join/leave/pinned/title/etc.) are not farm reports.
+      // Keep the existing media/photo handlers below intact.
+      if(bseTelegramServiceMessage_(m)){props.setProperty('BSE_TELEGRAM_OFFSET',String(update.update_id+1));continue;}
       const privateStart=m&&m.chat&&m.from&&m.chat.type==='private'&&String(m.chat.id)===String(m.from.id)&&bseTelegramPrivateOptInCommand_(m.text,me.username);
       const allowedPrivate=m&&m.chat&&m.from&&m.chat.type==='private'&&String(m.chat.id)===chat&&String(m.from.id)===user;
       const allowedGroup=m&&m.chat&&m.from&&['group','supergroup'].includes(m.chat.type)&&groups.includes(String(m.chat.id));
@@ -171,6 +174,10 @@ function bseTelegramPilotNoticeParent_(rows,sourceChat,reporter,replyId){
   if(receiverError)throw receiverError;
 }
 
+function bseTelegramServiceMessage_(message){
+  if(!message||typeof message!=='object')return false;
+  return ['new_chat_members','left_chat_member','pinned_message','new_chat_title','new_chat_photo','delete_chat_photo','group_chat_created','supergroup_chat_created','channel_chat_created','migrate_to_chat_id','migrate_from_chat_id','message_auto_delete_timer_changed','forum_topic_created','forum_topic_edited','forum_topic_closed','forum_topic_reopened','general_forum_topic_hidden','general_forum_topic_unhidden','video_chat_scheduled','video_chat_started','video_chat_ended','video_chat_participants_invited'].some(function(k){return Object.prototype.hasOwnProperty.call(message,k);});
+}
 function bseTelegramPrivateCommandReply_(message,text){
   if(!message||!message.chat||!message.from||message.chat.type!=='private'||String(message.chat.id)!==String(message.from.id)||!/^\d+$/.test(String(message.chat.id))||!Number.isSafeInteger(Number(message.message_id))||Number(message.message_id)<=0)throw new Error('Balasan PM masuk tidak sah.');
   return bseTelegramApi_('sendMessage',{chat_id:String(message.chat.id),text:String(text||''),reply_parameters:{message_id:Number(message.message_id),allow_sending_without_reply:false},__bse_inbound_private_reply:true});
