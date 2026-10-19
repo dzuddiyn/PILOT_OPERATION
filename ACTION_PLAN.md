@@ -1,5 +1,8 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## Gate I New User & Private Evidence Negative Access — 2026-10-19
+- Genuine new user already REGISTERED_ACTIVE; existing PILOT Telegram retrieval audit records the user's real attempted retrieval of owner-only PRIVATE_SUBMISSION Evidence BSE-EV-126-AQADNxNr at 11:54:28 MYT as DENIED / VISIBILITY_DENIED, while prior owner retrieval was SENT. Independent registry/Evidence/audit readback confirms negative access live. Local stubbed retrieval 5/5 and negative access/callback synthetic 17/17 PASS; no Telegram send or production write by this verification. Evidence: docs/GATE_I_NEW_USER_PRIVATE_EVIDENCE_NEGATIVE_ACCESS_20261019.md. This scoped live negative access is VERIFIED; full functional parity remains IN PROGRESS — NOT DELIVERED.
+
 ## Registration Welcome Link Delivery — 2026-10-19
 - Owner authorized one-time welcome PM to already-approved user, with exact owner-provided group invite verified against Telegram getChat; no new registration, no new invite. Guarded SEND_OUTCOME_UNKNOWN then SENT receipt ensures no blind retry. 36/36 Node suites PASS pre-live; see `docs/PILOT_WELCOME_LINK_DELIVERY_20261019.md`. Live guarded Apps Script run at 12:31 MYT: getChat group resolved but invite_link unavailable (`GROUP_LINK_MATCH valid:false, link_visible:false`); no send attempted, no delivery marker. **BLOCKED — INVITE_UNVERIFIED / NOT SENT**. Independent Script HEAD 64/64 MATCH. Owner-controlled invite-link access required; full parity IN PROGRESS — NOT DELIVERED.
 
