@@ -8,7 +8,7 @@ const BSE_TG_TEST_COMMANDS=[
   {command:'image_to_text',description:'Ekstrak teks gambar (boleh guna butang selepas hantar foto)'},
   {command:'image_analysis',description:'Analisis gambar (boleh guna butang selepas hantar foto)'},
   {command:'ask_ai',description:'Soal Gemini (NON_CANONICAL), contoh: /ask_ai soalan'},
-  {command:'history',description:'Sejarah operasi; /history week 1 2026-10'},
+  {command:'history',description:'Sejarah operasi; /history week 2 (Oct 2026)'},
   {command:'ec_history',description:'Bacaan EC Leaching ikut hari/bulan/minggu'},
   {command:'report',description:'Owner: laporan TEST, contoh: /report 2026-09'},
   {command:'delete',description:'Owner: delete berjejak dengan alasan'}
