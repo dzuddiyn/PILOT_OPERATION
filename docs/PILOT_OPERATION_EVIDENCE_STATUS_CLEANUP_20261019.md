@@ -14,6 +14,12 @@
 - Evidence callback, Image Processing approval, OCR retrieval, Evidence retrieval/history, Gate H and domain linking use compatibility-aware check or environment-aware confirmed writes. PILOT Evidence writer allows both confirmed states for reconciliation.
 - These changes are PILOT Evidence-only; they do not imply all business modules have been renamed or that all functional parity is complete.
 
+## Post-merge live verification (2026-10-19)
+- GitHub PR #69 MERGED; canonical main `dec3bed839623e2c20be50389fd98d8659b2fbf3`, local main fast-forwarded.
+- Fresh independent clasp pull: 64/64 canonical JavaScript files matched Script HEAD exactly; 9 existing runtime helpers retained. Apps Script `runBseI011FullRegression`: 47/47 PASS, zero failed, `production_write:false` at 10:43 MYT.
+- Guarded single-cell update: `PILOT_FILE_EVIDENCE!Q2` changed from `CONFIRMED_TEST` to `CONFIRMED` after verifying Evidence ID, caption, category and Drive ID. Independent Sheets read-back confirmed `BSE-EV-126-AQADNxNr`, caption `Pam rosak M2P2`, category `FIELD_OPERATION`, status `CONFIRMED`, visibility `PRIVATE_SUBMISSION`, and original Drive file ID. No image deleted/moved and no duplicate record created.
+- Remaining broad TEST-name cleanup is **NOT COMPLETE** across unrelated technical/operational modules; do not rewrite historical raw webhook/callback payloads or past TEST_ONLY annotations.
+
 ## Verification and tracking
 - One real photo submission and reporter confirmation have happened (the owner's actual report, not synthetic test-only data). File and row lineage confirmed independently. Evidence remains operational: **do not delete**.
 - Previous planned 'delete sample image' step is CANCELLED/NOT APPLICABLE because the accepted image is a real operational report.
