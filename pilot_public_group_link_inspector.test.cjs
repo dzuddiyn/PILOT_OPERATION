@@ -1,0 +1,10 @@
+'use strict';
+const assert=require('assert');const fs=require('fs');const vm=require('vm');
+const source=fs.readFileSync(__dirname+'/TelegramRegistrationTest.js','utf8');
+const m=source.match(/function inspectBsePilotGroupLink\(\)\{[^}]*\}/);
+assert(m,'public Apps Script entrypoint must exist');
+assert(!/sendMessage|setProperty|appendRow|setValue|createChatInviteLink/.test(m[0]),'wrapper must be read-only');
+const calls=[];const ctx={inspectBsePilotGroupLink_:()=>{calls.push('inspect');return true;}};
+vm.createContext(ctx);vm.runInContext(m[0],ctx);
+assert.equal(ctx.inspectBsePilotGroupLink(),true);assert.deepEqual(calls,['inspect']);
+console.log('PUBLIC_GROUP_LINK_INSPECTOR 3/3 PASS');
