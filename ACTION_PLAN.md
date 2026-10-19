@@ -1,5 +1,8 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## PILOT Telegram Command Menu Recovery — 2026-10-19
+- Owner showed approved new user denied access to another user's private Evidence (correct LIVE negative access); native command menu missing. Inherited configureBseTelegramTestCommands exists but had not been invoked in PILOT and harness expected `ai` instead of actual `ask_ai`. PILOT-only menu now strips TEST descriptions, preserves old environment behavior; 5/5 targeted, 35/35 Node PASS. Must run Telegram `setMyCommands` and independently `getMyCommands` after Script HEAD sync to prove published menu. See `docs/PILOT_TELEGRAM_COMMAND_MENU_RECOVERY_20261019.md`. Full parity IN PROGRESS — NOT DELIVERED.
+
 ## PILOT Registration Acceptance Group Invite — 2026-10-19
 - Owner correction: approved applicant PM should include join link for bound operational group. PILOT-only callback now fetches and validates Telegram getChat invite/public group URL after owner TERIMA, with fail-closed honest fallback. No link for rejected applicants, no created invite, no automatic replay to already-approved user. Targeted 8/8, all Node 34/34 PASS. See `docs/PILOT_REGISTRATION_ACCEPTED_GROUP_LINK_20261019.md`; live getChat/link delivery UNVERIFIED, full parity IN PROGRESS — NOT DELIVERED.
 
