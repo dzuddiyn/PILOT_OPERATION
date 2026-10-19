@@ -1,7 +1,10 @@
 'use strict';
+const {fixtureAuthorize}=require('./test_support/rbac/owner_intent_fixture.cjs');
+function securedTx(r,api){return c.bseRoleTransaction_(fixtureAuthorize(r,api),api)}
+
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),crypto=require('node:crypto');
 const c=vm.createContext({});
-for(const f of ['PilotRolePostCommit.js','PilotRoleGrant.js'])vm.runInContext(fs.readFileSync(__dirname+'/'+f,'utf8'),c);
+for(const f of ['PilotRolePostCommit.js','PilotRoleIdentityGuard.js','PilotRoleGrant.js'])vm.runInContext(fs.readFileSync(__dirname+'/'+f,'utf8'),c);
 const digest=e=>crypto.createHash('sha256').update(JSON.stringify([e.event_id,e.operation_id,e.target,e.actor,e.action,e.revision,e.previous_hash])).digest('hex');
 function setup(){
 const ledger=[],barriers=[],audits=[],notices=[],outbox=[];let busy=false;
@@ -19,8 +22,8 @@ return {api,ledger,barriers,audits,notices,req:{operationId:'g',target:'200',act
 }
 let n=0;
 function test(name,fn){fn();console.log('PASS '+name);n++;}
-test('F13 actual audit failure does not regrant',()=>{const s=setup();s.api.appendAudit=()=>{throw Error('AUDIT_FAIL')};assert.equal(c.bseRoleTransaction_(s.req,s.api).status,'APPLIED_VERIFIED');assert.equal(s.ledger.length,1);assert.equal(s.notices.length,1);assert.equal(c.bseRoleTransaction_(s.req,s.api).status,'ALREADY_APPLIED');assert.equal(s.ledger.length,1);});
-test('F14 actual notification failure does not regrant',()=>{const s=setup();s.api.notify=()=>{throw Error('TELEGRAM_UNAVAILABLE')};assert.equal(c.bseRoleTransaction_(s.req,s.api).status,'APPLIED_VERIFIED');assert.equal(s.audits.length,1);assert.equal(s.ledger.length,1);assert.equal(c.bseRoleTransaction_(s.req,s.api).status,'ALREADY_APPLIED');assert.equal(s.ledger.length,1);});
+test('F13 actual audit failure does not regrant',()=>{const s=setup();s.api.appendAudit=()=>{throw Error('AUDIT_FAIL')};assert.equal(securedTx(s.req,s.api).status,'APPLIED_VERIFIED');assert.equal(s.ledger.length,1);assert.equal(s.notices.length,1);assert.equal(securedTx(s.req,s.api).status,'ALREADY_APPLIED');assert.equal(s.ledger.length,1);});
+test('F14 actual notification failure does not regrant',()=>{const s=setup();s.api.notify=()=>{throw Error('TELEGRAM_UNAVAILABLE')};assert.equal(securedTx(s.req,s.api).status,'APPLIED_VERIFIED');assert.equal(s.audits.length,1);assert.equal(s.ledger.length,1);assert.equal(securedTx(s.req,s.api).status,'ALREADY_APPLIED');assert.equal(s.ledger.length,1);});
 test('audit and notification outcome explicitly PENDING',()=>{const s=setup();s.api.appendAudit=()=>{throw Error('NO')};s.api.notify=()=>{throw Error('NO')};const status=c.bseRolePostCommit_(s.req,s.api);assert.equal(status.audit,'AUDIT_PENDING');assert.equal(status.notification,'NOTIFY_PENDING');});
-test('postcommit only after committed ledger',()=>{const s=setup();s.api.commitEvent=()=>{throw Error('CRASH')};assert.equal(c.bseRoleTransaction_(s.req,s.api).status,'WRITE_OUTCOME_UNKNOWN');assert.equal(s.audits.length,0);assert.equal(s.notices.length,0);});
+test('postcommit only after committed ledger',()=>{const s=setup();s.api.commitEvent=()=>{throw Error('CRASH')};assert.equal(securedTx(s.req,s.api).status,'WRITE_OUTCOME_UNKNOWN');assert.equal(s.audits.length,0);assert.equal(s.notices.length,0);});
 console.log('RBAC_AUDIT_NOTIFY '+n+'/4 LOCAL PASS');

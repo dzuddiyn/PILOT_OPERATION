@@ -1,10 +1,13 @@
 'use strict';
+const {fixtureAuthorize}=require('./test_support/rbac/owner_intent_fixture.cjs');
+function securedTx(r,api){return ctx.bseRoleTransaction_(fixtureAuthorize(r,api),api)}
+
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),crypto=require('node:crypto');
 const {FakeSheets}=require('./test_support/rbac/fake_sheets.cjs');
 const {FakeLockService}=require('./test_support/rbac/fake_lock.cjs');
 const {inspectRaw}=require('./test_support/rbac/independent_oracle.cjs');
 const ctx=vm.createContext({});
-for(const file of ['PilotRoleContract.js','PilotRoleResolver.js','PilotRoleGrant.js','PilotRoleRevocation.js'])vm.runInContext(fs.readFileSync(__dirname+'/'+file,'utf8'),ctx);
+for(const file of ['PilotRoleContract.js','PilotRoleResolver.js','PilotRoleIdentityGuard.js','PilotRoleGrant.js','PilotRoleRevocation.js'])vm.runInContext(fs.readFileSync(__dirname+'/'+file,'utf8'),ctx);
 const hash=e=>crypto.createHash('sha256').update(JSON.stringify([e.event_id,e.operation_id,e.target,e.actor,e.action,e.revision,e.previous_hash])).digest('hex');
 function make(snapshot){
  const db=new FakeSheets(),locks=new FakeLockService();db.seed('ledger',snapshot?.ledger||[]);db.seed('barriers',snapshot?.barriers||[]);
@@ -15,7 +18,7 @@ function make(snapshot){
  closeBarrier:op=>{const arr=db.read('barriers'),i=arr.findIndex(e=>e.operation_id===op);arr[i].active=false;db.set('barriers',i,arr[i]);},
  validateLedger:(events,barriers,target)=>{if(barriers.some(b=>b.target===target&&b.active))return false;const v=inspectRaw({ledger:events,barriers,target});return !['INVALID_CHAIN','BAD_SOURCE'].includes(v.reason);}};
  const req=(operationId,action='GRANT_ADMIN',expectedRevision)=>({operationId,action,target:'200',actor:'100',chat:'100',confirmed:true,expectedRevision});
- return {db,locks,api,req,tx:(r)=>ctx.bseRoleTransaction_(r,api),raw:()=>inspectRaw({ledger:db.read('ledger'),barriers:db.read('barriers'),target:'200'})};
+ return {db,locks,api,req,tx:(r)=>securedTx(r,api),raw:()=>inspectRaw({ledger:db.read('ledger'),barriers:db.read('barriers'),target:'200'})};
 }
 let pass=0;function test(n,f){f();pass++;console.log('PASS '+n)}
 test('concurrent writer lock via nested callback, second denied',()=>{

@@ -1,10 +1,13 @@
 'use strict';
+const {fixtureAuthorize}=require('./test_support/rbac/owner_intent_fixture.cjs');
+function securedTx(r,api){return ctx.bseRoleTransaction_(fixtureAuthorize(r,api),api)}
+
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),crypto=require('node:crypto');
 const {FakeSheets}=require('./test_support/rbac/fake_sheets.cjs');
 const {FakeLockService}=require('./test_support/rbac/fake_lock.cjs');
 const {inspectRaw}=require('./test_support/rbac/independent_oracle.cjs');
 const ctx=vm.createContext({});
-for(const file of ['PilotRoleContract.js','PilotRoleResolver.js','PilotRoleGrant.js','PilotRoleRevocation.js'])vm.runInContext(fs.readFileSync(__dirname+'/'+file,'utf8'),ctx);
+for(const file of ['PilotRoleContract.js','PilotRoleResolver.js','PilotRoleIdentityGuard.js','PilotRoleGrant.js','PilotRoleRevocation.js'])vm.runInContext(fs.readFileSync(__dirname+'/'+file,'utf8'),ctx);
 const hash=e=>crypto.createHash('sha256').update(JSON.stringify([e.event_id,e.operation_id,e.target,e.actor,e.action,e.revision,e.previous_hash])).digest('hex');
 function setup(){
  const db=new FakeSheets(),locks=new FakeLockService();db.seed('ledger',[]);db.seed('barriers',[]);
@@ -23,7 +26,7 @@ function setup(){
  }};
  return {db,locks,api,req:(op='g',action='GRANT_ADMIN',expectedRevision)=>({operationId:op,action,target:'200',actor:'100',chat:'100',confirmed:true,expectedRevision})};
 }
-const tx=(s,r)=>ctx.bseRoleTransaction_(r||s.req(),s.api);
+const tx=(s,r)=>securedTx(r||s.req(),s.api);
 const raw=s=>inspectRaw({ledger:s.db.read('ledger'),barriers:s.db.read('barriers'),target:'200'});
 function seed(s){assert.equal(tx(s).status,'APPLIED_VERIFIED');assert.equal(raw(s).elevated,true);}
 function denied(s){assert.equal(raw(s).elevated,false);}
@@ -31,7 +34,7 @@ const cases={
 F01:s=>{seed(s);assert.equal(tx(s).status,'ALREADY_APPLIED');assert.equal(s.db.read('ledger').length,1);},
 F02:s=>{const r=s.req();r.actor='300';assert.equal(tx(s,r).status,'DENIED');denied(s);},
 F03:s=>{const r=s.req();r.actor='200';assert.equal(tx(s,r).status,'DENIED');denied(s);},
-F04:s=>{s.api.confirmed=()=>false;assert.equal(tx(s).status,'DENIED');denied(s);},
+F04:s=>{const r=fixtureAuthorize(s.req(),s.api);s.api.now=()=>2001;assert.equal(ctx.bseRoleTransaction_(r,s.api).status,'DENIED');denied(s);},
 F05:s=>{const l=s.locks.getScriptLock('other');l.tryLock();assert.equal(tx(s).status,'BUSY');denied(s);l.releaseLock();},
 F06:s=>{s.api.appendEvent=()=>{throw Error('FAILED')};assert.equal(tx(s).status,'WRITE_OUTCOME_UNKNOWN');denied(s);},
 F07:s=>{const original=s.api.appendEvent;s.api.appendEvent=e=>{original(e);throw Error('TIMEOUT')};assert.equal(tx(s).status,'WRITE_OUTCOME_UNKNOWN');denied(s);assert.equal(s.db.read('ledger').length,1);},

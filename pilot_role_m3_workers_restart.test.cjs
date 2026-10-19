@@ -1,11 +1,14 @@
 'use strict';
+const {fixtureAuthorize}=require('./test_support/rbac/owner_intent_fixture.cjs');
+function securedTx(ctx,r,api){return ctx.bseRoleTransaction_(fixtureAuthorize(r,api),api)}
+
 // Real Node worker_threads, shared atomic lock and disk-backed synthetic fixture.
 // Strictly local temporary files, never real Google/Telegram.
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),vm=require('node:vm'),crypto=require('node:crypto');
 const assert=require('node:assert/strict');
 const {Worker,isMainThread,parentPort,workerData}=require('node:worker_threads');
 const hash=e=>crypto.createHash('sha256').update(JSON.stringify([e.event_id,e.operation_id,e.target,e.actor,e.action,e.revision,e.previous_hash])).digest('hex');
-const load=()=>{const ctx=vm.createContext({});for(const f of ['PilotRolePostCommit.js','PilotRoleGrant.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,f),'utf8'),ctx);return ctx;};
+const load=()=>{const ctx=vm.createContext({});for(const f of ['PilotRolePostCommit.js','PilotRoleIdentityGuard.js','PilotRoleGrant.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,f),'utf8'),ctx);return ctx;};
 function invoke(file,lockArray,request,simulateCrash=false){
  const ctx=load();
  const read=()=>JSON.parse(fs.readFileSync(file,'utf8'));
@@ -18,7 +21,7 @@ function invoke(file,lockArray,request,simulateCrash=false){
  commitEvent:op=>{if(simulateCrash)process.exit(79);update(s=>{s.ledger.find(e=>e.operation_id===op).state='COMMITTED';});},
  closeBarrier:op=>update(s=>{s.barriers.find(e=>e.operation_id===op).active=false;}),
  validateLedger:(events,barriers)=>{if(barriers.some(e=>e.active))return false;return events.every((e,i)=>e.state==='COMMITTED'&&e.revision===i+1&&e.digest===hash(e));}};
- return ctx.bseRoleTransaction_(request,api);
+ return securedTx(ctx,request,api);
 }
 if(!isMainThread){
  try{const result=invoke(workerData.file,new Int32Array(workerData.lock),workerData.req,workerData.crash);parentPort.postMessage(result);}

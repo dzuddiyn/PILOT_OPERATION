@@ -1,7 +1,10 @@
 'use strict';
+const {fixtureAuthorize}=require('./test_support/rbac/owner_intent_fixture.cjs');
+function securedTx(r,api){return ctx.bseRoleTransaction_(fixtureAuthorize(r,api),api)}
+
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),crypto=require('node:crypto');
 const ctx=vm.createContext({});
-for(const f of ['PilotRolePostCommit.js','PilotRoleGrant.js'])vm.runInContext(fs.readFileSync(__dirname+'/'+f,'utf8'),ctx);
+for(const f of ['PilotRolePostCommit.js','PilotRoleIdentityGuard.js','PilotRoleGrant.js'])vm.runInContext(fs.readFileSync(__dirname+'/'+f,'utf8'),ctx);
 const hash=e=>crypto.createHash('sha256').update(JSON.stringify([e.event_id,e.operation_id,e.target,e.actor,e.action,e.revision,e.previous_hash])).digest('hex');
 function make(saved){
  const ledger=structuredClone(saved?.ledger||[]),barriers=structuredClone(saved?.barriers||[]),outbox=structuredClone(saved?.outbox||[]),sent=[],audits=[];
@@ -18,7 +21,7 @@ function make(saved){
  appendAudit:e=>audits.push(e),notify:e=>sent.push(e)
  };
  const req={operationId:'g1',target:'200',actor:'100',chat:'100',confirmed:true,action:'GRANT_ADMIN'};
- return {api,req,ledger,outbox,sent,audits,snapshot:()=>structuredClone({ledger,barriers,outbox}),tx:()=>ctx.bseRoleTransaction_(req,api)};
+ return {api,req,ledger,outbox,sent,audits,snapshot:()=>structuredClone({ledger,barriers,outbox}),tx:()=>securedTx(req,api)};
 }
 let n=0;function test(name,fn){fn();n++;console.log('PASS '+name);}
 test('durably queue audit and notify before effects',()=>{const s=make();assert.equal(s.tx().status,'APPLIED_VERIFIED');assert.equal(s.outbox.length,2);assert(s.outbox.every(x=>x.state==='DONE'));assert.equal(s.audits.length,1);assert.equal(s.sent.length,1);});

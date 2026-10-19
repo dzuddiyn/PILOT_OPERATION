@@ -3,7 +3,9 @@
 function bseRoleTransaction_(request,api){
   const reply=(status,revision)=>revision===undefined?{status}:{status,revision};
   if(!request||!api||!['GRANT_ADMIN','REVOKE_ADMIN'].includes(request.action))return reply('DENIED');
-  if(!api.isOwnerPrivate?.(request.actor,request.chat)||!api.confirmed?.(request))return reply('DENIED');
+  if(typeof bseRoleValidateOwnerIntent_!=='function')return reply('DENIED');
+  const identity=bseRoleValidateOwnerIntent_(request,api);
+  if(identity.ok!==true)return reply('DENIED');
   if(!/^[0-9]+$/.test(String(request.target||''))||typeof request.operationId!=='string'||!request.operationId)return reply('DENIED');
   const lock=api.lock?.();if(!lock||!lock.tryLock(1000))return reply('BUSY');
   try {
