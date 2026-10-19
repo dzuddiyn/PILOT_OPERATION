@@ -1,5 +1,5 @@
 # PILOT_OPERATION — Live Evidence /retrieve & Access Verification (2026-10-19)
-State: **PARTIAL / READ-ONLY PLUS ISOLATED TRANSPORT TEST; NO LIVE TELEGRAM RETRIEVAL PROOF**
+State: **OWNER RETRIEVAL CLIENT LIVE PASS; NON-OWNER NEGATIVE ACCESS UNVERIFIED**
 
 ## Current real evidence
 - Google Sheets `PILOT_FILE_EVIDENCE`: exactly one existing confirmed Evidence `BSE-EV-126-AQADNxNr`, reporter's original caption `Pam rosak M2P2`, category `FIELD_OPERATION`, visibility `PRIVATE_SUBMISSION`, status `CONFIRMED`.
