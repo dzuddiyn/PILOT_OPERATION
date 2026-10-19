@@ -5,7 +5,7 @@ const plot=fs.readFileSync(__dirname+'/TelegramPlotStatusTest.js','utf8');
 const extract=(src,name)=>{const start=src.indexOf('function '+name+'(');assert(start>=0,name+' missing');let depth=0,quote='',esc=false,open=false;for(let i=src.indexOf('{',start);i<src.length;i++){const c=src[i];if(quote){if(esc)esc=false;else if(c==='\\')esc=true;else if(c===quote)quote='';continue;}if(c==='"'||c==="'"||c==='\x60'){quote=c;continue;}if(c==='{'){depth++;open=true;}if(c==='}'&&--depth===0&&open)return src.slice(start,i+1);}throw Error('extract failed '+name)};
 const row=['BSE-TG-772257182|Transplant_Event_Log','772257182','BSE-SB-TR-20261014-001','BSE-SB-CB-20261014-001','2026-10-14','TRANSPLANT','Peria Besar','Hup Nong','M2P1|M2P2','COMPLETED','VERIFIED_TEST','PRIVATE ORIGINAL NOTE'];
 const ctx={bseRuntimeEnvironmentName_:()=> 'PILOT_OPERATION', BSE_TRANSPLANT_EVENT_HEADERS:[],bseTransplantRowsByName_:()=>[row,{...row,9:'OPEN'}], bseTelegramHistoryRecordEvents_:()=>[],bseTelegramHistoryEvidenceEvents_:()=>[]};vm.createContext(ctx);
-for(const name of ['bseTelegramHistoryPilotOperationalEvents_','bseTelegramHistoryAllEvents_','bseTelegramHistoryEventVisibleTo_'])vm.runInContext(extract(hist,name),ctx);
+for(const name of ['bseTelegramHistoryPilotOperationalEvents_','bseTelegramHistoryPilotTreatmentEvents_','bseTelegramHistoryAllEvents_','bseTelegramHistoryEventVisibleTo_'])vm.runInContext(extract(hist,name),ctx);
 const events=ctx.bseTelegramHistoryAllEvents_({});
 assert.equal(events.length,1);
 assert.equal(events[0].date,'2026-10-14');
