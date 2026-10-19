@@ -1,5 +1,10 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## Full PILOT_TEST parity scope — 19 October 2026 (IN PROGRESS)
+- Owner authorized autonomous full functional parity, not MVP-only. Drive scaffolding 9 main + 5 nested folders read-back verified; 28 missing canonical registry tabs plus two EC domain tabs provisioned EMPTY in PILOT_OPERATION, registry read-back 61/61 exact, EC 2/2 exact. No TEST data copied or existing evidence moved.
+- PR #57/#58 MERGED. Node suites 22/22 and UX 27/27 PASS, independent Script HEAD 63/63 canonical exact with 9 Gate F helper files retained. Post-write Apps Script regression and runtime proof are UNVERIFIED owing to editor account/access blocker; do not mark parity LIVE PASS or DELIVERED.
+- Outstanding scope includes TEST-only support-tab classification, Telegram/media/OCR/negative access verification, evidence/KB lineage, runtime integrity and BSE acceptance. See docs/PILOT_OPERATION_FULL_PARITY_CHECKPOINT_20261019.md.
+
 ## Gate I 18 October 2026 22:08 MYT — FINAL TECHNICAL FREEZE READINESS VERIFIED
 - PR #52 merged (`48e0343342ce4db69bb52c196f0d0805a60012c6`): `CLOSED_BY_OWNER` is explicit PILOT_OPERATION-only terminal administrative queue status, distinct from reporter Benar/Batal. IDs 772257157, 772257174, 772257175 owner-closed with cell notes and original parent lineage intact. Queue WAITING_INFO=0, OPEN cards=0; unsupported item 772257172 retained. No new domain writes.
 - Targeted owner-closure tests 8/8 PASS, 21/21 local Node suites PASS, Apps Script 47/47 PASS at 22:06 MYT, independent Script HEAD source 62/62 exact + nine Gate F runtime helpers (71 JS total).
