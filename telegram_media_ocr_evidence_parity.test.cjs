@@ -27,7 +27,7 @@ test('Drive creation is gated behind reporter confirmation and no PILOT auto-cre
  const src=fs.readFileSync(__dirname+'/TelegramEvidenceTest.js','utf8');
  const folder=src.slice(src.indexOf('function bseTelegramEvidenceDriveFolder_('),src.indexOf('function bseTelegramEvidenceCallback_('));
  assert(folder.includes("bseRuntimeEnvironmentName_()!=='TEST'"));assert(folder.includes('auto-create dilarang'));
- const cb=src.slice(src.indexOf('function bseTelegramEvidenceCallback_('),src.indexOf('function bseTelegramEvidenceMarkup_('));
- assert(cb.includes("actor!==String(r[4])||chat!==String(r[1])"));assert(cb.includes("String(r[16])!=='OPEN'"));
+ const cb=src.slice(src.lastIndexOf('function bseTelegramEvidenceCallback_('));
+ assert(cb.includes("actor!==String(r[4])||chat!==String(r[1])"));assert(cb.includes("'DRIVE_CREATE_PENDING'"));assert(cb.includes("m[2]!=='A'"));
 });
 console.log('TELEGRAM_MEDIA_OCR_EVIDENCE '+n+'/'+n+' PASS (isolated fixture; zero transports)');

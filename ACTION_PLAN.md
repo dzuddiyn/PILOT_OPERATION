@@ -1,5 +1,9 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## Evidence Writer Safety Fix — 2026-10-19
+- PILOT-only writer routes newly approved Evidence to existing `01_Source_Evidence/Evidence_Files` under locked root, validates deterministic ID/metadata, stages DRIVE_CREATE_PENDING before create, reconciles exactly one known file, fails closed on uncertain/no match or duplicates. Local 10/10 targeted fault injection + 27/27 complete Node suites PASS; no real media used. See `docs/EVIDENCE_WRITER_SAFETY_FIX_20261019.md`.
+- Runtime Script HEAD/live full regression and real media field proof must be verified separately. Full parity remains IN PROGRESS.
+
 ## Evidence cleanup & writer failover — 2026-10-19
 - Explicit owner-directed deletion VERIFIED: `BSE-EV-22-AQADiBBr` one Evidence row, one callback row, linked Drive JPEG permanently deleted; independent Sheets readback both 0 records and Drive 404. No OCR/domain links existed and no other file moved.
 - Synthetic fault injection 5/5 scenarios characterized, Node 26/26 suites PASS, but **SAFETY FAIL**: Drive file is duplicated if write repeats after create succeeded and before Sheets ID persistence. Root remains active writer destination although owner requires future Evidence_Files subfolder. **No live field media test until idempotent write/reconciliation and subfolder routing safely verified**. Evidence: `docs/EVIDENCE_WRITER_FAILOVER_20261019.md`.

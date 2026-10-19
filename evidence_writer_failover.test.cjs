@@ -3,7 +3,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const source=fs.readFileSync(__dirname+'/TelegramEvidenceTest.js','utf8');
 function extract(name){const p=source.indexOf('function '+name+'(');assert(p>=0);let start=source.indexOf('{',p),depth=0;for(let i=start;i<source.length;i++){if(source[i]==='{')depth++;if(source[i]==='}'&&--depth===0)return source.slice(p,i+1)}throw Error(name)}
 let created=0,failDownload=false,failCreate=false;
-const ctx={console,
+const ctx={console,bseRuntimeEnvironmentName_:()=> 'PILOT_TEST',
  PropertiesService:{getScriptProperties:()=>({getProperty:()=> 'FIXTURE_TOKEN_NOT_REAL'})},
  bseTelegramApi_:(m)=>({file_path:'fixture.jpg'}),
  UrlFetchApp:{fetch:()=>{if(failDownload)throw Error('disconnected');return {getResponseCode:()=>200,getBlob:()=>({setName:()=>({synthetic:true})})}}},
