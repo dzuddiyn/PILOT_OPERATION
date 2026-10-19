@@ -264,14 +264,23 @@ function bseTelegramHistoryPilotTreatmentEvents_(book){
         pilot_summary:['Rawatan tanaman','Tanaman: '+crop,'Tarikh kerja: '+date,plots.length?'Plot: '+plots.join(', '):'',desc?'Bahan/rawatan: '+desc:'','Status: Disahkan'].filter(Boolean).join('\n')};
     });
 }
+function bseTelegramHistoryCanonicalIdentity_(event){
+  const lines=String(event&&event.pilot_summary||'').split('\n').map(x=>x.trim());
+  if(lines[0]!=='Pindah tanam')return '';
+  const get=k=>{const prefix=k+':';const line=lines.find(x=>x.startsWith(prefix));return line?line.slice(prefix.length).trim().toLowerCase():'';};
+  const crop=get('Tanaman'),date=get('Tarikh kerja'),variety=get('Varieti');
+  const plots=get('Plot').split(',').map(x=>x.trim()).filter(Boolean).sort().join(',');
+  return crop&&date&&variety&&plots?['transplant',date,crop,variety,plots].join('|'):'';
+}
 function bseTelegramHistoryAllEvents_(book){
   const records=bseTelegramHistoryRecordEvents_(book),evidence=bseTelegramHistoryEvidenceEvents_(book);
   if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')return records.concat(evidence);
   const operations=bseTelegramHistoryPilotOperationalEvents_(book).concat(bseTelegramHistoryPilotTreatmentEvents_(book));
   const operationalRefs=new Set(operations.map(e=>String(e.reference||'')));
   const sourceUpdates=new Set(operations.map(e=>String(e.source_update_id||'')).filter(Boolean));
+  const operationalIdentities=new Set(operations.map(bseTelegramHistoryCanonicalIdentity_).filter(Boolean));
   const unique=new Set();
-  return records.filter(e=>!operationalRefs.has(String(e.reference||''))&&!sourceUpdates.has(String(e.reference||'').replace(/^BSE-TG-/,'')))
+  return records.filter(e=>!operationalRefs.has(String(e.reference||''))&&!sourceUpdates.has(String(e.reference||'').replace(/^BSE-TG-/,''))&&!operationalIdentities.has(bseTelegramHistoryCanonicalIdentity_(e)))
     .concat(evidence,operations).filter(e=>{const key=String(e.date||'')+'|'+String(e.reference||'');if(unique.has(key))return false;unique.add(key);return true;});
 }
 function bseTelegramHistoryEventVisibleTo_(event,userId,isOwner){

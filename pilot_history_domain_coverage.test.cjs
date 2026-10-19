@@ -17,12 +17,14 @@ const ctx={
  bseRuntimeEnvironmentName_:()=> 'PILOT_OPERATION',
  BSE_TRANSPLANT_EVENT_HEADERS:[], BSE_TREATMENT_EVENT_HEADERS:[],
  bseTransplantRowsByName_:(_b,n)=> n==='TEST_TRANSPLANT_EVENT'?[transplant]:n==='TEST_TREATMENT_EVENT'?[treatment]:[],
- bseTelegramHistoryRecordEvents_:()=>[{date:'2026-10-15',reference:'BSE-TG-772257161',reporter_user_id:'owner',visibility:'PRIVATE_SUBMISSION',pilot_summary:'old approval'}],
+ bseTelegramHistoryRecordEvents_:()=>[{date:'2026-10-15',reference:'BSE-TG-772257161',reporter_user_id:'owner',visibility:'PRIVATE_SUBMISSION',pilot_summary:'old approval'},{date:'2026-10-14',reference:'BSE-TG-OTHER-SOURCE',reporter_user_id:'owner',visibility:'PRIVATE_SUBMISSION',pilot_summary:'Pindah tanam\nTanaman: Peria Besar\nVarieti: Hup Nong\nTarikh kerja: 2026-10-14\nPlot: M2P1, M2P2\nStatus: Disahkan'},{date:'2026-10-14',reference:'BSE-TG-DISTINCT',reporter_user_id:'owner',visibility:'PRIVATE_SUBMISSION',pilot_summary:'Pindah tanam\nTanaman: Peria Besar\nVarieti: Hup Nong\nTarikh kerja: 2026-10-14\nPlot: M2P3\nStatus: Disahkan'}],
  bseTelegramHistoryEvidenceEvents_:()=>[{date:'2026-10-15',reference:'PRIVATE-EV',reporter_user_id:'owner',visibility:'PRIVATE_SUBMISSION',pilot_summary:'private evidence'}]
 };vm.createContext(ctx);
-for(const n of ['bseTelegramHistoryPilotOperationalEvents_','bseTelegramHistoryPilotTreatmentEvents_','bseTelegramHistoryAllEvents_','bseTelegramHistoryEventVisibleTo_'])vm.runInContext(extract(n),ctx);
+for(const n of ['bseTelegramHistoryPilotOperationalEvents_','bseTelegramHistoryPilotTreatmentEvents_','bseTelegramHistoryCanonicalIdentity_','bseTelegramHistoryAllEvents_','bseTelegramHistoryEventVisibleTo_'])vm.runInContext(extract(n),ctx);
 const all=ctx.bseTelegramHistoryAllEvents_({});
-assert.equal(all.length,3,'one transplant, one treatment, private evidence');
+assert.equal(all.length,4,'one transplant, one treatment, one distinct private report and private evidence');
+assert(!all.some(x=>x.reference==='BSE-TG-OTHER-SOURCE'),'same operation from different source deduplicated');
+assert(all.some(x=>x.reference==='BSE-TG-DISTINCT'),'different plot retained for owner');
 assert.equal(all.filter(x=>x.category==='Rawatan tanaman').length,1);
 assert(!all.some(x=>x.reference==='BSE-TG-772257161'),'duplicate approval excluded');
 assert.equal(all.find(x=>x.reference==='TX-15').date,'2026-10-15');
