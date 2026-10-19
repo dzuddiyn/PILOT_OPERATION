@@ -204,6 +204,13 @@ function bseRuntimePilotUiLabels_(text) {
   // Never change source notes, TEST_ONLY markers, or the TEST/PILOT_TEST transports.
   return String(text||'')
     .replace(/^\[PILOT\]\r?\n/,'')
+    .replace(/^\[PILOT TEST\]\r?\n/gm,'')
+    .replace(/<b>\[PILOT TEST\]<\/b>/g,'')
+    .replace(/^OCR TEST\b/gm,'OCR')
+    .replace(/^Hasil OCR TEST\b/gm,'Hasil OCR')
+    .replace(/^Evidence TEST\b/gm,'Lampiran')
+    .replace(/^History hanya boleh diminta melalui PM oleh owner\/admin atau user TEST yang aktif\.$/gm,'Sejarah hanya boleh diminta melalui PM oleh pengguna yang dibenarkan.')
+    .replace(/\bRekod production\b/g,'rekod rasmi')
     .replace(/^Rujukan (BSE-TG-\d+):\r?\nTREATMENT_EVENT\r?\nStatus: PROVISIONAL[^\r\n]*\r?\nMod TEST[^\r\n]*/gm,
       'Laporan racun telah disediakan untuk semakan.\nRujukan: $1\nSila pilih Benar, Betulkan atau Batal pada kad semakan.')
     .replace(/^EC LEACHING TEST\b/gm,'EC Leaching')
