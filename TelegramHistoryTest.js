@@ -110,7 +110,7 @@ function bseTelegramHistoryInCommandPeriod_(date,command){
   return bseTelegramHistoryInPeriod_(d,command.period);
 }
 function bseTelegramHistoryPeriodLabel_(command){
-  return command&&command.kind==='WEEK'?String(command.start)+' → '+String(command.end):String(command&&command.period||'');
+  return command&&command.kind==='WEEK'?(command.week_number?'Minggu '+command.week_number+' ('+command.month+'): ':'Minggu: ')+String(command.start)+' → '+String(command.end):String(command&&command.period||'');
 }
 function bseTelegramHistoryPilotSummary_(candidates){
   const list=Array.isArray(candidates)?candidates:[],find=target=>list.find(c=>c&&c.target===target);
@@ -278,7 +278,7 @@ function bseTelegramHistoryRetrieve_(book,m){
   };
   if(command.invalid){
     audit('DENIED',command.reason||'INVALID_PERIOD',0,0);
-    return {handled:true,text:'Format: /history YYYY-MM | /history YYYY-MM-DD | /history week last | /history week N YYYY-MM | /history week YYYY-MM-DD (tarikh Jumaat). Minggu N bermula pada Jumaat ke-N dalam bulan itu.'};
+    return {handled:true,text:'Cara guna: /history 2026-10-14 (harian) | /history 2026-10 (bulanan) | /history week 1 2026-10 (minggu 1) | /history week 2 2026-10 (minggu 2) | /history week last (minggu lepas). Setiap minggu bermula Jumaat hingga Khamis; minggu 1 bermula Jumaat pertama bulan tersebut.'};
   }
   const access=bseTelegramHistoryAccess_(book,m);
   if(!access.ok){
@@ -286,9 +286,9 @@ function bseTelegramHistoryRetrieve_(book,m){
     return {handled:true,text:bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'Sejarah operasi hanya untuk ahli aktif melalui PM bot.':'History hanya boleh diminta melalui PM oleh owner/admin atau user TEST yang aktif.'};
   }
   const all=bseTelegramHistoryEventsFor_(book,command,user,access.is_owner),displayed=all.slice(0,BSE_TG_HISTORY_MAX_DISPLAY);
-  const lines=[(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'Sejarah operasi':'Sejarah TEST')+' — '+bseTelegramHistoryPeriodLabel_(command)];
+  const isPilot=bseRuntimeEnvironmentName_()==='PILOT_OPERATION';const lines=[(isPilot?'Sejarah operasi':'Sejarah TEST')+' — '+bseTelegramHistoryPeriodLabel_(command)];if(isPilot)lines.push('');
   if(!displayed.length)lines.push(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'Tiada rekod operasi disahkan untuk tempoh ini.':'Tiada rekod TEST yang boleh dipaparkan dalam sela masa ini.');
-  else displayed.forEach(event=>lines.push(bseTelegramHistorySafeLine_(event,command.kind!=='DAY')));
+  else displayed.forEach((event,index)=>{if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&index>0)lines.push('');lines.push(bseTelegramHistorySafeLine_(event,command.kind!=='DAY'));});
   if(all.length>displayed.length)lines.push('Dipaparkan '+displayed.length+' daripada '+all.length+' rekod yang dipadankan.');
   if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')lines.push('Mod TEST — tiada rekod production ditulis.');
   audit('SENT',access.reason,all.length,displayed.length);
