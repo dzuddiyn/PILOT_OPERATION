@@ -64,6 +64,18 @@ check('render pilot terminology and noncanonical fallback',()=>{
  assert(x.text.includes('Komen Gemini tidak tersedia'));
  assert(!x.text.includes('Laporan TEST'));
 });
+check('daily includes yesterday, current-day status and action watch without inventing activity',()=>{
+ const x=context.bsePilotDigestRender_({},'DAILY',{telegram_user_id:'123'}, {start:'2026-10-18',end:''});
+ assert(x.text.includes('DAILY MORNING DIGEST'));
+ assert(x.text.includes('STATUS SEMASA'));
+ assert(x.text.includes('PERHATIAN HARI INI'));
+ assert(x.text.includes('Semak laporan belum disahkan'));
+ assert(x.text.includes('Jangan anggap tiada rekod bermaksud tiada aktiviti'));
+});
+check('weekly remains weekly only without daily action sections',()=>{
+ const x=context.bsePilotDigestRender_({},'FRIDAY',{telegram_user_id:'123'}, {start:'2026-10-09',end:'2026-10-15'});
+ assert(!x.text.includes('PERHATIAN HARI INI'));
+});
 check('Gemini TEST-mode label is normalized for PILOT display',()=>{
  const prev=context.bseTelegramReportGeminiCommentary_;
  context.bseTelegramReportGeminiCommentary_=()=>({ok:true,text:'Berikut komen operasi bagi mod TEST: tiada rekod.'});
