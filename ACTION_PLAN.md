@@ -1,5 +1,8 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## PILOT Registration Acceptance Group Invite — 2026-10-19
+- Owner correction: approved applicant PM should include join link for bound operational group. PILOT-only callback now fetches and validates Telegram getChat invite/public group URL after owner TERIMA, with fail-closed honest fallback. No link for rejected applicants, no created invite, no automatic replay to already-approved user. Targeted 8/8, all Node 34/34 PASS. See `docs/PILOT_REGISTRATION_ACCEPTED_GROUP_LINK_20261019.md`; live getChat/link delivery UNVERIFIED, full parity IN PROGRESS — NOT DELIVERED.
+
 ## Telegram service-event guard and registration acceptance — 2026-10-19
 - Genuine applicant 8858214393 REGISTERED_ACTIVE, owner card CLOSED_BY_FIRST_DECISION, registration callback PROCESSED one attempt, user confirmed acceptance message. Group fallback 'Mesej bukan teks' likely received membership service event, but exact update ID not yet matched. New guard ignores service events before unsupported-report queue, preserving real text/media reports. Targeted 6/6 PASS, full Node 33/33 PASS; see `docs/PILOT_TELEGRAM_SERVICE_EVENT_FIX_20261019.md`. Full functional parity IN PROGRESS — NOT DELIVERED.
 
