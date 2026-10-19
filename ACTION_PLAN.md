@@ -1,5 +1,8 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## Telegram service-event guard and registration acceptance — 2026-10-19
+- Genuine applicant 8858214393 REGISTERED_ACTIVE, owner card CLOSED_BY_FIRST_DECISION, registration callback PROCESSED one attempt, user confirmed acceptance message. Group fallback 'Mesej bukan teks' likely received membership service event, but exact update ID not yet matched. New guard ignores service events before unsupported-report queue, preserving real text/media reports. Targeted 6/6 PASS, full Node 33/33 PASS; see `docs/PILOT_TELEGRAM_SERVICE_EVENT_FIX_20261019.md`. Full functional parity IN PROGRESS — NOT DELIVERED.
+
 ## PILOT_OPERATION Group-to-PM Registration Recovery — 2026-10-19
 - Rechecked historical PR #30: native `/start` in private chat already implemented; group membership alone never registers user. PILOT live User Registry/Card/Registration Callback sheets each 0 rows, owner registry active. Added PILOT-only group `/start` response with PM bot link and plain-language onboarding; no automatic member approval, no data exposure. 8/8 targeted, 32/32 Node suites, 64/64 JS syntax PASS. See `docs/PILOT_REGISTRATION_GROUP_RECOVERY_20261019.md`. Actual new-user Start and owner card live proof still UNVERIFIED.
 
