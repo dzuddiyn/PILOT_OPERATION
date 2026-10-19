@@ -1,5 +1,8 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## Registration Welcome Link Delivery — 2026-10-19
+- Owner authorized one-time welcome PM to already-approved user, with exact owner-provided group invite verified against Telegram getChat; no new registration, no new invite. Guarded SEND_OUTCOME_UNKNOWN then SENT receipt ensures no blind retry. 36/36 Node suites PASS pre-live; see `docs/PILOT_WELCOME_LINK_DELIVERY_20261019.md`. Live send not yet verified; full parity IN PROGRESS — NOT DELIVERED.
+
 ## PILOT Telegram Command Menu Recovery — 2026-10-19
 - Owner showed approved new user denied access to another user's private Evidence (correct LIVE negative access); native command menu missing. Inherited configureBseTelegramTestCommands exists but had not been invoked in PILOT and harness expected `ai` instead of actual `ask_ai`. PILOT-only menu now strips TEST descriptions, preserves old environment behavior; 5/5 targeted, 35/35 Node PASS. Must run Telegram `setMyCommands` and independently `getMyCommands` after Script HEAD sync to prove published menu. See `docs/PILOT_TELEGRAM_COMMAND_MENU_RECOVERY_20261019.md`. Full parity IN PROGRESS — NOT DELIVERED.
 
