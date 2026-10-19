@@ -1,0 +1,25 @@
+'use strict';
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const files=['EnvironmentTest.js','TelegramHistoryTest.js','TelegramEcHistoryTest.js','EvidenceOcrTest.js','ImageProcessingTest.js','TelegramApprovalUiTest.js'];
+const ctx={console,PropertiesService:{getScriptProperties:()=>({getProperty:()=> 'PILOT_OPERATION'})}};
+vm.createContext(ctx);
+for(const file of files)vm.runInContext(fs.readFileSync(__dirname+'/'+file,'utf8'),ctx,{filename:file});
+let n=0;
+function check(label,fn){fn();n++;console.log('PASS '+label)}
+check('history accepts day and month',()=>{assert.equal(ctx.bseTelegramHistoryCommand_('/history 2026-10-19').kind,'DAY');assert.equal(ctx.bseTelegramHistoryCommand_('/history 2026-10').kind,'MONTH')});
+check('history rejects invalid calendar dates',()=>assert.equal(ctx.bseTelegramHistoryCommand_('/history 2026-02-30').reason,'DATE'));
+check('history rejects unknown arguments',()=>assert.equal(ctx.bseTelegramHistoryCommand_('/history bogus').reason,'FORMAT'));
+check('history month alias works',()=>assert.equal(ctx.bseTelegramHistoryCommand_('/history month 2026-10').period,'2026-10'));
+check('ec_history command maps to history',()=>assert.equal(ctx.bseTelegramEcHistoryCommand_('/ec_history 2026-10').kind,'MONTH'));
+check('ec_history ignores unrelated command',()=>assert.equal(ctx.bseTelegramEcHistoryCommand_('/history 2026-10'),null));
+check('OCR extraction command parses strict ID',()=>{const x=ctx.bseEvidenceOcrCommand_('/ocr BSE-EV-FICTIONAL1');assert.equal(x.action,'EXTRACT');assert.equal(x.evidence_id,'BSE-EV-FICTIONAL1')});
+check('OCR confirm and discard require evidence ID',()=>{assert.equal(ctx.bseEvidenceOcrCommand_('/ocr confirm BSE-EV-FICTIONAL1').action,'CONFIRM');assert.equal(ctx.bseEvidenceOcrCommand_('/ocr discard BSE-EV-FICTIONAL1').action,'DISCARD');assert.equal(ctx.bseEvidenceOcrCommand_('/ocr confirm'),null)});
+check('OCR rejects unsafe arbitrary text',()=>assert.equal(ctx.bseEvidenceOcrCommand_('/ocr BSE-EV-1 trailing'),null));
+check('image-to-text routes only explicit command',()=>{assert.equal(ctx.bseImageProcessingCaptionCommand_('/image_to_text'),'IMAGE_TO_TEXT');assert.equal(ctx.bseImageProcessingCaptionCommand_('gambar ladang'),'')});
+check('image analysis allows mention but not arbitrary commands',()=>{assert.equal(ctx.bseImageProcessingCaptionCommand_('/image_analysis@bot_name check'),'IMAGE_ANALYSIS');assert.equal(ctx.bseImageProcessingCaptionCommand_('/analyze'),'')});
+check('image analysis instruction has bounded length',()=>assert.equal(ctx.bseImageProcessingCaptionMeta_('/image_analysis '+'x'.repeat(3000)).instruction.length,2000));
+check('delete requires reference and reason',()=>{const x=ctx.bseTelegramDeleteCommand_('/delete BSE-TG-123 sebab ujian');assert.equal(x.reference,'BSE-TG-123');assert.equal(x.reason,'sebab ujian');assert.equal(ctx.bseTelegramDeleteCommand_('/delete BSE-TG-123'),null)});
+check('delete rejects arbitrary and malformed identifiers',()=>{assert.equal(ctx.bseTelegramDeleteCommand_('/delete BAD-1 sebab'),null);assert.equal(ctx.bseTelegramDeleteCommand_('/delete BSE-TG-123  '),null)});
+check('PILOT-only outgoing ACK uses narrow HTML styling',()=>{const raw='Laporan diterima dan sudah disimpan untuk diproses. Rujukan: BSE-TG-123. (Mod TEST)';const y=ctx.bseRuntimeTelegramPayload_('sendMessage',{text:raw});assert.equal(y.parse_mode,'HTML');assert(y.text.includes('<i>Rujukan: BSE-TG-123</i>'));const z=ctx.bseRuntimeTelegramPayload_('sendMessage',{text:'Sila semak'});assert.equal(z.parse_mode,undefined)});
+check('PILOT protects reporter source note',()=>{const x='Nota sebenar mengandungi TEST_ONLY dan Rekod TEST.';assert.equal(ctx.bseRuntimeTelegramPayload_('sendMessage',{text:x}).text,x)});
+console.log('TELEGRAM_COMMAND_UX_PARITY '+n+'/'+n+' PASS (synthetic, no transport)');
