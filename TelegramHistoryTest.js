@@ -218,8 +218,16 @@ function bseTelegramHistoryEvidenceEvents_(book){
       visibility:String(row[15]||'RESTRICTED')
     }));
 }
+function bseTelegramHistoryPilotOperationalEvents_(book){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||typeof bseTransplantRowsByName_!=='function'||typeof BSE_TRANSPLANT_EVENT_HEADERS==='undefined')return [];
+  return bseTransplantRowsByName_(book,'TEST_TRANSPLANT_EVENT',BSE_TRANSPLANT_EVENT_HEADERS)
+    .filter(row=>String(row[9])==='COMPLETED'&&String(row[10])==='VERIFIED_TEST'&&/^\d{4}-\d{2}-\d{2}$/.test(String(row[4]||'')))
+    .map(row=>({date:String(row[4]),reference:String(row[2]),category:'Pindah tanam',
+      summary:'Pindah tanam — '+String(row[6]||'Tanaman tidak dinyatakan')+(row[7]?' ('+String(row[7])+')':'')+'; plot '+String(row[8]||'').split('|').join(', '),
+      reporter_user_id:'',visibility:'GROUP_STANDARD',pilot_summary:'Pindah tanam\nTanaman: '+String(row[6]||'')+'\nVarieti: '+String(row[7]||'')+'\nTarikh kerja: '+String(row[4])+'\nPlot: '+String(row[8]||'').split('|').join(', ')+'\nStatus: Disahkan'}));
+}
 function bseTelegramHistoryAllEvents_(book){
-  return bseTelegramHistoryRecordEvents_(book).concat(bseTelegramHistoryEvidenceEvents_(book));
+  return bseTelegramHistoryRecordEvents_(book).concat(bseTelegramHistoryEvidenceEvents_(book),bseTelegramHistoryPilotOperationalEvents_(book));
 }
 function bseTelegramHistoryEventVisibleTo_(event,userId,isOwner){
   if(isOwner)return true;
