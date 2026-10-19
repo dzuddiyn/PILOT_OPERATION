@@ -27,7 +27,7 @@ function bseEvidenceOcrCommand_(text){
 function bseEvidenceOcrAccess_(book,message,evidence){
   const access=bseTelegramRegistrationPrivateAccess_(book,message),user=String(message&&message.from&&message.from.id||'');
   if(!['REGISTERED_ACTIVE','OWNER_ACTIVE'].includes(access.status))return {ok:false,reason:access.status,user:user};
-  const owner=bseTestOwnerForTelegramUser_(book,user).ok,reporter=String(evidence&&evidence.row&&evidence.row[4]||'')===user;
+  const owner=bseRoleControllerCapability_('EvidenceOcrTest.js:bseEvidenceOcrAccess_',book,user,String(message&&message.chat&&message.chat.id||''),String(message&&message.chat&&message.chat.type||'')),reporter=String(evidence&&evidence.row&&evidence.row[4]||'')===user;
   return {ok:owner||reporter,reason:owner?'OWNER_ACTIVE':reporter?'ORIGINAL_REPORTER':'VISIBILITY_DENIED',user:user};
 }
 function bseEvidenceOcrHash_(value){

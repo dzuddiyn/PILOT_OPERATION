@@ -15,6 +15,8 @@ const ctx={console,Date,JSON,String,Number,Math,Set,
  SpreadsheetApp:{flush:()=>{}}
 };
 vm.createContext(ctx);
+ctx.bseRoleTrustedAdaptersForBook_=()=>({sourceAuthenticated:true,readBootstrapOwner:()=>({user_id:owner,verified:true}),readRegistration:id=>String(id)===active?'REGISTERED_ACTIVE':'UNREGISTERED',readLedger:()=>[],readBarriers:()=>[],sha256:()=>''});
+for(const f of ['PilotRoleContract.js','PilotRoleResolver.js','PilotRoleLegacyCallsiteAdapter.js','PilotRoleLegacyControllerBridge.js'])vm.runInContext(fs.readFileSync(root+'/'+f,'utf8'),ctx,{filename:f});
 for(const file of ['TelegramRegistrationTest.js','TelegramHistoryTest.js','EvidenceOcrTest.js','TelegramApprovalUiTest.js'])vm.runInContext(fs.readFileSync(root+'/'+file,'utf8'),ctx,{filename:file});
 // Replace only storage/transport dependencies; retain real access and retry functions under test.
 ctx.bseTelegramRegistrationPrivateAccess_=(_,m)=>String(m?.from?.id)===owner?{status:'OWNER_ACTIVE'}:String(m?.from?.id)===active?{status:'REGISTERED_ACTIVE'}:{status:'UNREGISTERED'};

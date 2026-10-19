@@ -12,7 +12,7 @@ function bsePilotGateHReadiness_(){
     throw Error('GATE_H_OFFSET_INVALID');
   const book=bseRuntimeBook_(SpreadsheetApp.openById(BSE_PILOT_OPERATION_BINDING.spreadsheetId));
   const ownerId=bseRuntimeLegacyUserId_(),owner=bseTestOwnerForTelegramUser_(book,ownerId);
-  if(!owner.ok||String(owner.private_chat_id)!==String(ownerId))
+  if(!bseRoleControllerCapability_('PilotOperationGateH.js:bsePilotGateHReadiness_',book,ownerId,ownerId,'private'))
     throw Error('GATE_H_OWNER_NOT_ACTIVE');
   const cards=bseTelegramRecordReadRows_(book,'TEST_TELEGRAM_APPROVAL_UI',BSE_APPROVAL_UI_HEADERS.length),
         queues=bseTelegramRecordReadRows_(book,'TELEGRAM_TEST_QUEUE',BSE_TG_QUEUE_HEADERS.length),

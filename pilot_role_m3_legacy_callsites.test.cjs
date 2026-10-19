@@ -15,7 +15,7 @@ test('explicit mapping covers ALL legacy auth lookup callers in actual source',(
     if(file==='OwnerRegistryTest.js')continue; // authority reader itself, not a caller to be promoted
     const source=fs.readFileSync(path.join(__dirname,file),'utf8');
     const fn=[...source.matchAll(/function\s+([A-Za-z_]\w*)\s*\(/g)];
-    for(const m of source.matchAll(/bseTestOwnerForTelegramUser_\s*\(|bseTelegramRegistrationPrivateAccess_\s*\(/g)){
+    for(const m of source.matchAll(/bseTestOwnerForTelegramUser_\s*\(|bseTelegramRegistrationPrivateAccess_\s*\(|bseRoleController(?:Capability|Elevated)_\s*\(/g)){
       let name=null;for(const f of fn){if(f.index<m.index)name=f[1];else break;}
       if(name&&/^runBse.*HarnessTests$/.test(name))continue;
       const key=file+':'+name;assert.ok(policies[key],'UNMAPPED: '+key);recorded.add(key);
