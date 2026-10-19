@@ -241,6 +241,9 @@ function bseTelegramHistoryEvidenceEvents_(book){
       reference:String(row[0]||''),
       category:String(row[14]||'UNCLASSIFIED_TEST'),
       summary:'Evidence '+String(row[8]||'UNKNOWN'),
+      pilot_summary:bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?
+        [String(row[8]||'')==='PHOTO'?'Gambar laporan operasi':'Lampiran operasi','Keterangan: '+(String(row[7]||'').split('\n').join(' ').split('\r').join(' ').trim().slice(0,300)||'Tiada keterangan'),
+         'Tarikh diterima: '+bseTelegramHistoryDate_(row[6]),'Status: Disahkan'].join('\n'):'',
       reporter_user_id:String(row[4]||''),
       visibility:String(row[15]||'RESTRICTED')
     }));
