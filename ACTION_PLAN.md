@@ -1,5 +1,8 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## PILOT_OPERATION TEST Label Audit & Cleanup — 2026-10-19
+- Audited outgoing PILOT text vs internal TEST/PILOT_TEST contract keys and historical raw notes. Narrow Telegram UX mappings remove bracketed PILOT TEST, OCR and Evidence labels in PILOT-only presentation while preserving source captions/TEST_ONLY evidence. Targeted 8/8 PASS, Node 30/30 PASS. See `docs/PILOT_OPERATION_TEST_LABEL_AUDIT_20261019.md`. Remaining legacy source strings are not globally renamed; live outbound proof pending. Functional parity **IN PROGRESS — NOT DELIVERED**.
+
 ## PILOT_OPERATION Evidence branding & real-media field evidence — 2026-10-19
 - Owner rejected TEST-labelled root and status. Root Google Drive folder renamed in place to `BSE_OpsMate_SB_PILOT_OPERATION`, same ID, read-back verified. Real photo `BSE-EV-126-AQADNxNr` caption `Pam rosak M2P2` confirmed, under nested Evidence_Files, category corrected to FIELD_OPERATION, file preserved. Former synthetic-image cleanup requirement is CANCELLED as not applicable to this actual operational evidence.
 - PILOT Evidence status migration **LIVE VERIFIED**: PR #69 merged (`dec3bed8`); Node 29/29 PASS, Script HEAD independently matched 64/64 source files (+9 runtime helpers), Apps Script full regression 47/47 PASS at 10:43 MYT. One exact `PILOT_FILE_EVIDENCE!Q2` cell migrated `CONFIRMED_TEST` → `CONFIRMED`, read-back exact, same caption/category/file ID and 1 source row. Other legacy TEST technical contracts remain outside this Evidence-only change and require explicit audit; full parity is NOT DELIVERED. Evidence: `docs/PILOT_OPERATION_EVIDENCE_STATUS_CLEANUP_20261019.md`. Full PILOT_TEST functional parity **IN PROGRESS — NOT DELIVERED**.
