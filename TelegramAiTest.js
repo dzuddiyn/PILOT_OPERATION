@@ -24,9 +24,9 @@ function bseTelegramAiAccessAllowed_(book,m,allowedPrivate,allowedGroup){
 }
 function bseTelegramAiSystemPrompt_(hasKb){
   return [
-    'Anda ialah pembantu Q&A OpsMate BSE dalam mod PILOT_TEST.',
+    'Anda ialah pembantu Q&A OpsMate BSE.',
     'Semua jawapan anda adalah NON_CANONICAL: bukan rekod BSE, bukan approval, bukan arahan operasi rasmi, dan tidak boleh mendakwa telah mengubah sebarang data.',
-    'Jangan baca atau reka data operasi/canonical BSE. Jika pengguna meminta stok, sejarah, status plot atau rekod BSE, jelaskan bahawa /ask_ai tidak mempunyai akses kepada rekod canonical dan arahkan pengguna menggunakan command retrieval rasmi.',
+    'Jangan baca atau reka data operasi/canonical BSE. Jika pengguna meminta stok, sejarah, status plot atau rekod BSE, jelaskan bahawa fungsi soal AI tidak mempunyai akses kepada rekod operasi sah dan arahkan pengguna menggunakan command retrieval rasmi.',
     hasKb?'Anda mempunyai File Search knowledge base pertanian. Untuk soalan pertanian, utamakan sumber KB sebelum pengetahuan umum. Jika soalan menyebut IRAC, kumpulan IRAC atau Mode of Action (MoA), WAJIB gunakan File Search KB dan jangan nyatakan nombor kumpulan/MoA sebagai fakta jika tiada grounding daripada KB.':'Knowledge base pertanian belum dikonfigurasi; nyatakan jika jawapan pertanian hanya menggunakan pengetahuan umum model.',
     'Untuk racun perosak Malaysia: pendaftaran produk dikawal oleh Lembaga Racun Makhluk Perosak/Jabatan Pertanian; SISMARP ialah pangkalan rujukan maklumat racun berdaftar yang disyorkan bagi tanaman/perosak tertentu. Jangan kata produk didaftarkan melalui SISMARP. IRAC ialah rujukan Mode of Action dan resistance management, BUKAN bukti sesuatu racun diluluskan di Malaysia.',
     'Jangan mereka kadar, PHI, MRL, pendaftaran, label, atau status syor. Jika SISMARP CURRENT tersedia dan freshness masih sah, gunakan hasil semasa itu hanya untuk padanan query/filter yang diberikan. Jika total=0, sebut tiada padanan SISMARP semasa untuk kombinasi/filter itu; JANGAN tukar 0 padanan menjadi dakwaan bahawa bahan aktif atau produk itu tidak berdaftar di Malaysia secara umum. Jika cache stale/tidak tersedia atau tiada filter eksplisit, nyatakan batas semakan dan jangan membuat kesimpulan pendaftaran.',
@@ -158,7 +158,7 @@ function bseAiGeminiAnswer_(question,currentSismarp,iracGrounded){
   return {text:text,sources:sourceDetails.map(x=>x.title),source_details:sourceDetails,kb_used:!!store,model_used:modelUsed,sismarp_current:currentSismarp||null,production_write:false};
 }
 function bseTelegramAiRender_(answer){
-  const lines=['**🤖 AI — NON_CANONICAL**','',String(answer.text||'').trim()],current=answer.sismarp_current;
+  const lines=['**🤖 Pembantu AI — Panduan sahaja**','',String(answer.text||'').trim()],current=answer.sismarp_current;
   if(current){lines.push('','**SISMARP CURRENT**');if(current.available){lines.push('• Status: derived cache semasa sah','• Padanan query: '+String(current.total||0),'• Snapshot: '+String(current.cache_refreshed_at||''),'• Umur cache: '+String(current.age_days==null?'?':current.age_days)+' hari','• Sumber authority: SISMARP — Jabatan Pertanian Malaysia');if(Number(current.total||0)===0)lines.push('• Nota: 0 padanan tidak membuktikan bahan aktif/produk tiada pendaftaran Malaysia secara umum.');}else{lines.push('• Status: semakan semasa tidak tersedia','• Sebab: '+String(current.reason||'UNKNOWN'));if(current.cache_refreshed_at)lines.push('• Snapshot terakhir: '+current.cache_refreshed_at);}}
   if(answer.sources&&answer.sources.length){lines.push('','**Rujukan KB**');answer.sources.forEach(s=>lines.push('• '+s));}
   const details=(answer.source_details||[]).filter(x=>x&&x.url);if(details.length){lines.push('','**Butiran sumber**');details.forEach(x=>lines.push('• '+x.title+' — '+x.url));}
