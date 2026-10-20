@@ -108,17 +108,44 @@ function bseCensusAssertApprovedRows_(rows,sourceKey,payloadHash,entries,censusI
   const matches=rows.filter(row=>String(row[0])===sourceKey);if(!batchId||matches.length!==entries.length||censusIds.length!==entries.length||matches.some((row,index)=>{const entry=entries[index],dead=Object.prototype.hasOwnProperty.call(entry,'reported_dead_count')?String(entry.reported_dead_count):'',sick=Object.prototype.hasOwnProperty.call(entry,'reported_sick_count')?String(entry.reported_sick_count):'',capacity=Object.prototype.hasOwnProperty.call(entry,'plot_capacity_polybag')?String(entry.plot_capacity_polybag):'',method=String(entry.living_count_method||'');return String(row[2])!==censusIds[index]||String(row[3])!==batchId||String(row[5])!==entry.plot_id||Number(row[8])!==entry.living_plant_count||String(row[9])!=='VERIFIED_TEST'||String(row[13])!==payloadHash||String(row[14]||'')!==dead||String(row[15]||'')!==sick||String(row[16]||'')!==capacity||String(row[17]||'')!==method;}))throw new Error('Audit APPROVED tidak sepadan dengan rekod Banci Pokok TEST.');
 }
 
-function bseCensusOperationalSignal_(text){return /^\s*(?:\d+\.\s*)?(?:REKOD\s+)?BANCI\s+POKOK\s*$/im.test(String(text||''));}
+function bseCensusOperationalSignal_(text){return /^\s*(?:\d+\.\s*)?(?:(?:REKOD\s+)?BANCI\s+(?:POKOK|TANAMAN)|POKOK\s+(?:SAKIT|MATI)|KIRA(?:AN)?\s+POKOK)\s*$/im.test(String(text||''));}
 function bseCensusOperationalCount_(text,label){const m=String(text||'').match(new RegExp('^\\s*(?:'+label+')\\s*[:=-]\\s*(\\d+)\\s*$','im'));return m?Number(m[1]):null;}
 function bseCensusOperationalPlot_(text){const m=String(text||'').match(/^\s*Modul\s*:\s*M\s*([1-9]\d*)\s*[- ]?\s*P\s*([1-9]\d*)\s*$/im);return m?bsePlotSingleLocation_('M'+m[1]+'P'+m[2]).plot_id:'';}
 function bseCensusOperationalCrop_(text){const m=String(text||'').match(/^\s*(?:Jenis\s+Tanaman|Tanaman)\s*:\s*([^\n]+?)\s*$/im),value=m?String(m[1]||'').trim():'';return value&&value!=='-'?value:'';}
-function bseCensusOperationalDate_(text,receivedAt,clarifications){const parse=value=>{const m=String(value||'').match(/^\s*(?:(?:Tarikh\s+Banci|Tarikh)\s*:\s*)?(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})\s*$/im);if(!m)return '';const day=Number(m[1]),month=Number(m[2]),year=Number(m[3]),d=new Date(Date.UTC(year,month-1,day));return year===2026&&d.getUTCFullYear()===year&&d.getUTCMonth()===month-1&&d.getUTCDate()===day?year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0'):'';};let latest='';for(const answer of (clarifications||[])){const value=String(answer||'').split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map(parse).find(Boolean);if(value)latest=value;}if(latest)return latest;const source=String(text||'').split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map(parse).find(Boolean);return source||bsePlantCensusMalaysiaDate_(receivedAt);}
+function bseCensusParseDateLine_(value){
+  const raw=String(value||'').trim().replace(/^(?:Tarikh(?:\s+Banci)?|Date)\s*[:=-]?\s*/i,'').trim();
+  let day=0,month=0,year=0,m;
+  if((m=raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))){
+    year=Number(m[1]);month=Number(m[2]);day=Number(m[3]);
+  }else if((m=raw.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2}|\d{4})$/))){
+    day=Number(m[1]);month=Number(m[2]);year=Number(m[3].length===2?'20'+m[3]:m[3]);
+  }else if((m=raw.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{2}|\d{4})$/i))){
+    const names={JAN:1,JANUARI:1,JANUARY:1,FEB:2,FEBRUARI:2,FEBRUARY:2,MAR:3,MAC:3,MARCH:3,APR:4,APRIL:4,MEI:5,MAY:5,JUN:6,JUNE:6,JUL:7,JULAI:7,JULY:7,OGO:8,OGOS:8,AUG:8,AUGUST:8,SEP:9,SEPT:9,SEPTEMBER:9,OKT:10,OKTOBER:10,OCT:10,OCTOBER:10,NOV:11,NOVEMBER:11,DIS:12,DISEMBER:12,DEC:12,DECEMBER:12};
+    day=Number(m[1]);month=names[m[2].toUpperCase()]||0;year=Number(m[3].length===2?'20'+m[3]:m[3]);
+  }else{return '';}
+  const date=new Date(Date.UTC(year,month-1,day));
+  if(year!==2026||date.getUTCFullYear()!==year||date.getUTCMonth()!==month-1||date.getUTCDate()!==day)return '';
+  return year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+}
+function bseCensusOperationalDate_(text,receivedAt,clarifications){
+  const extract=input=>String(input||'').split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
+  for(const answer of (clarifications||[]).slice().reverse()){
+    const found=extract(answer).map(bseCensusParseDateLine_).find(Boolean);
+    if(found)return found;
+  }
+  const sourceLines=extract(text),date=sourceLines.map(bseCensusParseDateLine_).find(Boolean);
+  if(date)return date;
+  const explicitBadDate=sourceLines.some(line=>
+    /^(?:Tarikh(?:\s+Banci)?|Date)\s*[:=-]/i.test(line)||
+    /^(?:\d{1,4}[\/.-]\d{1,2}[\/.-]\d{2,4}|\d{1,2}\s+(?:JAN|FEB|MAR|APR|MEI|MAY|JUN|JUL|OGO|AUG|SEP|OKT|OCT|NOV|DIS|DEC)\w*\s+\d{2,4})$/i.test(line));
+  return explicitBadDate?'':bsePlantCensusMalaysiaDate_(receivedAt);
+}
 function bseCensusOperationalLivingValues_(source,clarifications,plotId){const values=[];const add=text=>{String(text||'').split(/\r?\n/).map(line=>line.trim()).filter(Boolean).forEach(line=>{let m=line.match(/^(?:Hidup|Pokok\s+Hidup|Living)\s*[:=-]?\s*(\d+)\s*(?:pokok)?\s*$/i);if(!m&&plotId)m=line.match(new RegExp('^'+plotId+'\\s*:\\s*(\\d+)\\s+pokok\\s*$','i'));if(!m&&/^\d+$/.test(line)&&plotId)m=[line,line];if(m)values.push(Number(m[1]));});};add(source);(clarifications||[]).forEach(add);return Array.from(new Set(values.filter(value=>Number.isInteger(value)&&value>=0)));}
 function bseTelegramCensusDeterministicResult_(input,receivedAt){
   const context=typeof bseUnifiedSourceContext_==='function'?bseUnifiedSourceContext_(input):{original:String(input||''),clarifications:[],provenance:String(input||'')},source=String(context.original||'');
   if(!bseCensusOperationalSignal_(source))return null;
   const canonical=/^\s*BANCI\s+POKOK\s*$/im.test(source)&&!/^\s*(?:\d+\.\s*)?REKOD\s+BANCI\s+POKOK\s*$/im.test(source)?bsePlantCensusSource_(source):null;
-  if(canonical&&canonical.ok){const fields={project_id:'BSE_SB',system_year:2026,event_date:bsePlantCensusMalaysiaDate_(receivedAt),record_type:'PLANT_CENSUS',verification_status:'PROVISIONAL',original_note:String(context.provenance||source),crop:canonical.crop,census_entries:canonical.entries};return {validation:'PASS',production_write:false,candidates:[{target:'Plant_Census_Log',validation:'PASS',missing:[],fields:fields}]};}
+  if(canonical&&canonical.ok&&bseCensusOperationalDate_(source,receivedAt,context.clarifications)){const fields={project_id:'BSE_SB',system_year:2026,event_date:bseCensusOperationalDate_(source,receivedAt,context.clarifications),record_type:'PLANT_CENSUS',verification_status:'PROVISIONAL',original_note:String(context.provenance||source),crop:canonical.crop,census_entries:canonical.entries};return {validation:'PASS',production_write:false,candidates:[{target:'Plant_Census_Log',validation:'PASS',missing:[],fields:fields}]};}
   const plotId=bseCensusOperationalPlot_(source),crop=bseCensusOperationalCrop_(source),eventDate=bseCensusOperationalDate_(source,receivedAt,context.clarifications),dead=bseCensusOperationalCount_(source,'Mati|Dead'),sick=bseCensusOperationalCount_(source,'Sakit|Sick'),capacity=plotId?bseCensusPlotCapacity_(plotId):null,entry=plotId?{plot_id:plotId}:null,missing=[];
   if(entry&&dead!==null)entry.reported_dead_count=dead;
   if(entry&&sick!==null)entry.reported_sick_count=sick;

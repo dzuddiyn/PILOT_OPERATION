@@ -15,12 +15,29 @@ function bsePilotEvidenceStorageFolder_(){
   const root=DriveApp.getFolderById(bseRuntimeEvidenceFolderId_());
   return bsePilotEvidenceExactChild_(bsePilotEvidenceExactChild_(root,'01_Source_Evidence'),'Evidence_Files');
 }
-function bsePilotEvidenceStoredName_(row){
+function bsePilotEvidenceLegacyStoredName_(row){
   const id=String(row[0]||''),unique=String(row[10]||'');
   if(!/^BSE-EV-[A-Za-z0-9_-]+$/.test(id)||!/^[A-Za-z0-9_-]{8,}$/.test(unique))
     throw Error('EVIDENCE_IDENTITY_INVALID');
   const original=String(row[12]||'evidence').replace(/[^A-Za-z0-9._-]/g,'_').slice(0,90);
   return id+'__'+unique+'__'+original;
+}
+// Human-readable PILOT name: source receive date/time in MYT, actual caption,
+// and short source message ID. Missing captions remain explicitly unnamed.
+function bsePilotEvidenceStoredName_(row){
+  bsePilotEvidenceLegacyStoredName_(row); // Retain strict evidence identity guard.
+  const received=new Date(String(row[6]||''));
+  if(!Number.isFinite(received.getTime()))throw Error('EVIDENCE_RECEIVED_AT_INVALID');
+  const date=new Date(received.getTime()+8*60*60*1000).toISOString().slice(0,10);
+  const kind=String(row[8]||'').toUpperCase();
+  const fallback=kind==='PHOTO'?'Foto_tanpa_keterangan':kind==='VIDEO'?'Video_tanpa_keterangan':'Fail_tanpa_keterangan';
+  const caption=String(row[7]||'').trim().normalize('NFKD').replace(/[\u0300-\u036f]/g,'');
+  const snapshot=caption.replace(/[^A-Za-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,75).replace(/_+$/,'')||fallback;
+  const message=String(row[3]||'');
+  if(!/^[0-9]{1,12}$/.test(message))throw Error('EVIDENCE_SOURCE_MESSAGE_ID_INVALID');
+  const ext=String(row[12]||'').match(/\.(jpg|jpeg|png|webp|pdf|mp4|mov|txt)$/i);
+  const extension=ext?ext[0].toLowerCase():kind==='PHOTO'?'.jpg':kind==='VIDEO'?'.mp4':'.bin';
+  return date+'_'+snapshot+'_EV'+message+extension;
 }
 function bsePilotEvidenceExactMatch_(folder,name,row){
   const it=folder.getFilesByName(name),found=[];
@@ -45,7 +62,11 @@ function bsePilotEvidenceStoreOnce_(book,row,blob){
   if(!['OPEN','DRIVE_CREATE_PENDING','CONFIRMED','CONFIRMED_TEST'].includes(state))
     throw Error('EVIDENCE_REVIEW_STATE_INVALID_'+state);
   const folder=bsePilotEvidenceStorageFolder_(),name=bsePilotEvidenceStoredName_(canonical);
-  const found=bsePilotEvidenceExactMatch_(folder,name,canonical);
+  const legacyName=bsePilotEvidenceLegacyStoredName_(canonical);
+  const modern=bsePilotEvidenceExactMatch_(folder,name,canonical);
+  const legacy=legacyName===name?'':bsePilotEvidenceExactMatch_(folder,legacyName,canonical);
+  if(modern&&legacy&&modern!==legacy)throw Error('EVIDENCE_MULTIPLE_FILE_NAMING_CONFLICT');
+  const found=modern||legacy;
   const recorded=String(canonical[19]||'');
   if(recorded){
     if(!found||found!==recorded)throw Error('EVIDENCE_RECORDED_FILE_SOURCE_MISMATCH');
