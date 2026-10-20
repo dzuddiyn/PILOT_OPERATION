@@ -1,5 +1,9 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## Gate I worker 12:28 reliability diagnostic ? 2026-10-20 (READ-ONLY)
+- Apps Script UIA: bseTelegramTick 12:28:18 FAILED after 166.042s with generic server error, no visible stack trace; 12:29?12:34 every tick deferred due receiver ScriptLock contention; 12:35 tick recovered and saved callback 772257248 exactly once. Source investigation identifies guarded RETRY_NEXT_TICK but cannot establish lock owner/root error. Diagnostic docs/GATE_I_WORKER_1228_UIA_DIAGNOSTIC_20261020.md; **worker reliability OPEN / root cause PARTIAL / formal handover NOT DELIVERED**. No speculative hotfix or domain replay.
+
+
 ## Gate I global plot LIVE acceptance ? 2026-10-20 (scoped)
 - BSE-TG-772257247 callback 772257248 PROCESSED once, one transplant BSE-SB-TR-20261007-002 and two M5P1/M5P2 PLANNED-to-ACTIVE rows; full Telegram card confirmed with UIA. Independent Script HEAD read-back 65/65, Node regression 54/54. See docs/GATE_I_GLOBAL_PLOT_LIVE_248_20261020.md and docs/GATE_I_HANDOVER_CANDIDATE_20261020.md. Status SCOPED LIVE PASS; worker failure 12:28 remains open; formal handover NOT DELIVERED.
 
