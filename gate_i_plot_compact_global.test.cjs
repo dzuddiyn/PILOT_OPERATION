@@ -13,5 +13,5 @@ test('summary expands M4P12, stays in unique canonical items',()=>assert.deepEqu
 test('single status refuses compact multi plot',()=>assert.equal(ctx.bseTelegramPlotStatusCommand_('/status plot M4P12'),''));
 test('single status canonical remains',()=>assert.equal(ctx.bseTelegramPlotStatusCommand_('/status plot M4P2'),'M4P2'));
 test('summary explicit duplicate rejects',()=>assert.equal(ctx.bseTelegramPlotSummaryCommand_('/summary plot M4P12,M4P1').length,0));
-test('status combined routes to two plot summary',()=>assert.deepEqual(JSON.parse(JSON.stringify(ctx.bseTelegramPlotRetrievalCommand_('/status plot M4P12'))),{kind:'SUMMARY',plots:['M4P1','M4P2']}));
+test('status combined routes to two detailed plot statuses',()=>assert.deepEqual(JSON.parse(JSON.stringify(ctx.bseTelegramPlotRetrievalCommand_('/status plot M4P12'))),{kind:'STATUS_MULTI',plots:['M4P1','M4P2']}));
 console.log('PLOT_CONTRACT '+t+'/'+t+' PASS');
