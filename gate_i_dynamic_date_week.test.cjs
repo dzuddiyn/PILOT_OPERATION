@@ -1,0 +1,19 @@
+﻿'use strict';
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const worker=fs.readFileSync('TelegramWorkerTest.js','utf8'),history=fs.readFileSync('TelegramHistoryTest.js','utf8');
+function extract(s,n){const start=s.indexOf('function '+n+'(');if(start<0)throw Error('MISSING '+n);let i=s.indexOf('{',start),depth=0,q='',esc=false;for(;i<s.length;i++){const c=s[i];if(q){if(esc){esc=false;continue}if(c==='\\'){esc=true;continue}if(c===q)q='';continue}if(c==="'"||c==='"'){q=c;continue}if(c==='{')depth++;if(c==='}'&&--depth===0)return s.slice(start,i+1)}throw Error('UNCLOSED '+n)}
+const ctx={Date,bseRuntimeEnvironmentName_:()=> 'PILOT_OPERATION',bseUnifiedSourceContext_:input=>typeof input==='string'?{original:input,clarifications:[]} : input,BSE_TG_HISTORY_TZ:'Asia/Kuala_Lumpur',Utilities:{formatDate:(d,tz,fmt)=>{let dt=new Date(d);return new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).format(dt)} }};
+vm.createContext(ctx);
+for(const fn of ['bsePilotCompactSowingResult_'])vm.runInContext(extract(worker,fn),ctx);
+for(const fn of ['bseTelegramHistoryDateParts_','bseTelegramHistoryIsoDateFromUtc_','bseTelegramHistoryAddDays_','bseTelegramHistoryMytDate_','bseTelegramHistoryWeekStartForMytDate_','bseTelegramHistoryLastCompleteWeek_','bseTelegramHistoryExplicitWeek_','bseTelegramHistoryNthWeekOfMonth_','bseTelegramHistoryMonthKey_','bseTelegramHistoryCommand_'])vm.runInContext(extract(history,fn),ctx);
+let n=0;const check=(label,cb)=>{cb();n++;console.log('PASS '+label)};
+const orig='semai\nPeria Besar 3328(Hua Li)\nM4P12\n1/9';
+check('compact sowing 1/9 defaults to 2026',()=>{const r=ctx.bsePilotCompactSowingResult_(orig);assert.equal(r.validation,'NEED_INFO');assert.equal(r.candidates[0].fields.event_date,'2026-09-01');assert(r.candidates.some(c=>c.missing.includes('plot_id')))});
+check('compact sowing 1/9/26 accepted',()=>{const r=ctx.bsePilotCompactSowingResult_(orig.replace('1/9','1/9/26'));assert.equal(r.validation,'NEED_INFO');assert.equal(r.candidates[0].fields.event_date,'2026-09-01');assert(r.candidates.some(c=>c.missing.includes('plot_id')))});
+check('reply 1/9/26 resolves original 1/9',()=>{const r=ctx.bsePilotCompactSowingResult_({original:orig,clarifications:['1/9/26']});assert.equal(r.validation,'NEED_INFO');assert.equal(r.candidates[0].fields.event_date,'2026-09-01');assert(r.candidates.some(c=>c.missing.includes('plot_id')))});
+check('invalid and wrong-year dates fail closed',()=>{for(const d of ['31/02','1/9/25','31/11/26','1/13']){const r=ctx.bsePilotCompactSowingResult_(orig.replace('1/9',d));assert.equal(r.validation,'NEED_INFO',d)}});
+check('unambiguous hyphen-prefixed single plot with dynamic date passes',()=>{const x=orig.replace('M4P12','- M4P3');const r=ctx.bsePilotCompactSowingResult_(x);assert.equal(r.validation,'PASS');assert.equal(r.candidates[0].fields.event_date,'2026-09-01');assert.equal(r.candidates[2].fields.plot_id,'M4P3')});
+check('history week 1 current October 2026 1-4 Oct',()=>{const h=ctx.bseTelegramHistoryCommand_('/history week 1',new Date('2026-10-20T01:00:00Z'));assert.equal(h.start,'2026-10-01');assert.equal(h.end,'2026-10-04')});
+check('history week 2 current Oct and Malay form',()=>{const h=ctx.bseTelegramHistoryCommand_('/history minggu 2',new Date('2026-10-20T01:00:00Z'));assert.equal(h.start,'2026-10-05');assert.equal(h.end,'2026-10-11')});
+check('history week rejects 0 and 9',()=>{for(const n of ['0','9'])assert.equal(ctx.bseTelegramHistoryCommand_('/history week '+n,new Date('2026-10-20T01:00:00Z')).invalid,true)});
+console.log('GI_DYNAMIC_DATE_WEEK '+n+'/'+n+' PASS');
