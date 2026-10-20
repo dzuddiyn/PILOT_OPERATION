@@ -1,5 +1,8 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## GI-PR122 Script HEAD human receipts verified ? 2026-10-20
+- PR #122 MERGED main `4e61ff1`, final Node suites 55/55 PASS. Apps Script HEAD pushed 74 files at 13:16:05 MYT, independently pulled back: canonical shared 65/65 MATCH, runtime-only Gate F helpers 9/9 preserved. Two actual PILOT sowing rows (249 and 253) previewed read-only with **pulled Script HEAD source** and both produced concise BM summaries with all plots. **LIVE TELEGRAM UX NOT YET VERIFIED**: their actual approvals predated this sync, and old callbacks/records were deliberately not replayed. See `docs/GATE_I_PR122_SCRIPT_HEAD_UX_READONLY_20261020.md`. Worker reliability and formal handover OPEN.
+
 ## Gate I human-readable persisted receipts ? 2026-10-20 (LOCAL PASS, NOT MERGED)
 - Real sowing BSE-TG-772257249 persisted 1 Crop Batch, 1 Planting Event, 2 Plot Allocations (M5P3/M5P4) exactly. Telegram edited receipt exposed raw schema IDs/statuses; fix proposed on feature branch: concise Malay verified read-back for sowing, humanized labels for generic fallback domains, preserve dedicated readable receipts. Fail-closed on missing/mismatched persisted rows. Reliability acceptance candidate: callback pending >2 min warning, >5 min escalation, >=3 deferred ticks warning; not activated. Details docs/GATE_I_HUMAN_RECEIPTS_AND_WORKER_GATE_20261020.md. No Apps Script push, deployment, callback replay, or domain write; live acceptance NOT TESTED for new formatter.
 
