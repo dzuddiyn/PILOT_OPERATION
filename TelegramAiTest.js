@@ -185,8 +185,8 @@ function bseTelegramAiReceive_(book,m,allowedPrivate,allowedGroup){
   if(!bseTelegramAiCommand_(m&&m.text))return {handled:false};
   if(!bseTelegramAiAccessAllowed_(book,m,allowedPrivate,allowedGroup))return {handled:true,unauthorized:true,production_write:false};
   const question=bseTelegramAiQuestion_(m.text);
-  if(!question){bseTelegramAiSend_(m,'Gunakan: /ask_ai <soalan>\nContoh: /ask_ai abamectin kumpulan IRAC berapa?');return {handled:true,production_write:false};}
-  if(question.length>6000){bseTelegramAiSend_(m,'Soalan terlalu panjang. Had /ask_ai ialah 6000 aksara.');return {handled:true,production_write:false};}
+  if(!question){const command=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'/ask':'/ask_ai';bseTelegramAiSend_(m,'Gunakan: '+command+' <soalan>\nContoh: '+command+' abamectin kumpulan IRAC berapa?');return {handled:true,production_write:false};}
+  if(question.length>6000){const command=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'/ask':'/ask_ai';bseTelegramAiSend_(m,'Soalan terlalu panjang. Had '+command+' ialah 6000 aksara.');return {handled:true,production_write:false};}
   if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'){
     const siteAnswer=bsePilotKbStructuredAnswer_(book,question)||bsePilotSiteBFaq_(book,question);
     if(siteAnswer){bseTelegramAiSend_(m,siteAnswer);return {handled:true,kb_used:true,production_write:false};}
@@ -318,7 +318,7 @@ function refreshBseAiKnowledgeBaseTest(){return rebuildBseAiFileSearchTest();}
 function runBseTelegramAiHarnessTests(){
   const src=[bseTelegramAiReceive_,bseAiGeminiAnswer_,bseTelegramAiSystemPrompt_].map(f=>f.toString()).join('\n');
   const tests=[
-    {id:'/ask_ai parser accepts free-form question',pass:bseTelegramAiCommand_('/ask_ai apa kumpulan IRAC abamectin?')&&bseTelegramAiQuestion_('/ask_ai apa kumpulan IRAC abamectin?')==='apa kumpulan IRAC abamectin?'},
+    {id:'environment-specific AI parser accepts free-form question',pass:(()=>{const pilot=bseRuntimeEnvironmentName_()==='PILOT_OPERATION',command=pilot?'/ask':'/ask_ai',legacy=pilot?'/ask_ai':'/ask',text=command+' apa kumpulan IRAC abamectin?';return bseTelegramAiCommand_(text)&&bseTelegramAiQuestion_(text)==='apa kumpulan IRAC abamectin?'&&!bseTelegramAiCommand_(legacy+' apa kumpulan IRAC abamectin?');})()},
     {id:'AI path is explicitly NON_CANONICAL',pass:/NON_CANONICAL/.test(bseTelegramAiSystemPrompt_(true))},
     {id:'AI path has no canonical/domain writer',pass:!/ReviewCore_|Measurement_Log|Observation_Log|Treatment_Log|Inventory_Log|production_write\s*:\s*true/.test(src)},
     {id:'File Search is optional and property-bound',pass:/BSE_AI_FILE_SEARCH_STORE_PROPERTY/.test(bseAiGeminiAnswer_.toString())&&/fileSearchStoreNames/.test(bseAiGeminiAnswer_.toString())},
