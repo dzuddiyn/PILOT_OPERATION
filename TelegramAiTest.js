@@ -315,10 +315,18 @@ function getBseAiKnowledgeBaseStatusTest(){
 }
 function getBseAiKnowledgeBaseManifestTest(){return getBseAiKnowledgeBaseStatusTest();}
 function refreshBseAiKnowledgeBaseTest(){return rebuildBseAiFileSearchTest();}
+function bseTelegramAiHarnessCommandParity_(){
+  const pilot=bseRuntimeEnvironmentName_()==='PILOT_OPERATION';
+  const command=pilot?'/ask':'/ask_ai',legacy=pilot?'/ask_ai':'/ask';
+  const suffix=' apa kumpulan IRAC abamectin?';
+  return bseTelegramAiCommand_(command+suffix)&&
+    bseTelegramAiQuestion_(command+suffix)==='apa kumpulan IRAC abamectin?'&&
+    !bseTelegramAiCommand_(legacy+suffix);
+}
 function runBseTelegramAiHarnessTests(){
   const src=[bseTelegramAiReceive_,bseAiGeminiAnswer_,bseTelegramAiSystemPrompt_].map(f=>f.toString()).join('\n');
   const tests=[
-    {id:'/ask_ai parser accepts free-form question',pass:bseTelegramAiCommand_('/ask_ai apa kumpulan IRAC abamectin?')&&bseTelegramAiQuestion_('/ask_ai apa kumpulan IRAC abamectin?')==='apa kumpulan IRAC abamectin?'},
+    {id:'environment-specific AI command parser accepts free-form question',pass:bseTelegramAiHarnessCommandParity_()},
     {id:'AI path is explicitly NON_CANONICAL',pass:/NON_CANONICAL/.test(bseTelegramAiSystemPrompt_(true))},
     {id:'AI path has no canonical/domain writer',pass:!/ReviewCore_|Measurement_Log|Observation_Log|Treatment_Log|Inventory_Log|production_write\s*:\s*true/.test(src)},
     {id:'File Search is optional and property-bound',pass:/BSE_AI_FILE_SEARCH_STORE_PROPERTY/.test(bseAiGeminiAnswer_.toString())&&/fileSearchStoreNames/.test(bseAiGeminiAnswer_.toString())},
