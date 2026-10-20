@@ -217,7 +217,7 @@ check('PILOT future Transplant card includes real work date and plot rather than
  assert(card.includes('Pindah Tanam'));
  assert(card.includes('07/10/2026')&&card.includes('Timun')&&card.includes('Batu CCB'));
  assert(card.includes('M5P1, M5P2'));
- assert(card.includes('Benar'));
+ assert(!card.includes('Tekan Benar hanya')&&!card.includes('Selepas Benar, rekod pindah tanam disimpan'));
  assert(!card.includes('Transplant_Event_Log')&&!card.includes('Crop Batch'));
 });
 check('PILOT pass receipt preserves real work date and confirmation-gated wording',()=>{

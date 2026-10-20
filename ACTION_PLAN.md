@@ -1,5 +1,8 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## Gate I card wording + harvest-start support ? 2026-10-20 (LOCAL PASS)
+- Owner crossed out two redundant `Benar` instruction lines from transplant approval card and requested all cards omit those literal lines. Parser previously lacked explicit `Tarikh mula harvest/harverst / tuai` support. PILOT-only deterministic route now proposes one `Operation_Log` `HARVEST_START` using user-provided date and single plot, with no fabricated crop/yield or status transition; existing human confirmation unchanged. Real M7P3 has confirmed transplant dated 2026-09-06 and ACTIVE status (read-only). Targeted 19/19, transplant 9/9 and 29/29, full Node regression 56/56 PASS. **SOURCE LOCAL PASS ONLY; NOT MERGED, NOT PUSHED TO APPS SCRIPT, NOT LIVE VERIFIED**. See docs/GATE_I_CLEAN_CARDS_HARVEST_START_20261020.md. Worker reliability and formal BSE acceptance OPEN.
+
 ## Gate I sowing human receipt LIVE PASS ? 2026-10-20 (report 772257257)
 - After PR #122 Script HEAD sync at 13:16:05 MYT, real user report BSE-TG-772257257 (Peria Besar 936 Hua li, 31/08/2026, M7P3) was human-confirmed. Telegram Desktop UIA shows concise BM edited receipt with all details and truthful PROVISIONAL status; independent PILOT Sheet read-back confirms 1 crop batch, 1 SEED_SOWING event, 1 M7P3 allocation and callback 772257258 PROCESSED once. **SCOPED LIVE PASS** for sowing receipt; other generic receipt domains and worker reliability remain OPEN, formal handover NOT DELIVERED. Evidence: docs/GATE_I_SOWING_HUMAN_RECEIPT_257_LIVE_20261020.md.
 
