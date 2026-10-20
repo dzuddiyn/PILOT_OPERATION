@@ -180,7 +180,7 @@ function bseTelegramServiceMessage_(message){
 }
 function bseTelegramPrivateCommandReply_(message,text){
   if(!message||!message.chat||!message.from||message.chat.type!=='private'||String(message.chat.id)!==String(message.from.id)||!/^\d+$/.test(String(message.chat.id))||!Number.isSafeInteger(Number(message.message_id))||Number(message.message_id)<=0)throw new Error('Balasan PM masuk tidak sah.');
-  return bseTelegramApi_('sendMessage',{chat_id:String(message.chat.id),text:String(text||''),reply_parameters:{message_id:Number(message.message_id),allow_sending_without_reply:false},__bse_inbound_private_reply:true});
+  return bseTelegramApi_('sendMessage',{chat_id:String(message.chat.id),text:String(text||''),reply_parameters:{message_id:Number(message.message_id),allow_sending_without_reply:true},__bse_inbound_private_reply:true});
 }
 function bseTelegramQueue_(book) {
   let sheet=book.getSheetByName('TELEGRAM_TEST_QUEUE');
