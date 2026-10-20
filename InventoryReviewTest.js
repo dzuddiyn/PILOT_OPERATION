@@ -243,6 +243,7 @@ function bseInventoryPlotIds_(text){
   const source=String(text||'').toUpperCase(),plots=[];
   const matched=source.match(/M\s*[1-9]\d*\s*P\s*[1-9]\d*(?:\s*,\s*(?:M\s*[1-9]\d*\s*P\s*)?[1-9])?/g)||[];
   for(const token of matched){const result=bseCanonicalPlotTokens_(token.replace(/\s+/g,''));if(!result.ok)return [];plots.push(...result.plots);}
+  const mod=source.match(/\bM\s*([1-9]\d*)\b/);if(mod){const standalone=[...source.matchAll(/\bP\s*([1-9])\b/g)].map(x=>x[1]);for(const n of standalone)plots.push('M'+mod[1]+'P'+n);}
   return Array.from(new Set(plots));
 }
 
