@@ -561,7 +561,8 @@ function bseSeedSowingModulePlots_(input) {
   let module,plotNumbers=[];
   const compact=value.match(/^M([1-9]\d*)P([1-9]\d*)$/i);
   if(compact){
-    module=compact[1];plotNumbers=[compact[2]];
+    module=compact[1];plotNumbers=compact[2].length===2?compact[2].split(''):compact[2].length===1?[compact[2]]:[];
+    if(!plotNumbers.length)return {ok:false,plots:[],reason:'MODUL_PLOT_NONCANONICAL'};
   }else{
     const tokens=value.split(/\s+/);
     if(tokens.length<2||!/^M[1-9]\d*$/i.test(tokens[0])||tokens.slice(1).some(token=>!/^P[1-9]\d*$/i.test(token)))return {ok:false,plots:[],reason:'MODUL_FORMAT_NONCANONICAL'};
