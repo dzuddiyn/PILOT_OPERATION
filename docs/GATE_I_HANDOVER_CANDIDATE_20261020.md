@@ -1,7 +1,7 @@
 ﻿# OpsMate BSE PILOT_OPERATION — Gate I Handover Candidate
 
-**Date:** 20 Oct 2026  
-**Status:** HANDOVER PREPARED — NOT DELIVERED  
+**Date:** 20 Oct 2026
+**Status:** HANDOVER PREPARED — NOT DELIVERED
 **Environment:** PILOT_OPERATION shadow pilot only
 
 ## What is verified
