@@ -2,9 +2,19 @@
 
 **Date:** 2026-10-20 MYT
 **Environment:** PILOT_OPERATION (shadow pilot; `production_write:false`, `official_bse_write:false`)
-**Status:** LOCAL PASS / PR preparation. **Not merged, not pushed to Apps Script HEAD, no deployment or new live proof.**
+**Current status:** PR #131 MERGED / Apps Script HEAD UPDATED / independent source read-back **76/76 PASS** / genuine Apps Script Editor runtime regression **47/47 PASS**. No version or deployment update; GI-263 field-message UX still NOT_RUN.
 
-## Baseline observed in the actual Apps Script editor
+## Actual post-fix runtime evidence — 20 October 2026
+
+- Canonical PR [#131](https://github.com/dzuddiyn/PILOT_OPERATION/pull/131) MERGED; canonical `main` merge SHA `cde9104f4c77652eed0864de5a7e2b8d86964c9b` independently fetched and verified.
+- Owner-authorized `clasp push --force` targeted the existing `PILOT_OPERATION` Script HEAD, using fresh cloned canonical `main` plus **nine unchanged runtime-only Gate F helpers**; pre-push drift guard confirmed exactly three JS code changes (`TreatmentReviewTest.js`, `GeminiUnifiedTest.js`, `TelegramApprovalUiTest.js`), with no manifest change.
+- New independent Apps Script `clasp pull` after push: **76/76 files (75 JS + manifest), zero file-set/content mismatches** against staged canonical source plus preserved helpers. No new Apps Script version, deployment, official BSE write, or Telegram replay was performed.
+- Owner Chrome Apps Script Editor UI Automation reloaded the actual project, selected **only** `runBseI011FullRegression`, invoked it exactly once, and read the Apps Script execution log. Source log: `started_at=2026-10-20T08:00:40.171Z`, `finished_at=2026-10-20T08:00:44.839Z`, `total=47`, **`passed=47`**, **`failed=0`**, **`production_write=false`**, execution completed.
+- Independent **Apps Script → Executions** UI confirms the same function executed from Editor on **2026-10-20 at 16:00:38 MYT**, duration **6.182 sec**, status **Selesai**; the prior 15:18:59 pre-fix regression remains **Gagal** and is not overwritten or concealed.
+- Independent Google Sheets `PILOT_OPERATION` read-back for original genuine report `BSE-TG-772257263`: queue `NEEDS_HUMAN_REVIEW`, ACK `SENT`, approval card `OPEN` (message 264); zero matching `PILOT_OPERATION_LOG` and `PILOT_OPERATION_REVIEW` rows. **No existing Benar/Betulkan/Batal decision was made**.
+- GI-263 post-fix **new Telegram Operation card-only UX remains NOT_RUN**; worker reliability and formal handover are separate open gates. The successful Apps Script regression does not prove a new Telegram UX event occurred.
+
+## Historical baseline observed in the actual Apps Script editor
 
 On 20 October 2026 at approximately 15:19 MYT, Windows UI Automation selected and executed `runBseI011FullRegression` in the bound PILOT_OPERATION Apps Script Editor. The execution log reported **47 total / 44 PASS / 3 FAIL**, `production_write:false`:
 
@@ -31,13 +41,13 @@ These regression failures are **separate from GI-263**; they do not imply the pe
 | Full repository Node suites | 59/59 PASS |
 | JavaScript syntax and Node test syntax | 66/66 JS; 59/59 CJS PASS |
 | `git diff --check` | PASS |
-| Post-fix Apps Script Editor full regression (47 checks) | **NOT RUN** — blocked until separately authorized merge/HEAD sync |
+| Post-fix Apps Script Editor full regression (47 checks) | **LIVE RUNTIME PASS: 47/47, 0 FAIL**, 16:00 MYT, real Chrome UI Automation; independently confirmed completed in Apps Script Executions |
 | Telegram field UX / production write | **NOT RUN / NONE** |
 
 An optional *synthetic* all-47 VM probe cannot establish runtime parity: it lacks full Apps Script Google services and reports unrelated stub errors (digest API, Script Properties, simulated sheet facilities). It is **not** evidence of post-fix live failures or a live PASS. The three originally failing harnesses passed with the targeted in-memory fixture.
 
 ## Authority boundary / next gate
 
-Canonical base: `dzuddiyn/PILOT_OPERATION` main `284ef8e313eba42e46c2710d19170022adeca64a`. This is a code/test/documentation PR only. No Apps Script `clasp push`, version, deployment, Telegram send/callback replay, approval-card interaction, or Google Sheet write is included. The existing `BSE-TG-772257263` card remains owner-controlled.
+**Completed within owner-approved GI-REG-03 scope:** canonical GitHub PR #131 MERGED at `cde9104f4c77652eed0864de5a7e2b8d86964c9b`; Script HEAD updated; Apps Script fresh read-back exact **76/76**; genuine post-fix Apps Script Editor full regression **47/47 PASS**. Historical baseline 44/47 remains preserved above for audit, not the current regression result.
 
-Owner authorization is required to merge the PR; Apps Script HEAD sync and runtime 47/47 proof are separate gates. Until a fresh Apps Script UI Automation run passes, report the last verified runtime state truthfully: **44/47 PASS, 3 FAIL on the pre-fix HEAD**.
+**Outside scope and not done:** no Apps Script version or deployment update, no Telegram field report or callback replay, no approval-card interaction, no operational PILOT or official BSE Sheet write. Existing `BSE-TG-772257263` remains owner-controlled and OPEN. GI-263 post-fix new-message user-facing card-only proof, worker reliability acceptance and formal BSE handover remain **OPEN / NOT VERIFIED**.
