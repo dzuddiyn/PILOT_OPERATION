@@ -319,19 +319,30 @@ function bsePilotHarvestStartResult_(input){
   if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')return null;
   const source=bseUnifiedSourceContext_(input),note=String(source.original||'').trim();
   const rows=note.split(/\r?\n/).map(v=>String(v).trim()).filter(Boolean);
-  if(!rows.length||!/^Tarikh\s+mula\s+(?:harvest|harverst|tuai)\b/i.test(rows[0]))return null;
-  const header=/^Tarikh\s+mula\s+(?:(?:harvest|harverst)(?:\s*\/\s*tuai)?|tuai(?:\s*\/\s*(?:harvest|harverst))?)$/i.test(rows[0]);
-  const plot=bseCanonicalPlotTokens_(rows[1]||''),singlePlot=plot.ok&&plot.plots.length===1;
-  const date=bseTransplantFlexibleDate_(rows[2]||''),exact=header&&rows.length===3&&singlePlot&&!!date;
-  const malformed=!header||rows.length>3||plot.ok&&plot.plots.length!==1;
-  const validation=malformed?'REJECTED':exact?'PASS':'NEED_INFO';
-  const missing=[];if(!singlePlot)missing.push('plot_id');if(!date)missing.push('event_date');
-  // Reported harvest commencement only: do not infer crop, produce weight or lifecycle changes.
-  const fields={project_id:'BSE_SB',system_year:2026,event_date:date||'',record_type:'OPERATION',
-    verification_status:'PROVISIONAL',original_note:note,event_time:'',
-    plot_id:singlePlot?plot.plots[0]:'',operation_type:'HARVEST_START',
-    remarks:'Tarikh mula tuai dilaporkan; tiada kuantiti hasil dinyatakan.'};
-  return {validation,production_write:false,candidates:[{target:'Operation_Log',validation,missing,fields}]};
+  // GI-HARVEST: "Tarikh mula harvest", "Tarikh mula tuai", "Mula
+  // harvest", "Mula tuai" and the observed typo "Mula Harverst".
+  // A recognized incomplete phrase must NEVER fall through into Treatment.
+  if(!rows.length||!/^(?:tarikh\s+)?mula\s+(?:harvest|harverst|tuai)\b/i.test(rows[0]))return null;
+  const header=/^(?:tarikh\s+)?mula\s+(?:(?:harvest|harverst)(?:\s*\/\s*tuai)?|tuai(?:\s*\/\s*(?:harvest|harverst))?)$/i.test(rows[0]);
+  const parsed=bseCanonicalPlotTokens_(rows[1]||''),plots=parsed.ok?parsed.plots:[];
+  const validPlots=plots.length>=1&&plots.length<=2&&
+    new Set(plots).size===plots.length;
+  const date=bseTransplantFlexibleDate_(rows[2]||'');
+  const malformed=!header||rows.length!==3;
+  const validation=malformed?'REJECTED':validPlots&&date?'PASS':'NEED_INFO';
+  const missing=[];if(!validPlots)missing.push('plot_id');if(!date)missing.push('event_date');
+  // One Telegram report with two plots creates two independently confirmable
+  // Operation_Log candidates/cards, NOT a combined noncanonical plot_id.
+  // Reporter confirmation is still required for each plot, and never implies
+  // crop, harvest quantity, yield, or a change of lifecycle state.
+  const candidates=(validPlots?plots:['']).map(plotId=>{
+    const fields={project_id:'BSE_SB',system_year:2026,event_date:date||'',record_type:'OPERATION',
+      verification_status:'PROVISIONAL',original_note:String(source.provenance||note),
+      event_time:'',plot_id:plotId,operation_type:'HARVEST_START',
+      remarks:'Tarikh mula tuai dilaporkan; tiada kuantiti hasil dinyatakan.'};
+    return {target:'Operation_Log',validation,missing:missing.slice(),fields};
+  });
+  return {validation,production_write:false,candidates};
 }
 function bsePilotTreatmentReviewCardOnly_(result,status){
   if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||status!=='NEEDS_HUMAN_REVIEW'||
@@ -343,13 +354,19 @@ function bsePilotTreatmentReviewCardOnly_(result,status){
 function bsePilotOperationReviewCardOnly_(result,status){
   if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||status!=='NEEDS_HUMAN_REVIEW'||
      !result||result.validation!=='PASS'||result.production_write!==false||
-     !Array.isArray(result.candidates)||result.candidates.length!==1)return false;
-  const c=result.candidates[0],f=c&&c.fields||{};
-  return !!c&&c.target==='Operation_Log'&&c.validation==='PASS'&&
-    Array.isArray(c.missing)&&c.missing.length===0&&
-    /^\d{4}-\d{2}-\d{2}$/.test(String(f.event_date||''))&&
-    /^M[1-9]\d*P[1-9]\d*$/.test(String(f.plot_id||''))&&
-    !!String(f.operation_type||'').trim();
+     !Array.isArray(result.candidates)||!result.candidates.length||
+     result.candidates.length>2)return false;
+  const plots=[];
+  for(const c of result.candidates){
+    const f=c&&c.fields||{};
+    if(!c||c.target!=='Operation_Log'||c.validation!=='PASS'||
+       !Array.isArray(c.missing)||c.missing.length||
+       !/^\d{4}-\d{2}-\d{2}$/.test(String(f.event_date||''))||
+       !/^M[1-9]\d*P[1-9]\d*$/.test(String(f.plot_id||''))||
+       !String(f.operation_type||'').trim())return false;
+    plots.push(String(f.plot_id));
+  }
+  return new Set(plots).size===plots.length;
 }
 function bsePilotSowingReviewCardOnly_(result,status){
   if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||status!=='NEEDS_HUMAN_REVIEW'||

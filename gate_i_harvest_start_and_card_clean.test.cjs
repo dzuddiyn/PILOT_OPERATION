@@ -25,7 +25,7 @@ check('English spelling supported',()=>assert.equal(ctx.bsePilotHarvestStartResu
 check('Malay header supported',()=>assert.equal(ctx.bsePilotHarvestStartResult_('Tarikh mula tuai\nM7P3\n14/10/26').validation,'PASS'));
 check('invalid date waits for correction not guessed',()=>{const r=ctx.bsePilotHarvestStartResult_('Tarikh mula tuai\nM7P3\n31-Feb-26');assert.equal(r.validation,'NEED_INFO');assert.equal(r.candidates[0].fields.event_date,'');});
 check('missing plot cannot approve',()=>assert.notEqual(ctx.bsePilotHarvestStartResult_('Tarikh mula tuai\n14-Oct-26').validation,'PASS'));
-check('multiple plots rejected',()=>assert.equal(ctx.bsePilotHarvestStartResult_('Tarikh mula tuai\nM7P3,4\n14-Oct-26').validation,'REJECTED'));
+check('multiple plots now produce two separate review candidates',()=>{const r=ctx.bsePilotHarvestStartResult_('Tarikh mula tuai\nM7P3,4\n14-Oct-26');assert.equal(r.validation,'PASS');assert.equal(r.candidates.length,2);assert.equal(r.candidates[0].fields.plot_id,'M7P3');assert.equal(r.candidates[1].fields.plot_id,'M7P4');});
 check('unexpected fourth line rejected',()=>assert.equal(ctx.bsePilotHarvestStartResult_('Tarikh mula tuai\nM7P3\n14-Oct-26\n100 kg').validation,'REJECTED'));
 check('unsupported year rejected or NEED_INFO',()=>assert.notEqual(ctx.bsePilotHarvestStartResult_('Tarikh mula tuai\nM7P3\n14-Oct-25').validation,'PASS'));
 check('unrelated messages not hijacked',()=>assert.equal(ctx.bsePilotHarvestStartResult_('semai\nCucumber 6656 (282 CP)\nM7P3\n14-Oct-26'),null));
