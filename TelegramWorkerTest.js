@@ -397,7 +397,23 @@ function bsePilotTransplantReviewCardOnly_(result,status){
     result.candidates[0].validation==='PASS'&&
     Array.isArray(result.candidates[0].missing)&&
     result.candidates[0].missing.length===0;
-}function processBseTelegramTestQueue() {
+}
+// A complete PILOT EC report has one canonical approval card with all readings.
+// Skip only the redundant generic result preview. Do not suppress clarification,
+// errors, other domains, or any TEST/PILOT_TEST behavior.
+function bsePilotEcReviewCardOnly_(result,status){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||
+     status!=='NEEDS_HUMAN_REVIEW'||!result||
+     result.validation!=='PASS'||result.production_write!==false||
+     !Array.isArray(result.candidates)||result.candidates.length!==1)return false;
+  const candidate=result.candidates[0],f=candidate&&candidate.fields||{};
+  return !!candidate&&candidate.target==='EC_Leachate_Log'&&
+    candidate.validation==='PASS'&&Array.isArray(candidate.missing)&&
+    candidate.missing.length===0&&f.record_type==='EC_LEACHATE'&&
+    /^\d{4}-\d{2}-\d{2}$/.test(String(f.event_date||''))&&
+    Array.isArray(f.readings)&&f.readings.length>0;
+}
+function processBseTelegramTestQueue() {
   const book=boundTestBook_(),props=PropertiesService.getScriptProperties();
   if(typeof processBseImageProcessingQueueTest==='function'){
     const imageResult=processBseImageProcessingQueueTest();
@@ -509,7 +525,7 @@ function bsePilotTransplantReviewCardOnly_(result,status){
       return;
     }
     try {
-      if(!bsePilotTransplantReviewCardOnly_(result,reviewStatus)&&!bsePilotSowingReviewCardOnly_(result,reviewStatus)&&!bsePilotTreatmentReviewCardOnly_(result,reviewStatus)&&!bsePilotOperationReviewCardOnly_(result,reviewStatus)){
+      if(!bsePilotTransplantReviewCardOnly_(result,reviewStatus)&&!bsePilotSowingReviewCardOnly_(result,reviewStatus)&&!bsePilotTreatmentReviewCardOnly_(result,reviewStatus)&&!bsePilotOperationReviewCardOnly_(result,reviewStatus)&&!bsePilotEcReviewCardOnly_(result,reviewStatus)){
       const payload={chat_id:job.chatId,text:result.transplant_already_recorded?bsePilotTransplantExistingExactText_('BSE-TG-'+job.id,result.transplant_already_recorded):claimMissingText||bseTelegramResultText_('BSE-TG-'+job.id,result,question)};
       if(/^\d+$/.test(job.messageId))payload.reply_parameters={message_id:Number(job.messageId),allow_sending_without_reply:true};
       if(question||claimMissingText)payload.reply_markup={force_reply:true,input_field_placeholder:'Jawapan untuk laporan ini'};
