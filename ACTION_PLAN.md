@@ -1,5 +1,8 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## GI-PR125 merged / Apps Script HEAD sync verified ? 2026-10-20
+- PR #125 MERGED main `83b3391`. Approved approval-card text removal and PILOT-only `HARVEST_START` support. Script HEAD pushed 74 files at 13:59:56 MYT after old-runtime 65/65 baseline check. Fresh independent pull: 65/65 shared canonical files match merged main, 9 runtime-only helpers preserved, 0 drift. Pulled source read-only preview PASS for `Tarikh mula harverst / tuai / M7P3 / 14-Oct-26` and cleaned transplant card. **SCRIPT HEAD VERIFIED, TELEGRAM LIVE NOT TESTED**; no Script version/deployment update, no callback or farm write. See `docs/GATE_I_PR125_HEAD_SYNC_READBACK_20261020.md`. Worker reliability and formal BSE handover OPEN.
+
 ## Gate I card wording + harvest-start support ? 2026-10-20 (LOCAL PASS)
 - Owner crossed out two redundant `Benar` instruction lines from transplant approval card and requested all cards omit those literal lines. Parser previously lacked explicit `Tarikh mula harvest/harverst / tuai` support. PILOT-only deterministic route now proposes one `Operation_Log` `HARVEST_START` using user-provided date and single plot, with no fabricated crop/yield or status transition; existing human confirmation unchanged. Real M7P3 has confirmed transplant dated 2026-09-06 and ACTIVE status (read-only). Targeted 19/19, transplant 9/9 and 29/29, full Node regression 56/56 PASS. **SOURCE LOCAL PASS ONLY; NOT MERGED, NOT PUSHED TO APPS SCRIPT, NOT LIVE VERIFIED**. See docs/GATE_I_CLEAN_CARDS_HARVEST_START_20261020.md. Worker reliability and formal BSE acceptance OPEN.
 
