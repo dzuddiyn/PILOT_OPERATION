@@ -700,7 +700,9 @@ function bseTransplantPlots_(input){
   // Explicit source labels describe where seedlings came from, not transplant
   // destinations. Exclude only those labelled lines from destination parsing.
   const destinationText=text.split(/\r?\n/).filter(line=>!/^\s*(?:Plot\s+asal|Dari\s+plot)\s*:/i.test(line)).join('\n');
-  const tokens=[];const matcher=/\bM[1-9]\d*P[1-9]\d*(?:\s*,\s*(?:M[1-9]\d*P)?[1-9])?/ig;let match;
+  // GI-REG-03: date after comma (15/10/2026) is not a shorthand plot ", 1".
+  // Genuine compact pairs such as M1P1, 2 remain valid.
+  const tokens=[];const matcher=/\bM[1-9]\d*P[1-9]\d*(?:\s*,\s*(?:M[1-9]\d*P)?[1-9](?!\d|[\/-]))?/ig;let match;
   while((match=matcher.exec(destinationText))){const parsed=bseCanonicalPlotTokens_(match[0]);if(!parsed.ok)return {ok:false,plots:[],reason:'TRANSPLANT_PLOT_AMBIGUOUS'};tokens.push(...parsed.plots)}
   if(!tokens.length)return {ok:false,plots:[],reason:'TRANSPLANT_PLOT_MISSING'};
   const plots=tokens.slice().sort(bseTransplantPlotCompare_);
