@@ -52,7 +52,7 @@ check('PILOT Treatment technical-only worker notice becomes action-oriented',()=
  const result=out('sendMessage','Rujukan BSE-TG-772257163:\nTREATMENT_EVENT\nStatus: PROVISIONAL — menunggu semakan manusia.\nMod TEST — tiada rekod production ditulis.');
  assert(result.includes('Laporan racun'));
  assert(result.includes('BSE-TG-772257163'));
- assert(result.includes('Benar, Betulkan atau Batal'));
+ assert(result.includes('Benar atau Batal'));
  assert(!/PROVISIONAL|TREATMENT_EVENT|production|Mod TEST|\[PILOT\]/i.test(result));
 });
 check('PILOT original user note TEST_ONLY and original middle sentence remain verbatim',()=>{
