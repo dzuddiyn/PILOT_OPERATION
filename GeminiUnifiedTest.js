@@ -709,6 +709,21 @@ function bseTransplantPlotCompare_(left,right){
   return Number(a[1])-Number(b[1])||Number(a[2])-Number(b[2]);
 }
 
+function bseTransplantFlexibleDate_(value){
+  const raw=String(value||'').trim().replace(/^[-\s]+/,'');
+  let m=raw.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2}|\d{4})$/),mo=0;
+  if(m)mo=Number(m[2]);
+  else {
+    m=raw.match(/^(\d{1,2})[\s-]([a-z]{3,9})[\s,-]+(\d{2}|\d{4})$/i);
+    if(!m)return '';
+    const short=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+    const full=['january','february','march','april','may','june','july','august','september','october','november','december'];
+    const token=m[2].toLowerCase();mo=short.indexOf(token.slice(0,3))+1;
+    if(!mo||!(token===short[mo-1]||token===full[mo-1]||token==='sept'&&mo===9))return '';
+  }
+  const day=Number(m[1]),year=m[3].length===2?2000+Number(m[3]):Number(m[3]),date=new Date(Date.UTC(year,mo-1,day));
+  return year===2026&&date.getUTCFullYear()===year&&date.getUTCMonth()===mo-1&&date.getUTCDate()===day?year+'-'+String(mo).padStart(2,'0')+'-'+String(day).padStart(2,'0'):'';
+}
 function bseTransplantExplicitDate_(input){
   const text=String(input||'');
   const line=text.match(/(?:^|\n)\s*Tarikh\s+Pindah\s*:\s*([^\r\n]*)/i);
@@ -726,23 +741,20 @@ function bseTransplantExplicitDateContext_(sourceContext){
   const values=[];let present=false,invalid=false;
   [source.original].concat(source.clarifications||[]).forEach((text,index)=>{
     const lines=String(text||'').split(/\r?\n/);
-    lines.forEach(line=>{
+    lines.forEach((line,lineIndex)=>{
       const labeled=line.match(/^\s*Tarikh\s+Pindah\s*:\s*(.*?)\s*$/i);
-      const plain=index>0&&lines.length===1?line.match(/^\s*(\d{1,2}\/\d{1,2}\/\d{4})\s*$/):null;
-      const inline=index===0&&lines.length===1?line.match(/^Pindah\s+anak\s+pokok\b.+(?:\bke\s+M[1-9]\d*P[1-9]\d*|\bM[1-9]\d*P[1-9]\d*.+)\s*,\s*(\d{1,2}\/\d{1,2}\/\d{4})\s*$/i):null;
+      const raw=String(line||'').trim();
+      const plain=(index>0&&lines.length===1||index===0&&lineIndex>0)&&/^(?:\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}|\d{1,2}[\s-][A-Za-z]{3,9}[\s,-]+\d{2,4})$/.test(raw)?raw:'';
+      const inline=index===0&&lines.length===1?raw.match(/^Pindah\s+anak\s+pokok\b.+\s*,\s*(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}|\d{1,2}[\s-][A-Za-z]{3,9}[\s,-]+\d{2,4})$/i):null;
       if(!labeled&&!plain&&!inline)return;
       present=true;
-      const raw=(labeled?labeled[1]:plain?plain[1]:inline[1]).trim(),parts=raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-      if(!parts){invalid=true;return;}
-      const day=Number(parts[1]),month=Number(parts[2]),year=Number(parts[3]),date=new Date(Date.UTC(year,month-1,day));
-      if(year!==2026||date.getUTCFullYear()!==year||date.getUTCMonth()!==month-1||date.getUTCDate()!==day){invalid=true;return;}
-      values.push(year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0'));
+      const parsed=bseTransplantFlexibleDate_(labeled?labeled[1]:plain||inline[1]);
+      if(!parsed){invalid=true;return;}values.push(parsed);
     });
   });
   const unique=Array.from(new Set(values));if(unique.length>1)invalid=true;
-  return {present:present,ok:present&&!invalid&&unique.length===1,date:present&&!invalid&&unique.length===1?unique[0]:''};
+  return {present,ok:present&&!invalid&&unique.length===1,date:present&&!invalid&&unique.length===1?unique[0]:''};
 }
-
 function bseTransplantMalaysiaDate_(receivedAt){
   const date=new Date(receivedAt);
   if(Number.isNaN(date.getTime()))return '';
