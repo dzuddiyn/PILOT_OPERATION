@@ -48,10 +48,21 @@ function bsePilotEcReadingValid_(r){
   if(status==='NUMERIC')return validNum(a)&&validNum(b);
   return false;
 }
+// Only standalone report titles activate the EC intake path.
+// Preserve the explicit no-title multi-reading fallback separately.
+function bsePilotEcHeading_(line){
+  return /^(?:REKOD\s+)?EC(?:[\s_-]*(?:LEACHING|LEACHATE|LEECHING|IN))?$/i.test(
+    String(line||'').replace(/\*+/g,'').trim());
+}
+function bsePilotEcSession_(text){
+  const m=String(text||'').trim().match(/^(?:(?:Sesi|Session)\s*:\s*)?(pg|pagi|ptg|petang)$/i);
+  if(!m)return '';
+  return /^(pg|pagi)$/i.test(m[1])?'PAGI':'PETANG';
+}
 function bsePilotEcUnifiedParseMessage_(text){
   if(typeof bseRuntimeEnvironmentName_!=='function'||bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')return null;
   const original=String(text||''),normal=original.replace(/\r/g,''),
-    lines=normal.split('\n'),heading=/\b(?:REKOD\s+)?EC[\s_-]*(?:LEACHING|LEACHATE|LEECHING|IN)\b/i.test(normal);
+    lines=normal.split('\n'),heading=lines.some(bsePilotEcHeading_);
   let date='',dateSeen=false,session='',sessionSeen=false,badDate=false,unknown=[];
   const readings=[],errors=[];
   for(const raw of lines){
@@ -66,12 +77,16 @@ function bsePilotEcUnifiedParseMessage_(text){
       dateSeen=true;const value=bseEcLeachateDate_(line);
       if(!value||date&&date!==value)badDate=true;else date=value;continue;
     }
-    const m=line.match(/^Sesi\s*:\s*(.*?)\s*$/i);
-    if(m){sessionSeen=true;const value=m[1].toUpperCase();
-      if(!['PAGI','PETANG'].includes(value)||session&&session!==value)errors.push('session');
-      else session=value;continue;
+    const recognizedSession=bsePilotEcSession_(line);
+    if(recognizedSession){sessionSeen=true;
+      if(session&&session!==recognizedSession)errors.push('session_conflict');
+      else session=recognizedSession;
+      continue;
     }
-    if(/^\s*(?:REKOD\s+)?EC[\s_-]*(?:LEACHING|LEACHATE|LEECHING|IN)\s*$/i.test(line))continue;
+    if(/^(?:Sesi|Session)\s*:/i.test(line)){
+      sessionSeen=true;errors.push('session');continue;
+    }
+    if(bsePilotEcHeading_(line))continue;
     const reading=bsePilotEcReading_(line);
     if(reading){if(reading.error)errors.push(reading.error);else readings.push(reading);continue;}
     if(/^(?:\d+[.)]\s*)?M[1-9]\d*\s*$/i.test(line))continue; // section heading

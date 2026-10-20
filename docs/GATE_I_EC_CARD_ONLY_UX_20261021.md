@@ -27,3 +27,11 @@ Owner requests **no generic preview**. The correct full review card remains.
 3. Explicit owner Apps Script HEAD authorization before `clasp push`; fresh source parity, actual native Apps Script regression and stability pull.
 4. Demonstrate **new** EC report: one clear approval card, no separate generic summary, Benar/Batal correct; verify via Telegram observation and corresponding Sheets read-back. Do not replay or approve old reports.
 5. If runtime issue, fail closed, reconcile current HEAD and rollback only as authorized. No version/deployment, official BSE writes or Telegram queue resets without distinct approval.
+
+## Follow-up — Flexible EC titles and optional session (2026-10-21)
+- New screenshot and Google Sheets READ of `BSE-TG-772257372` demonstrate the root cause: user supplied `EC` plus `14/10/2026`, nine scope lines including `x` and blank values, but the old EC-specific parser rejected the lone heading and the fallback produced five `Measurement_Log` candidates. No approval card was created for that report.
+- `PilotEcUnifiedIntake.js` now accepts standalone headers `EC`, `Rekod EC`, `EC leeching`, `EC leaching` and existing EC headings, case-insensitively. Standalone header recognition does not treat arbitrary prose containing EC as a confirmed EC report.
+- Date comes exclusively from explicitly supplied message text (DD/MM/YYYY; not inferred from receive date). `pg`, `pagi`, `ptg`, `petang` and `Sesi: ...` are optional, normalize to PAGI/PETANG and can appear before or after the date. Contradictory or invalid details fail closed.
+- Nine scope lines are retained in one canonical `EC_Leachate_Log` candidate; `x` and blank readings remain NOT_MEASURED, and `M7` remains module scope. Both TEST and PILOT_TEST retain their original parsing behavior.
+- New `gate_i_ec_flexible_headers_sessions.test.cjs` **31/31 PASS** using the screenshot's actual layout and permutations; existing EC card-only **8/8 PASS**. Complete local Node regression **75/75 PASS**. Source syntax and diff check PASS.
+- This change updates the existing **draft PR #148** only. No merge, Apps Script HEAD push, Telegram replay, approval, or domain record write was performed. Historical `BSE-TG-772257372` remains in its previous state pending separate authenticated reporter review; never silently migrate/approve it.
