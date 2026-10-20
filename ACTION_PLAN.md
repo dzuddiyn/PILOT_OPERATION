@@ -1,5 +1,9 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## Gate I global plot LIVE acceptance ? 2026-10-20 (scoped)
+- BSE-TG-772257247 callback 772257248 PROCESSED once, one transplant BSE-SB-TR-20261007-002 and two M5P1/M5P2 PLANNED-to-ACTIVE rows; full Telegram card confirmed with UIA. Independent Script HEAD read-back 65/65, Node regression 54/54. See docs/GATE_I_GLOBAL_PLOT_LIVE_248_20261020.md and docs/GATE_I_HANDOVER_CANDIDATE_20261020.md. Status SCOPED LIVE PASS; worker failure 12:28 remains open; formal handover NOT DELIVERED.
+
+
 ## Gate I Owner Operational History Dedup — 2026-10-19
 - Genuine Telegram Desktop owner UIA /history Oct 2026 initially SENT OWNER_ACTIVE 10/10 and showed duplicate Timun Batu CCB transplant on 7 Oct (canonical BSE-SB-TR-20261007-001 and approved BSE-TG-772257176). PR #95 implements scoped PILOT semantic dedup by work date, crop, variety and plot set without merging different operations or changing private Evidence visibility. Targeted synthetic 9/9, work-date 16/16, parser 25/25, full Node suite no failures; Script HEAD independent 64/64 canonical match, nine runtime helpers preserved. Same single post-fix owner UIA command later returned distinct operations and independent PILOT_TELEGRAM_HISTORY_AUDIT 2026-10-19T13:30:31.260Z SENT OWNER_ACTIVE 9/9, canonical 7 Oct transplant once, duplicate approval excluded. Evidence docs/GATE_I_OWNER_DEDUP_LIVE_AUDIT_20261019.md. Scoped owner dedup LIVE PASS; full parity IN PROGRESS — NOT DELIVERED.
 

@@ -1,5 +1,9 @@
 # OpsMate BSE site B v1.0 Final Handover
 
+## Gate I global plot LIVE acceptance ? 2026-10-20 (scoped)
+- BSE-TG-772257247 callback 772257248 PROCESSED once, one transplant BSE-SB-TR-20261007-002 and two M5P1/M5P2 PLANNED-to-ACTIVE rows; full Telegram card confirmed with UIA. Independent Script HEAD read-back 65/65, Node regression 54/54. See docs/GATE_I_GLOBAL_PLOT_LIVE_248_20261020.md and docs/GATE_I_HANDOVER_CANDIDATE_20261020.md. Status SCOPED LIVE PASS; worker failure 12:28 remains open; formal handover NOT DELIVERED.
+
+
 ## Latest Gate I — 2026-10-18 22:08 MYT, technical freeze READY
 - Main PR #52 merged at `48e0343342ce4db69bb52c196f0d0805a60012c6`; three previously WAITING_INFO records now CLOSED_BY_OWNER, with owner authorization, preserved lineage and notes. 0 active WAITING_INFO and 0 OPEN approval cards. Callback 772257190 remains a reconciled historical failure, not a pending domain write.
 - Targeted closure 8/8, Node 21/21, Apps Script 47/47 PASS; Script HEAD exact 62/62 canonical + 9 helpers. Read-only PILOT integrity status OPTIONAL_TABS_ABSENT, 11/11 required current, 0 stale/mismatch, source 86 entries/0 issues. `production_write:false`, `official_bse_write:false`.
