@@ -19,6 +19,7 @@ function bsePilotTelegramCommandMenu_(){
     return {
       command:pilot&&item.command==='ec_history'?'ec':pilot&&item.command==='ask_ai'?'ask':item.command,
       description:pilot&&item.command==='ec_history'?'Sejarah EC_IN ikut hari/bulan/minggu':pilot&&item.command==='ask_ai'?'Tanya AI dengan rujukan KB yang tersedia':
+        pilot&&item.command==='delete'?'Owner: batal rekod, contoh /delete BSE-TG-123':
         pilot?item.description.replace(/ TEST\b/g,'').replace(/TEST/g,'operasi'):item.description
     };
   });

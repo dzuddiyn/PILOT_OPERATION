@@ -7,7 +7,7 @@ let env='PILOT_OPERATION';
 const menu=load('TelegramCommandTest.js',{bseRuntimeEnvironmentName_:()=>env});
 check('PILOT command menu advertises /ask and /ec, never legacy labels',()=>{
  const names=Array.from(menu.bsePilotTelegramCommandMenu_(),c=>c.command);
- assert(names.includes('ask'));assert(names.includes('ec'));assert(!names.includes('ask_ai'));assert(!names.includes('ec_history'));});
+ assert(names.includes('ask'));assert(names.includes('ec'));assert(!names.includes('ask_ai'));assert(!names.includes('ec_history'));const deleteHelp=menu.bsePilotTelegramCommandMenu_().find(c=>c.command==='delete');assert(deleteHelp.description.includes('/delete BSE-TG-123'));assert(!deleteHelp.description.includes('dengan alasan'));});
 check('TEST and PILOT_TEST keep their historical command menus',()=>{
  for(const e of ['TEST','PILOT_TEST']){env=e;const names=Array.from(menu.bsePilotTelegramCommandMenu_(),c=>c.command);assert(names.includes('ask_ai'));assert(names.includes('ec_history'));assert(!names.includes('ask'));}env='PILOT_OPERATION';});
 const ai=load('TelegramAiTest.js',{bseRuntimeEnvironmentName_:()=>env});
