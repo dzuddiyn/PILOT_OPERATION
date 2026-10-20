@@ -198,7 +198,7 @@ function bseTelegramPilotConfirmedTransplantFromRows_(reference,outcome,events,s
   const event=matches[0],plots=String(event[8]||'').split('|').filter(Boolean);
   const transitions=(statusRows||[]).filter(r=>String(r[0])===key&&String(r[3])===String(event[2])&&String(r[4])===String(event[3])&&String(r[7])==='PLANNED'&&String(r[8])==='ACTIVE');
   if(!plots.length||transitions.length!==plots.length||new Set(transitions.map(r=>String(r[6]))).size!==plots.length||plots.some(p=>transitions.filter(r=>String(r[6])===p).length!==1))return '';
-  return ['? REKOD PINDAH ANAK POKOK DISAHKAN','Rujukan laporan: '+String(reference),'Rujukan sumber: '+key.split('|')[0],'Rekod pindah: '+String(event[2]),'Batch: '+String(event[3]),'Tanaman: '+String(event[6]),'Varieti: '+String(event[7]||'tidak dinyatakan'),'Tarikh pindah: '+bseApprovalDisplayDate_(String(event[4])),'Plot: '+plots.join(', '),'Status plot: '+plots.map(p=>p+' PLANNED ? ACTIVE').join('; '),'Disahkan oleh: '+String(event[13]||'penghantar'),'Status rekod: COMPLETED / VERIFIED_TEST'].join('\n');
+  return ['REKOD PINDAH ANAK POKOK DISAHKAN','Rujukan laporan: '+String(reference),'Rujukan sumber: '+key.split('|')[0],'Rekod pindah: '+String(event[2]),'Batch: '+String(event[3]),'Tanaman: '+String(event[6]),'Varieti: '+String(event[7]||'tidak dinyatakan'),'Tarikh pindah: '+bseApprovalDisplayDate_(String(event[4])),'Plot: '+plots.join(', '),'Status plot: '+plots.map(p=>p+' kini ACTIVE (sebelum ini PLANNED)').join('; '),'Disahkan oleh: '+String(event[13]||'penghantar'),'Status rekod: COMPLETED / VERIFIED_TEST'].join('\n');
 }
 function bseTelegramPilotConfirmedTransplant_(book,reference,outcome){
  if(!outcome||!outcome.source_key||!outcome.transplant_event_id||!outcome.batch_id)return '';
