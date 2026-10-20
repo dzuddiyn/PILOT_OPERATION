@@ -59,7 +59,7 @@ function bsePilotCompactSowingResult_(input){
   const cropLine=rows[1]||'',plotLine=rows[2]||'',dateLine=rows[3]||'';
   const cropMatch=cropLine.match(/^([^()]+?)\s*\(([^()]+)\)$/);
   const plotMatch=plotLine.match(/^[-]?\s*M([1-9]\d*)P([1-9]\d*)\s*$/i);
-  const commaPlot=plotLine.match(/^[-]\s*M([1-9]\d*)P([1-9]),\s*([1-9])\s*$/i);
+  const commaPlot=plotLine.match(/^[-]?\s*M([1-9]\d*)P([1-9]),\s*([1-9])\s*$/i);
   let plots=[];
   if(commaPlot)plots=['M'+commaPlot[1]+'P'+commaPlot[2],'M'+commaPlot[1]+'P'+commaPlot[3]];
   else if(plotMatch){
@@ -72,15 +72,10 @@ function bsePilotCompactSowingResult_(input){
     const aa=a.match(/^M(\d+)P(\d+)$/),bb=b.match(/^M(\d+)P(\d+)$/);
     return Number(aa[1])-Number(bb[1])||Number(aa[2])-Number(bb[2]);
   });
-  const latest=(source.clarifications||[]).map(v=>String(v||'').trim()).filter(v=>/^(?:Tarikh\s+Semai\s*:\s*)?\d{1,2}\/\d{1,2}(?:\/\d{2,4})?$/i.test(v)).slice(-1)[0]||'';
-  const rawDate=(latest||dateLine).match(/^(?:[-]\s*|Tarikh\s+Semai\s*:\s*)?(\d{1,2})\/(\d{1,2})(?:\/(\d{2}|\d{4}))?\s*$/i);
-  let eventDate='';
-  if(rawDate){
-    const day=Number(rawDate[1]),month=Number(rawDate[2]),year=!rawDate[3]?2026:rawDate[3].length===2?2000+Number(rawDate[3]):Number(rawDate[3]);
-    const v=new Date(Date.UTC(year,month-1,day));
-    if(year===2026&&v.getUTCFullYear()===year&&v.getUTCMonth()===month-1&&v.getUTCDate()===day)
-      eventDate=year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0');
-  }
+  const dateValues=(source.clarifications||[]).map(v=>String(v||'').trim());
+  const dateSource=dateValues.length?dateValues[dateValues.length-1]:dateLine;
+  const dateText=String(dateSource||'').replace(/^[-]\s*/,'').replace(/^Tarikh\s+Semai\s*:\s*/i,'').trim();
+  const eventDate=bseTransplantFlexibleDate_(/^\d{1,2}\/\d{1,2}$/.test(dateText)?dateText+'/2026':dateText);
   const crop=cropMatch?cropMatch[1].trim():'',variety=cropMatch?cropMatch[2].trim():'';
   const valid=rows.length===4&&!!crop&&!!variety&&!!eventDate&&plots.length>0&&plotNumbersAreUnique;
   const base={project_id:'BSE_SB',system_year:2026,event_date:eventDate,verification_status:'PROVISIONAL',original_note:note};

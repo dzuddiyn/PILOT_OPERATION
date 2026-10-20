@@ -4,6 +4,7 @@ const worker=fs.readFileSync('TelegramWorkerTest.js','utf8'),history=fs.readFile
 function extract(s,n){const start=s.indexOf('function '+n+'(');if(start<0)throw Error('MISSING '+n);let i=s.indexOf('{',start),depth=0,q='',esc=false;for(;i<s.length;i++){const c=s[i];if(q){if(esc){esc=false;continue}if(c==='\\'){esc=true;continue}if(c===q)q='';continue}if(c==="'"||c==='"'){q=c;continue}if(c==='{')depth++;if(c==='}'&&--depth===0)return s.slice(start,i+1)}throw Error('UNCLOSED '+n)}
 const ctx={Date,bseRuntimeEnvironmentName_:()=> 'PILOT_OPERATION',bseUnifiedSourceContext_:input=>typeof input==='string'?{original:input,clarifications:[]} : input,BSE_TG_HISTORY_TZ:'Asia/Kuala_Lumpur',Utilities:{formatDate:(d,tz,fmt)=>{let dt=new Date(d);return new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).format(dt)} }};
 vm.createContext(ctx);
+vm.runInContext(extract(fs.readFileSync('GeminiUnifiedTest.js','utf8'),'bseTransplantFlexibleDate_'),ctx);
 for(const fn of ['bsePilotCompactSowingResult_'])vm.runInContext(extract(worker,fn),ctx);
 for(const fn of ['bseTelegramHistoryDateParts_','bseTelegramHistoryIsoDateFromUtc_','bseTelegramHistoryAddDays_','bseTelegramHistoryMytDate_','bseTelegramHistoryWeekStartForMytDate_','bseTelegramHistoryLastCompleteWeek_','bseTelegramHistoryExplicitWeek_','bseTelegramHistoryNthWeekOfMonth_','bseTelegramHistoryMonthKey_','bseTelegramHistoryCommand_'])vm.runInContext(extract(history,fn),ctx);
 let n=0;const check=(label,cb)=>{cb();n++;console.log('PASS '+label)};

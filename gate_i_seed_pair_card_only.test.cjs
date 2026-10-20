@@ -14,6 +14,7 @@ function extract(source,name){
 let env='PILOT_OPERATION',n=0;
 const ctx={bseRuntimeEnvironmentName_:()=>env,bseUnifiedSourceContext_:s=>({original:String(s),clarifications:[]}),bseApprovalDisplayDate_:s=>String(s).split('-').reverse().join('/')};
 vm.createContext(ctx);
+vm.runInContext(extract(fs.readFileSync('GeminiUnifiedTest.js','utf8'),'bseTransplantFlexibleDate_'),ctx);
 for(const k of ['bsePilotCompactSowingResult_','bsePilotSowingReviewCardOnly_','bsePilotTransplantReviewCardOnly_'])
  vm.runInContext(extract(worker,k),ctx);
 vm.runInContext(extract(approval,'bseApprovalSummary_'),ctx);

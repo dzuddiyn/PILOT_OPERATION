@@ -718,8 +718,8 @@ function bseTransplantFlexibleDate_(value){
     if(!m)return '';
     const short=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
     const full=['january','february','march','april','may','june','july','august','september','october','november','december'];
-    const token=m[2].toLowerCase();mo=short.indexOf(token.slice(0,3))+1;
-    if(!mo||!(token===short[mo-1]||token===full[mo-1]||token==='sept'&&mo===9))return '';
+    const token=m[2].toLowerCase(),aliases={okt:10,oktober:10,mei:5,mac:3,ogos:8,dis:12,disember:12,julai:7,jun:6,januari:1,februari:2,april:4,september:9,november:11};mo=aliases[token]||short.indexOf(token.slice(0,3))+1;
+    if(!mo||!(token===short[mo-1]||token===full[mo-1]||token==='sept'&&mo===9||Object.prototype.hasOwnProperty.call(aliases,token)))return '';
   }
   const day=Number(m[1]),year=m[3].length===2?2000+Number(m[3]):Number(m[3]),date=new Date(Date.UTC(year,mo-1,day));
   return year===2026&&date.getUTCFullYear()===year&&date.getUTCMonth()===mo-1&&date.getUTCDate()===day?year+'-'+String(mo).padStart(2,'0')+'-'+String(day).padStart(2,'0'):'';
