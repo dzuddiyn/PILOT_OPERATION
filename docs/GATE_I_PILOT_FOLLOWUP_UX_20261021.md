@@ -16,7 +16,9 @@
 - `PilotEvidenceSafeStore.js`: new files named with reporting date (explicit caption date if valid, else MYT receive date), readable caption, and unique `BSE-EV` identifier. No time. Preserve pre-existing legacy filename discovery; fail closed if old/new name duplicates unexpectedly.
 - `TreatmentReviewTest.js`: daypart tokens rejected as chemicals.
 - `CensusReviewTest.js`: broaden strictly anchored census heading and explicitly supplied date formats, plus dead/sick aliases. Invalid explicit census dates now fail closed rather than being silently replaced with received-at dates. Retain existing crop/plot/allocation guard; no invented counts.
-- New `gate_i_pilot_followup_ux.test.cjs`: 14/14 PASS for above; full Node regression 78/78 PASS, JS syntax and git diff check PASS.
+- New `gate_i_pilot_followup_ux.test.cjs`: 14/14 PASS for above.
+- `TelegramWorkerTest.js`: only a fully validated single Inventory_Event_Log IN/OUT candidate in PILOT_OPERATION skips the generic interim technical preview. Its original Benar/Batal approval card is still created. NEED_INFO and other environments preserve the old response. `gate_i_inventory_card_only.test.cjs`: 8/8 PASS; existing Transplant card regression 9/9 and EC card regression 8/8 PASS.
+- Full Node regression 79/79 PASS, JS syntax and git diff check PASS.
 
 ## High-impact gates — NOT executed
 1. User-incorrect confirmation /delete: actual `BSE-TG-772257398` is reporter-confirmed inventory; implementation supports `/delete BSE-TG-772257398 <reason>` from an authorized Owner/Admin **private** conversation, with independent Benar/Batal action and `VOIDED_TEST` audit. No deletion performed; user has not explicitly identified target reference or supplied reason.

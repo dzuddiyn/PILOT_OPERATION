@@ -413,6 +413,20 @@ function bsePilotEcReviewCardOnly_(result,status){
     /^\d{4}-\d{2}-\d{2}$/.test(String(f.event_date||''))&&
     Array.isArray(f.readings)&&f.readings.length>0;
 }
+// Complete PILOT inventory reports use their canonical Benar/Batal card alone.
+function bsePilotInventoryReviewCardOnly_(result,status){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||status!=='NEEDS_HUMAN_REVIEW'||
+     !result||result.validation!=='PASS'||result.production_write!==false||
+     !Array.isArray(result.candidates)||result.candidates.length!==1)return false;
+  const c=result.candidates[0],f=c&&c.fields||{};
+  return !!c&&c.target==='Inventory_Event_Log'&&c.validation==='PASS'&&
+    Array.isArray(c.missing)&&c.missing.length===0&&
+    ['INVENTORY_IN','INVENTORY_OUT'].includes(String(f.event_type||''))&&
+    /^\d{4}-\d{2}-\d{2}$/.test(String(f.event_date||''))&&
+    String(f.item_name||'').trim().length>0&&
+    String(f.unit||'').trim().length>0&&
+    Number.isFinite(Number(f.quantity))&&Number(f.quantity)>0;
+}
 function processBseTelegramTestQueue() {
   const book=boundTestBook_(),props=PropertiesService.getScriptProperties();
   if(typeof processBseImageProcessingQueueTest==='function'){
@@ -525,7 +539,7 @@ function processBseTelegramTestQueue() {
       return;
     }
     try {
-      if(!bsePilotTransplantReviewCardOnly_(result,reviewStatus)&&!bsePilotSowingReviewCardOnly_(result,reviewStatus)&&!bsePilotTreatmentReviewCardOnly_(result,reviewStatus)&&!bsePilotOperationReviewCardOnly_(result,reviewStatus)&&!bsePilotEcReviewCardOnly_(result,reviewStatus)){
+      if(!bsePilotTransplantReviewCardOnly_(result,reviewStatus)&&!bsePilotSowingReviewCardOnly_(result,reviewStatus)&&!bsePilotTreatmentReviewCardOnly_(result,reviewStatus)&&!bsePilotOperationReviewCardOnly_(result,reviewStatus)&&!bsePilotEcReviewCardOnly_(result,reviewStatus)&&!bsePilotInventoryReviewCardOnly_(result,reviewStatus)){
       const payload={chat_id:job.chatId,text:result.transplant_already_recorded?bsePilotTransplantExistingExactText_('BSE-TG-'+job.id,result.transplant_already_recorded):claimMissingText||bseTelegramResultText_('BSE-TG-'+job.id,result,question)};
       if(/^\d+$/.test(job.messageId))payload.reply_parameters={message_id:Number(job.messageId),allow_sending_without_reply:true};
       if(question||claimMissingText)payload.reply_markup={force_reply:true,input_field_placeholder:'Jawapan untuk laporan ini'};
