@@ -272,6 +272,17 @@ function bsePilotTreatmentReviewCardOnly_(result,status){
   return result.candidates.every(c=>c&&c.target==='Treatment_Event_Log'&&
     c.validation==='PASS'&&Array.isArray(c.missing)&&c.missing.length===0);
 }
+function bsePilotOperationReviewCardOnly_(result,status){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||status!=='NEEDS_HUMAN_REVIEW'||
+     !result||result.validation!=='PASS'||result.production_write!==false||
+     !Array.isArray(result.candidates)||result.candidates.length!==1)return false;
+  const c=result.candidates[0],f=c&&c.fields||{};
+  return !!c&&c.target==='Operation_Log'&&c.validation==='PASS'&&
+    Array.isArray(c.missing)&&c.missing.length===0&&
+    /^\d{4}-\d{2}-\d{2}$/.test(String(f.event_date||''))&&
+    /^M[1-9]\d*P[1-9]\d*$/.test(String(f.plot_id||''))&&
+    !!String(f.operation_type||'').trim();
+}
 function bsePilotSowingReviewCardOnly_(result,status){
   if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||status!=='NEEDS_HUMAN_REVIEW'||
      !result||result.validation!=='PASS'||result.production_write!==false||
@@ -406,13 +417,13 @@ function bsePilotTransplantReviewCardOnly_(result,status){
       return;
     }
     try {
-      if(!bsePilotTransplantReviewCardOnly_(result,reviewStatus)&&!bsePilotSowingReviewCardOnly_(result,reviewStatus)&&!bsePilotTreatmentReviewCardOnly_(result,reviewStatus)){
+      if(!bsePilotTransplantReviewCardOnly_(result,reviewStatus)&&!bsePilotSowingReviewCardOnly_(result,reviewStatus)&&!bsePilotTreatmentReviewCardOnly_(result,reviewStatus)&&!bsePilotOperationReviewCardOnly_(result,reviewStatus)){
       const payload={chat_id:job.chatId,text:claimMissingText||bseTelegramResultText_('BSE-TG-'+job.id,result,question)};
       if(/^\d+$/.test(job.messageId))payload.reply_parameters={message_id:Number(job.messageId),allow_sending_without_reply:true};
       if(question||claimMissingText)payload.reply_markup={force_reply:true,input_field_placeholder:'Jawapan untuk laporan ini'};
       const sent=bseTelegramApi_('sendMessage',payload);
       if(question)sheet.getRange(job.row,16).setNumberFormat('@').setValue(String(sent.message_id));
-      } // PILOT Transplant PASS uses the confirmation card only.
+      } // Eligible PILOT reports use only their approval card; incomplete inputs still get clarification.
     } catch(_) {console.log('TELEGRAM_RESULT_REPLY_PENDING: BSE-TG-'+job.id);return;}
     if(reviewStatus==='NEEDS_HUMAN_REVIEW'&&typeof bseInventoryValidateResult_==='function'){
       if(inventoryCheck&&inventoryCheck.validation!=='PASS'){

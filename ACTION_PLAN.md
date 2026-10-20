@@ -1,5 +1,8 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## GI-263 Operation card-only (2026-10-20; LOCAL PASS)
+- Genuine Mula Tuai BSE-TG-772257263 parsed to Operation_Log / HARVEST_START correctly but sent redundant interim OPERATION | M7P3 / Menunggu pengesahan laporan before the actual Benar card. Added PILOT-only guard to suppress interim for one complete PASS Operation candidate, preserving approval card, NEED_INFO prompts and other environments. Dedicated 12/12 and full regression 58/58 suites PASS; Script HEAD NOT UPDATED and Telegram post-fix LIVE NOT TESTED. Evidence: docs/GATE_I_263_OPERATION_CARD_ONLY_20261020.md. Worker reliability / formal handover OPEN.
+
 ## GI-261 harvest routing regression (LOCAL PASS, 2026-10-20)
 - Real BSE-TG-772257261 misclassified into Treatment, wrong event date and parsed dosage, card OPEN and no domain write. PILOT harvest parser prioritised, treatment excluded, redundant interim treatment notice suppressed. Dedicated 12/12 and full Node 57/57 PASS. NOT merged, Script HEAD NOT updated and LIVE NOT VERIFIED. Evidence docs/GATE_I_261_HARVEST_TREATMENT_MISROUTE_20261020.md. Worker reliability and handover remain open.
 
