@@ -728,7 +728,7 @@ function bseTransplantExplicitDateContext_(sourceContext){
     lines.forEach(line=>{
       const labeled=line.match(/^\s*Tarikh\s+Pindah\s*:\s*(.*?)\s*$/i);
       const plain=index>0&&lines.length===1?line.match(/^\s*(\d{1,2}\/\d{1,2}\/\d{4})\s*$/):null;
-      const inline=index===0&&lines.length===1?line.match(/^Pindah\s+anak\s+pokok\s+.+?\s+ke\s+M[1-9]\d*P[1-9]\d*\s*,\s*(\d{1,2}\/\d{1,2}\/\d{4})\s*$/i):null;
+      const inline=index===0&&lines.length===1?line.match(/^Pindah\s+anak\s+pokok\b.+(?:\bke\s+M[1-9]\d*P[1-9]\d*|\bM[1-9]\d*P[1-9]\d*.+)\s*,\s*(\d{1,2}\/\d{1,2}\/\d{4})\s*$/i):null;
       if(!labeled&&!plain&&!inline)return;
       present=true;
       const raw=(labeled?labeled[1]:plain?plain[1]:inline[1]).trim(),parts=raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
