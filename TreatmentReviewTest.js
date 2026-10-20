@@ -137,6 +137,8 @@ function bseTreatmentListControlLine_(line){
   return /^(?:RACUN|CADANGAN\s+MERACUN|RAWATAN\s+DIBUAT)$/i.test(value)||
     /^\*?\d{1,2}[\/-]\d{1,2}[\/-](?:\d{2}|\d{4})\*?$/i.test(value)||
     /^(?:ISNIN|SELASA|RABU|KHAMIS|JUMAAT|SABTU|AHAD|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)$/i.test(value.replace(/\*/g,''))||
+    /^(?:PG|PAGI|PTG|PETANG)$/i.test(value.replace(/\*/g,''))||
+    /^(?:Sesi|Masa)\s*:\s*(?:PG|PAGI|PTG|PETANG)$/i.test(value.replace(/\*/g,''))||
     /^\*?\d+\.\s*M\s*\d+\s*[- ]?\s*P\s*\d+(?:\s+[^*]+)?\*?$/i.test(value)||
     /^(?:Jenis\s+Tanaman|Tanaman|Crop|Tarikh|Date|Plot|Modul|Rawatan)\s*[:=-]?/i.test(value)||
     /^M\s*\d+/i.test(value);

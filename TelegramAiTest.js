@@ -9,11 +9,15 @@ const BSE_AI_KB_SOURCES=[
   {id:'DOA_PESTICIDE_PORTAL',title:'DOA_Maklumat_Racun_Perosak_2026_snapshot.txt',url:'https://www.doa.gov.my/index.php/pages/view/302?mid=141',mime:'text/plain',kind:'DOA',version:'portal snapshot',freshness_days:35}
 ];
 
+function bseTelegramAiPrefix_(){return bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'/ask':'/ask_ai';}
 function bseTelegramAiCommand_(text){
-  return /^\/ask_ai(?:@[A-Za-z0-9_]+)?(?:\s|$)/i.test(String(text||'').trim());
+  const prefix=bseTelegramAiPrefix_();
+  const cmd=prefix==='/ask'?/^\/ask(?:@[A-Za-z0-9_]+)?(?:\s|$)/i:/^\/ask_ai(?:@[A-Za-z0-9_]+)?(?:\s|$)/i;
+  return cmd.test(String(text||'').trim());
 }
 function bseTelegramAiQuestion_(text){
-  return String(text||'').trim().replace(/^\/ask_ai(?:@[A-Za-z0-9_]+)?\s*/i,'').trim();
+  const raw=String(text||'').trim(),prefix=bseTelegramAiPrefix_();
+  return raw.replace(prefix==='/ask'?/^\/ask(?:@[A-Za-z0-9_]+)?\s*/i:/^\/ask_ai(?:@[A-Za-z0-9_]+)?\s*/i,'').trim();
 }
 function bseTelegramAiAccessAllowed_(book,m,allowedPrivate,allowedGroup){
   if(allowedPrivate||allowedGroup)return true;
@@ -24,9 +28,9 @@ function bseTelegramAiAccessAllowed_(book,m,allowedPrivate,allowedGroup){
 }
 function bseTelegramAiSystemPrompt_(hasKb){
   return [
-    'Anda ialah pembantu Q&A OpsMate BSE dalam mod PILOT_TEST.',
+    'Anda ialah pembantu Q&A OpsMate BSE dalam mod '+(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'PILOT_OPERATION.':'PILOT_TEST.'),
     'Semua jawapan anda adalah NON_CANONICAL: bukan rekod BSE, bukan approval, bukan arahan operasi rasmi, dan tidak boleh mendakwa telah mengubah sebarang data.',
-    'Jangan baca atau reka data operasi/canonical BSE. Jika pengguna meminta stok, sejarah, status plot atau rekod BSE, jelaskan bahawa /ask_ai tidak mempunyai akses kepada rekod canonical dan arahkan pengguna menggunakan command retrieval rasmi.',
+    'Jangan baca atau reka data operasi/canonical BSE. Jika pengguna meminta stok, sejarah, status plot atau rekod BSE, jelaskan bahawa '+bseTelegramAiPrefix_()+' tidak mempunyai akses kepada rekod canonical dan arahkan pengguna menggunakan command retrieval rasmi.',
     hasKb?'Anda mempunyai File Search knowledge base pertanian. Untuk soalan pertanian, utamakan sumber KB sebelum pengetahuan umum. Jika soalan menyebut IRAC, kumpulan IRAC atau Mode of Action (MoA), WAJIB gunakan File Search KB dan jangan nyatakan nombor kumpulan/MoA sebagai fakta jika tiada grounding daripada KB.':'Knowledge base pertanian belum dikonfigurasi; nyatakan jika jawapan pertanian hanya menggunakan pengetahuan umum model.',
     'Untuk racun perosak Malaysia: pendaftaran produk dikawal oleh Lembaga Racun Makhluk Perosak/Jabatan Pertanian; SISMARP ialah pangkalan rujukan maklumat racun berdaftar yang disyorkan bagi tanaman/perosak tertentu. Jangan kata produk didaftarkan melalui SISMARP. IRAC ialah rujukan Mode of Action dan resistance management, BUKAN bukti sesuatu racun diluluskan di Malaysia.',
     'Jangan mereka kadar, PHI, MRL, pendaftaran, label, atau status syor. Jika SISMARP CURRENT tersedia dan freshness masih sah, gunakan hasil semasa itu hanya untuk padanan query/filter yang diberikan. Jika total=0, sebut tiada padanan SISMARP semasa untuk kombinasi/filter itu; JANGAN tukar 0 padanan menjadi dakwaan bahawa bahan aktif atau produk itu tidak berdaftar di Malaysia secara umum. Jika cache stale/tidak tersedia atau tiada filter eksplisit, nyatakan batas semakan dan jangan membuat kesimpulan pendaftaran.',
@@ -185,8 +189,8 @@ function bseTelegramAiReceive_(book,m,allowedPrivate,allowedGroup){
   if(!bseTelegramAiCommand_(m&&m.text))return {handled:false};
   if(!bseTelegramAiAccessAllowed_(book,m,allowedPrivate,allowedGroup))return {handled:true,unauthorized:true,production_write:false};
   const question=bseTelegramAiQuestion_(m.text);
-  if(!question){bseTelegramAiSend_(m,'Gunakan: /ask_ai <soalan>\nContoh: /ask_ai abamectin kumpulan IRAC berapa?');return {handled:true,production_write:false};}
-  if(question.length>6000){bseTelegramAiSend_(m,'Soalan terlalu panjang. Had /ask_ai ialah 6000 aksara.');return {handled:true,production_write:false};}
+  if(!question){const cmd=bseTelegramAiPrefix_();bseTelegramAiSend_(m,'Gunakan: '+cmd+' <soalan>\nContoh: '+cmd+' abamectin kumpulan IRAC berapa?');return {handled:true,production_write:false};}
+  if(question.length>6000){bseTelegramAiSend_(m,'Soalan terlalu panjang. Had '+bseTelegramAiPrefix_()+' ialah 6000 aksara.');return {handled:true,production_write:false};}
   if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'){
     const siteAnswer=bsePilotKbStructuredAnswer_(book,question)||bsePilotSiteBFaq_(book,question);
     if(siteAnswer){bseTelegramAiSend_(m,siteAnswer);return {handled:true,kb_used:true,production_write:false};}

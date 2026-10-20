@@ -44,7 +44,7 @@ const BSE_RUNTIME_ENV_CONFIG = Object.freeze({
   PILOT_OPERATION: Object.freeze({
     name: 'PILOT_OPERATION',
     label: 'PILOT',
-    startToken: 'BSE_PILOT',
+    startToken: 'OpsMate',
     spreadsheetProperty: 'BSE_PILOT_OPERATION_SPREADSHEET_ID',
     approvalGroupsProperty: 'BSE_PILOT_OPERATION_APPROVAL_GROUP_CHAT_IDS',
     legacyChatProperty: 'PILOT_OPERATION_TELEGRAM_CHAT_ID',
