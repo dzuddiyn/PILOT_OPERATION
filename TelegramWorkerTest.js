@@ -104,31 +104,15 @@ function bsePilotCompactSowingResult_(input){
   return {validation:valid?'PASS':'NEED_INFO',production_write:false,candidates};
 }
 function bsePilotCompactTransplantDate_(source){
-  const originals=String(source&&source.original||'').split(/\r?\n/);
-  const answers=(source&&source.clarifications||[]).map(s=>String(s||'').trim());
-  // This PILOT compact-report adapter uses the latest explicit reporter date correction.
-  // Other grammar/routes continue to use the original strict ambiguity validator.
-  const mostRecent=answers.length?answers[answers.length-1]:'';
-  const recentMatch=mostRecent.match(/^(?:Tarikh\s+Pindah\s*:\s*)?(\d{1,2}\/\d{1,2}\/\d{2,4})\s*$/i);
-  if(!recentMatch){
-    const explicit=bseTransplantExplicitDateContext_(source);
-    if(explicit.present)return explicit;
-  }
-  // A plain one-line date reply overrides shorthand ONLY after the human supplies it.
-  const replies=answers.filter(s=>/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(s));
-  // Latest explicit date supersedes earlier reply dates in chronological order.
-  const raws=recentMatch?[recentMatch[1]]:replies.length?[replies[replies.length-1]]:originals.map(s=>{
-    const m=s.match(/^\s*-\s*(\d{1,2}\/\d{1,2}\/\d{2,4})\s*$/);
-    return m?m[1]:'';
-  }).filter(Boolean);
-  if(raws.length!==1)return {present:raws.length>0,ok:false,date:''};
-  const p=raws[0].match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
-  if(!p)return {present:true,ok:false,date:''};
-  const day=Number(p[1]),month=Number(p[2]),year=p[3].length===2?2000+Number(p[3]):Number(p[3]);
-  const date=new Date(Date.UTC(year,month-1,day));
-  if(year!==2026||date.getUTCFullYear()!==year||date.getUTCMonth()!==month-1||date.getUTCDate()!==day)
-    return {present:true,ok:false,date:''};
-  return {present:true,ok:true,date:year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0')};
+  const originals=String(source&&source.original||'').split(/\r?\n/).map(s=>String(s).trim());
+  const clarifications=(source&&source.clarifications||[]).map(s=>String(s||'').trim());
+  const findDate=(line)=>bseTransplantFlexibleDate_(String(line||'').replace(/^Tarikh\s+Pindah\s*:\s*/i,'').replace(/^[-]\s*/,''));
+  const latestRaw=clarifications.length?clarifications[clarifications.length-1]:'';
+  if(latestRaw){const latestDate=findDate(latestRaw);return {present:true,ok:!!latestDate,date:latestDate};}
+  const explicit=typeof bseTransplantExplicitDateContext_==='function'?bseTransplantExplicitDateContext_(source):{present:false};
+  if(explicit.present)return explicit;
+  const valid=originals.map(findDate).filter(Boolean);
+  return valid.length===1?{present:true,ok:true,date:valid[0]}:{present:valid.length>0,ok:false,date:''};
 }
 function bsePilotTransplantChronology_(book,match,eventDate){
   if(!match||match.kind!=='UNIQUE'||!eventDate)return {ok:false,sowing_date:''};
