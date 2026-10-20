@@ -1,0 +1,25 @@
+'use strict';
+const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
+const worker=fs.readFileSync('TelegramWorkerTest.js','utf8'),ui=fs.readFileSync('TelegramApprovalUiTest.js','utf8');
+let env='PILOT_OPERATION';
+const ctx={bseRuntimeEnvironmentName_:()=>env,bseApprovalDisplayDate_:v=>v.split('-').reverse().join('/')};
+vm.createContext(ctx);
+const a=worker.indexOf('function bsePilotOperationReviewCardOnly_('),b=worker.indexOf('function bsePilotSowingReviewCardOnly_(',a);
+assert(a>0&&b>a);vm.runInContext(worker.slice(a,b),ctx);
+const u=ui.indexOf('function bseApprovalSummary_('),v=ui.indexOf('function runBseTelegramPrivateOptInHarnessTests',u);assert(u>0&&v>u);vm.runInContext(ui.slice(u,v),ctx);
+let n=0;function check(name,fn){fn();n++;console.log('PASS '+name)}
+const source={validation:'PASS',production_write:false,candidates:[{target:'Operation_Log',validation:'PASS',missing:[],fields:{event_date:'2026-10-14',plot_id:'M7P3',operation_type:'HARVEST_START',remarks:'Tarikh mula tuai dilaporkan; tiada kuantiti hasil dinyatakan.'}}]};
+const fn=ctx.bsePilotOperationReviewCardOnly_;
+check('correct actual report is card-only',()=>assert.equal(fn(source,'NEEDS_HUMAN_REVIEW'),true));
+check('approval card includes exact date, plot and operation',()=>{const msg=ctx.bseApprovalSummary_('BSE-TG-772257263',source);for(const x of ['14/10/2026','M7P3','Mula Tuai'])assert(msg.includes(x));});
+check('other ready operations also card-only',()=>{const x=structuredClone(source);x.candidates[0].fields.operation_type='PLOT_INSPECTION';assert.equal(fn(x,'NEEDS_HUMAN_REVIEW'),true);});
+check('NEED_INFO still prompts reporter',()=>{let x=structuredClone(source);x.validation='NEED_INFO';x.candidates[0].validation='NEED_INFO';x.candidates[0].missing=['event_date'];assert.equal(fn(x,'WAITING_INFO'),false);});
+check('no suppression if question or not in review',()=>{assert.equal(fn(source,'WAITING_INFO'),false);assert.equal(fn(source,'RETRY_NEEDED'),false);});
+check('no candidate and malformed state fail closed',()=>{assert.equal(fn({...source,candidates:[]},'NEEDS_HUMAN_REVIEW'),false);assert.equal(fn({...source,production_write:true},'NEEDS_HUMAN_REVIEW'),false);assert.equal(fn({...source,validation:'REJECTED'},'NEEDS_HUMAN_REVIEW'),false);});
+check('missing required fields fail closed',()=>{for(const field of ['event_date','plot_id','operation_type']){const x=structuredClone(source);delete x.candidates[0].fields[field];assert.equal(fn(x,'NEEDS_HUMAN_REVIEW'),false)}});
+check('mixed domain or multiple candidates fail closed',()=>{let x=structuredClone(source);x.candidates.push({...x.candidates[0],target:'Decision_Approval_Log'});assert.equal(fn(x,'NEEDS_HUMAN_REVIEW'),false);x=structuredClone(source);x.candidates[0].target='Treatment_Event_Log';assert.equal(fn(x,'NEEDS_HUMAN_REVIEW'),false);});
+check('missing field marker suppresses nothing',()=>{const x=structuredClone(source);x.candidates[0].missing=['plot_id'];assert.equal(fn(x,'NEEDS_HUMAN_REVIEW'),false);});
+check('non-PILOT no suppression',()=>{env='TEST';assert.equal(fn(source,'NEEDS_HUMAN_REVIEW'),false);env='PILOT_TEST';assert.equal(fn(source,'NEEDS_HUMAN_REVIEW'),false);env='PILOT_OPERATION'});
+check('sends only when card-only predicate false; approval card persists',()=>{const start=worker.indexOf('function processBseTelegramTestQueue()'),code=worker.slice(start,worker.indexOf('// Pure result path',start));const pred='!bsePilotOperationReviewCardOnly_(result,reviewStatus)';const p=code.indexOf(pred),send=code.indexOf("bseTelegramApi_('sendMessage',payload)",p),approval=code.indexOf('bseTelegramApprovalEnsureCard_(book,latest)',send);assert(p>0&&send>p&&approval>send);});
+check('no writes or Telegram I/O inside suppression predicate',()=>{const fncode=worker.slice(a,b);assert(!/sendMessage|setValue|appendRow|ScriptProperties/.test(fncode));});
+console.log('GI263_OPERATION_CARD_ONLY '+n+'/'+n+' PASS');
