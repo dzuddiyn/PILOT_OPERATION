@@ -15,8 +15,8 @@
 - `TelegramApprovalUiTest.js`: value typed as Date or legacy long string displays MYT date as DD/MM/YYYY; receipt PILOT shows confirmed rather than internal status `APPROVED_TEST`. No change to persisted record state.
 - `PilotEvidenceSafeStore.js`: new files named with reporting date (explicit caption date if valid, else MYT receive date), readable caption, and unique `BSE-EV` identifier. No time. Preserve pre-existing legacy filename discovery; fail closed if old/new name duplicates unexpectedly.
 - `TreatmentReviewTest.js`: daypart tokens rejected as chemicals.
-- `CensusReviewTest.js`: broaden strictly anchored census heading and explicitly supplied date formats, plus dead/sick aliases. Retain existing crop/plot/allocation guard; no invented counts.
-- New `gate_i_pilot_followup_ux.test.cjs`: 13/13 PASS for above; full Node regression 78/78 PASS, JS syntax and git diff check PASS.
+- `CensusReviewTest.js`: broaden strictly anchored census heading and explicitly supplied date formats, plus dead/sick aliases. Invalid explicit census dates now fail closed rather than being silently replaced with received-at dates. Retain existing crop/plot/allocation guard; no invented counts.
+- New `gate_i_pilot_followup_ux.test.cjs`: 14/14 PASS for above; full Node regression 78/78 PASS, JS syntax and git diff check PASS.
 
 ## High-impact gates — NOT executed
 1. User-incorrect confirmation /delete: actual `BSE-TG-772257398` is reporter-confirmed inventory; implementation supports `/delete BSE-TG-772257398 <reason>` from an authorized Owner/Admin **private** conversation, with independent Benar/Batal action and `VOIDED_TEST` audit. No deletion performed; user has not explicitly identified target reference or supplied reason.

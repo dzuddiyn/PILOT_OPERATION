@@ -129,7 +129,9 @@ function bseCensusOperationalDate_(text,receivedAt,clarifications){
     return '';
   };
   let latest='';for(const answer of (clarifications||[])){const found=parse(answer);if(found)latest=found;}
-  return latest||parse(text)||bsePlantCensusMalaysiaDate_(receivedAt);
+  const fromSource=parse(text);if(latest||fromSource)return latest||fromSource;
+  const specified=/^\s*(?:(?:Tarikh(?:\s+Banci)?|Date)\s*[:=-]\s*|(?:\d+\.\s*)?(?:(?:REKOD\s+)?BANCI\s+(?:POKOK|TANAMAN)|POKOK\s+(?:MATI|SAKIT)|KIRA(?:AN)?\s+POKOK)\s+)?(?:\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|20\d{2}-\d{1,2}-\d{1,2})\s*$/im.test(String(text||''));
+  return specified?'':bsePlantCensusMalaysiaDate_(receivedAt);
 }
 function bseCensusOperationalLivingValues_(source,clarifications,plotId){const values=[];const add=text=>{String(text||'').split(/\r?\n/).map(line=>line.trim()).filter(Boolean).forEach(line=>{let m=line.match(/^(?:Hidup|Pokok\s+Hidup|Living)\s*[:=-]?\s*(\d+)\s*(?:pokok)?\s*$/i);if(!m&&plotId)m=line.match(new RegExp('^'+plotId+'\\s*:\\s*(\\d+)\\s+pokok\\s*$','i'));if(!m&&/^\d+$/.test(line)&&plotId)m=[line,line];if(m)values.push(Number(m[1]));});};add(source);(clarifications||[]).forEach(add);return Array.from(new Set(values.filter(value=>Number.isInteger(value)&&value>=0)));}
 function bseTelegramCensusDeterministicResult_(input,receivedAt){

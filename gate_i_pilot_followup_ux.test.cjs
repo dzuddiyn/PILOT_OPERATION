@@ -39,7 +39,7 @@ check('census dates support DD/MM/YYYY, DD/MM/YY, DD-MM-YYYY and ISO with proper
  assert.equal(census.bseCensusOperationalDate_('banci pokok\nTarikh : 19/10/2026',r,[]),'2026-10-19');
  assert.equal(census.bseCensusOperationalDate_('kira pokok\nDate: 19-10-2026',r,[]),'2026-10-19');
  assert.equal(census.bseCensusOperationalDate_('kiraan pokok\n2026-10-14',r,[]),'2026-10-14');
- assert.equal(census.bseCensusOperationalDate_('banci pokok\n31/02/2026',r,[]),'2026-10-21');
+ assert.equal(census.bseCensusOperationalDate_('banci pokok\n31/02/2026',r,[]),'');
 });
 check('census count aliases accept pokok mati and pokok sakit',()=>{
  assert.equal(census.bseCensusOperationalCount_('Pokok Mati: 143','Mati|Dead'),143);
@@ -73,5 +73,12 @@ check('PILOT display humanizes confirmation labels without changing stored sourc
  assert(environmentText.includes("CONFIRMED TEST"));
  assert(environmentText.includes('DISAHKAN'));
  assert(environmentText.includes("Status: APPROVED_TEST"));
+});
+check('PILOT real inventory and Evidence screenshots no longer show TEST labels',()=>{
+ const c=load('EnvironmentTest.js',{PropertiesService:{getScriptProperties:()=>({getProperty:()=> 'PILOT_OPERATION'})}});
+ const evidence=c.bseRuntimePilotUiLabels_('Semakan lampiran BSE-EV-528-AQADBhxr — CONFIRMED TEST');
+ assert(evidence.includes('DISAHKAN'));assert(!evidence.includes('CONFIRMED TEST'));
+ const stock=c.bseRuntimePilotUiLabels_('Status: APPROVED_TEST');
+ assert(stock.includes('Disahkan dalam pilot'));assert(!stock.includes('APPROVED_TEST'));
 });
 console.log('GI_UX_FOLLOWUP '+checks+'/'+checks+' PASS');
