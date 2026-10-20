@@ -1,5 +1,8 @@
 # OpsMate BSE site B v1.0 Final Handover
 
+## Gate I human-readable persisted receipts ? 2026-10-20 (LOCAL PASS, NOT MERGED)
+- Real sowing BSE-TG-772257249 persisted 1 Crop Batch, 1 Planting Event, 2 Plot Allocations (M5P3/M5P4) exactly. Telegram edited receipt exposed raw schema IDs/statuses; fix proposed on feature branch: concise Malay verified read-back for sowing, humanized labels for generic fallback domains, preserve dedicated readable receipts. Fail-closed on missing/mismatched persisted rows. Reliability acceptance candidate: callback pending >2 min warning, >5 min escalation, >=3 deferred ticks warning; not activated. Details docs/GATE_I_HUMAN_RECEIPTS_AND_WORKER_GATE_20261020.md. No Apps Script push, deployment, callback replay, or domain write; live acceptance NOT TESTED for new formatter.
+
 ## Gate I worker 12:28 reliability diagnostic ? 2026-10-20 (READ-ONLY)
 - Apps Script UIA: bseTelegramTick 12:28:18 FAILED after 166.042s with generic server error, no visible stack trace; 12:29?12:34 every tick deferred due receiver ScriptLock contention; 12:35 tick recovered and saved callback 772257248 exactly once. Source investigation identifies guarded RETRY_NEXT_TICK but cannot establish lock owner/root error. Diagnostic docs/GATE_I_WORKER_1228_UIA_DIAGNOSTIC_20261020.md; **worker reliability OPEN / root cause PARTIAL / formal handover NOT DELIVERED**. No speculative hotfix or domain replay.
 

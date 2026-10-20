@@ -401,13 +401,38 @@ function bseTelegramConfirmedPersistedSummary_(book,reference,domain,outcome){
  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')return '';
  const maps={Crop_Batch_Log:['TEST_CROP_BATCH','TEST_PLANTING_EVENT','TEST_PLOT_ALLOCATION'],Measurement_Log:['TEST_MEASUREMENT_LOG'],Transplant_Event_Log:['TEST_TRANSPLANT_EVENT','TEST_ALLOCATION_STATUS_EVENT'],Plant_Census_Log:['TEST_PLANT_CENSUS'],Treatment_Event_Log:['TEST_TREATMENT_EVENT'],EC_Leachate_Log:['TEST_EC_LEACHATE'],Inventory_Event_Log:['TEST_INVENTORY_EVENT'],Input_Usage_Log:['TEST_INPUT_USAGE_LOG'],Claim_Request_Log:['TEST_CLAIM_LOG'],Asset_Proposal_Log:['TEST_ASSET_PROPOSAL'],Asset_Event_Log:['TEST_ASSET_EVENT'],Leave_Record_Log:['TEST_LEAVE_RECORD'],Maintenance_Event_Log:['TEST_MAINTENANCE_EVENT'],Plant_Replacement_Event_Log:['TEST_PLANT_REPLACEMENT_EVENT'],Plant_Condition_Log:['TEST_PLANT_CONDITION'],Observation_Log:['TEST_OBSERVATION_LOG'],Operation_Log:['TEST_OPERATION_LOG'],Decision_Approval_Log:['TEST_DECISION_APPROVAL_LOG']};
  const source=String(outcome&&outcome.source_key||''),names=maps[String(domain||'')];if(!names||!source.startsWith(reference+'|'))return '';
- const wanted=['event_date','crop','variety','batch_id','planting_event_id','transplant_event_id','plot_id','plot_ids','allocation_id','event_type','record_type','event_status','allocation_status','from_status','to_status','quantity','unit','item_name','material_name','measurement_type','value','session','treatment_description','status','batch_status','verification_status','plant_count','count','condition','operation_type','description','amount_myr','asset_name','request_status'];
- const text=v=>String(v==null?'':v).replace(/[\x00-\x1f\x7f]/g,' ').trim().slice(0,140);
- const found=[],lines=['REKOD DISAHKAN DAN DISIMPAN','Rujukan laporan: '+reference,'Rujukan sumber: '+source,'Jenis: '+domain.replace(/_/g,' ')];
- for(const name of names){const sh=book.getSheetByName(name);if(!sh||sh.getLastRow()<2)continue;const data=sh.getRange(1,1,Math.min(sh.getLastRow(),500),Math.min(sh.getLastColumn(),90)).getValues(),headers=data[0].map(String),id=headers.indexOf('source_key');if(id<0)continue;const rows=data.slice(1).filter(r=>String(r[id]||'')===source);if(!rows.length)continue;found.push({name,count:rows.length});lines.push('',name.replace(/^TEST_/,'').replace(/_/g,' ')+': '+rows.length+' rekod');for(const row of rows.slice(0,8)){const fields=wanted.map(key=>{const i=headers.indexOf(key);return i>=0&&text(row[i])?key.replace(/_/g,' ')+': '+text(row[i]):''}).filter(Boolean);if(fields.length)lines.push('- '+fields.join(' | '));}if(rows.length>8)lines.push('... '+(rows.length-8)+' rekod tambahan');}
+ const labels={Crop_Batch_Log:'SEMAIAN',Measurement_Log:'BACAAN',Transplant_Event_Log:'PINDAH TANAM',Plant_Census_Log:'BANCI POKOK',Treatment_Event_Log:'RAWATAN',EC_Leachate_Log:'EC LEACHATE',Inventory_Event_Log:'STOK',Input_Usage_Log:'PENGGUNAAN BAHAN',Claim_Request_Log:'TUNTUTAN',Asset_Proposal_Log:'CADANGAN ASET',Asset_Event_Log:'ASET',Leave_Record_Log:'CUTI',Maintenance_Event_Log:'PENYELENGGARAAN',Plant_Replacement_Event_Log:'GANTI POKOK',Plant_Condition_Log:'KEADAAN POKOK',Observation_Log:'PEMERHATIAN',Operation_Log:'OPERASI',Decision_Approval_Log:'KEPUTUSAN'};
+ const keys={event_date:'Tarikh',crop:'Tanaman',variety:'Varieti',plot_id:'Plot',plot_ids:'Plot',event_type:'Aktiviti',event_status:'Status aktiviti',allocation_status:'Status plot',from_status:'Status asal',to_status:'Status baharu',quantity:'Kuantiti',unit:'Unit',item_name:'Barang',material_name:'Bahan',measurement_type:'Jenis bacaan',value:'Bacaan',session:'Sesi',treatment_description:'Rawatan',status:'Status',batch_status:'Status batch',verification_status:'Status semakan',plant_count:'Bilangan pokok',count:'Bilangan',condition:'Keadaan',operation_type:'Jenis operasi',description:'Keterangan',amount_myr:'Jumlah (RM)',asset_name:'Aset',request_status:'Status tuntutan'};
+ const translate={PLANNED:'Dirancang',ACTIVE:'Aktif',COMPLETED:'Selesai',PROPOSED:'Cadangan',PROVISIONAL:'Sementara (belum diverifikasi)',VERIFIED_TEST:'Disahkan dalam pilot',SEED_SOWING:'Semai',TRANSPLANT:'Pindah tanam',PENDING:'Menunggu',APPROVED:'Diluluskan',REJECTED:'Ditolak'};
+ const plain=v=>String(v==null?'':v).replace(/[\x00-\x1f\x7f]/g,' ').trim();
+ const format=(key,v)=>{const s=plain(v);if(key==='event_date'&&/^\d{4}-\d{2}-\d{2}$/.test(s))return s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4);return translate[s]||s;};
+ const found=[];
+ for(const name of names){const sh=book.getSheetByName(name);if(!sh||sh.getLastRow()<2)continue;const data=sh.getRange(1,1,Math.min(sh.getLastRow(),500),Math.min(sh.getLastColumn(),90)).getValues(),headers=data[0].map(String),i=headers.indexOf('source_key');if(i<0)continue;const rows=data.slice(1).filter(r=>String(r[i]||'')===source);if(rows.length)found.push({name,headers,rows});}
  if(!found.length)return '';
- if(domain==='Crop_Batch_Log'&&(found.length!==3||found[0].count!==1||found[1].count!==1||found[2].count<1))return '';
- return lines.join('\n').slice(0,3900);
+ // Strict read-back: a sowing receipt cannot omit a batch, planting event or any plot.
+ if(domain==='Crop_Batch_Log'){
+   if(found.length!==3||found[0].rows.length!==1||found[1].rows.length!==1||found[2].rows.length<1)return '';
+   const get=(part,row,k)=>row[part.headers.indexOf(k)];
+   const batch=found[0],r=batch.rows[0],date=plain(get(batch,r,'event_date')),crop=plain(get(batch,r,'crop')),variety=plain(get(batch,r,'variety'));
+   const plots=found[2].rows.map(row=>plain(get(found[2],row,'plot_id')));
+   const batchId=plain(get(batch,r,'batch_id'));
+   if(found[1].headers.includes('event_type')&&plain(get(found[1],found[1].rows[0],'event_type'))!=='SEED_SOWING')return '';
+   for(const part of [found[1],found[2]])for(const item of part.rows){if(batchId&&part.headers.includes('batch_id')&&plain(get(part,item,'batch_id'))!==batchId)return '';if(part.headers.includes('event_date')&&plain(get(part,item,'event_date'))!==date)return '';}
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!crop||plots.some(p=>!/^M\d+P\d+$/.test(p))||new Set(plots).size!==plots.length)return '';
+   const status=plain(get(found[2],found[2].rows[0],'allocation_status')),verify=plain(get(batch,r,'verification_status'));
+   if(found[2].rows.some(row=>plain(get(found[2],row,'allocation_status'))!==status))return '';
+   const lines=['REKOD SEMAIAN DISIMPAN','Rujukan: '+reference,'Tarikh semai: '+format('event_date',date),'Tanaman: '+crop+(variety?' ('+variety+')':''),'Plot: '+plots.join(', '),'Direkodkan: 1 batch, 1 aktiviti semaian, '+plots.length+' plot'];
+   if(status)lines.push('Status plot: '+format('allocation_status',status));
+   if(verify)lines.push('Status semakan: '+format('verification_status',verify));
+   const receipt=lines.join('\n');return receipt.length<=3900?receipt:'';
+ }
+ const fields=Object.keys(keys),lines=['REKOD '+labels[domain]+' DISIMPAN','Rujukan: '+reference,'Bilangan rekod: '+found.reduce((n,p)=>n+p.rows.length,0)];
+ for(const part of found){for(const row of part.rows.slice(0,8)){
+   const readable=fields.map(k=>{const i=part.headers.indexOf(k);if(i<0||!plain(row[i]))return '';return keys[k]+': '+format(k,row[i]);}).filter(Boolean);
+   if(readable.length)lines.push('',...readable);
+   else lines.push('Butiran tersedia dalam rekod operasi.');
+ }if(part.rows.length>8)lines.push('... '+(part.rows.length-8)+' rekod lagi dalam Sheets');}
+ const result=lines.join('\n');return result.length<=3900?result:lines.slice(0,3).concat('Butiran penuh tersedia dalam Sheets; mesej terlalu panjang untuk dipaparkan dengan selamat.').join('\n');
 }
 function bseTelegramReporterConfirmationCore_(book,context,input){
   const sheet=bseTelegramApprovalSheet_(book),rows=bseApprovalRows_(sheet),i=rows.findIndex(r=>String(r[10])===String(input.token));
