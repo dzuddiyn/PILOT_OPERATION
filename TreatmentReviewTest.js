@@ -134,7 +134,7 @@ function bseTreatmentListDate_(text,receivedAt){
 
 function bseTreatmentListControlLine_(line){
   const value=String(line||'').trim();
-  return /^(?:RACUN|CADANGAN\s+MERACUN|RAWATAN\s+DIBUAT)$/i.test(value)||
+  return /^(?:RACUN|CADANGAN\s+MERACUN|RAWATAN\s+DIBUAT|PG|PAGI|PTG|PETANG)$/i.test(value)||
     /^\*?\d{1,2}[\/-]\d{1,2}[\/-](?:\d{2}|\d{4})\*?$/i.test(value)||
     /^(?:ISNIN|SELASA|RABU|KHAMIS|JUMAAT|SABTU|AHAD|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)$/i.test(value.replace(/\*/g,''))||
     /^\*?\d+\.\s*M\s*\d+\s*[- ]?\s*P\s*\d+(?:\s+[^*]+)?\*?$/i.test(value)||
