@@ -71,13 +71,7 @@ function bseImageProcessingSafeError_(error){
   if(/^Gemini HTTP \d+$/.test(raw)||/^OCR_FORMAT_REJECTED/.test(raw)||/^IMAGE_MODEL_/.test(raw))return raw.slice(0,180);
   return 'IMAGE_PROCESSING_ERROR';
 }
-function bseImageProcessingMarkup_(token){
-  return {inline_keyboard:[[
-    {text:'✅ Benar',callback_data:'IP1:'+token+':A'},
-    {text:'✏️ Betulkan',callback_data:'IP1:'+token+':C'},
-    {text:'❌ Buang',callback_data:'IP1:'+token+':R'}
-  ]]};
-}
+function bseImageProcessingMarkup_(token){return {inline_keyboard:[[{text:'\u2705 Benar',callback_data:'IP1:'+token+':A'},{text:'\u274c Batal',callback_data:'IP1:'+token+':R'}]]};}
 function bseImageProcessingReceive_(book,m){
   const meta=bseImageProcessingCaptionMeta_(m&&m.caption),mode=meta.mode;
   if(!mode)return {handled:false};

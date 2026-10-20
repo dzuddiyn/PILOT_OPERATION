@@ -217,7 +217,7 @@ function bseRuntimePilotUiLabels_(text) {
     .replace(/^History hanya boleh diminta melalui PM oleh owner\/admin atau user TEST yang aktif\.$/gm,'Sejarah hanya boleh diminta melalui PM oleh pengguna yang dibenarkan.')
     .replace(/\bRekod production\b/g,'rekod rasmi')
     .replace(/^Rujukan (BSE-TG-\d+):\r?\nTREATMENT_EVENT\r?\nStatus: PROVISIONAL[^\r\n]*\r?\nMod TEST[^\r\n]*/gm,
-      'Laporan racun telah disediakan untuk semakan.\nRujukan: $1\nSila pilih Benar, Betulkan atau Batal pada kad semakan.')
+      'Laporan racun telah disediakan untuk semakan.\nRujukan: $1\nSila pilih Benar atau Batal pada kad semakan.')
     .replace(/^EC LEACHING TEST\b/gm,'EC Leaching')
     .replace(/^Tiada rekod EC Leaching TEST yang disahkan dalam sela masa ini\.$/gm,'Tiada rekod EC Leaching yang disahkan dalam tempoh ini.')
     .replace(/^Bot BSE TEST sedia menerima laporan teks\. Tiada rekod production akan ditulis\.$/gm,'Bot BSE OpsMate sedia menerima laporan teks.')

@@ -28,7 +28,7 @@ function bseImageActionRows_(sheet){
 function bseImageActionMarkup_(token){
   return {inline_keyboard:[
     [{text:'🔍 Analisis gambar',callback_data:'IA1:'+token+':A'},{text:'📝 Ekstrak teks',callback_data:'IA1:'+token+':T'}],
-    [{text:'📎 Simpan Evidence',callback_data:'IA1:'+token+':E'},{text:'✖ Buang',callback_data:'IA1:'+token+':R'}]
+    [{text:'📎 Simpan Evidence',callback_data:'IA1:'+token+':E'},{text:'\u274c Batal',callback_data:'IA1:'+token+':R'}]
   ]};
 }
 function bseImageActionIsCallback_(u){
@@ -178,7 +178,7 @@ function runBseImageActionHarnessTests(){
   const markup=bseImageActionMarkup_('Abc123xY9'),receive=bseImageActionReceive_.toString(),callback=bseImageActionCallback_.toString(),processor=processBseImageActionCallbacksTest.toString(),synthetic=bseImageActionSyntheticMessage_(['t','1','private','10','1','Ali','f','u','image/jpeg','x.jpg',123],'A');
   const buttons=markup.inline_keyboard.flat();
   const tests=[
-    {id:'captionless photo chooser exposes four explicit actions',pass:buttons.length===4&&buttons.some(b=>/Analisis/.test(b.text))&&buttons.some(b=>/Ekstrak/.test(b.text))&&buttons.some(b=>/Evidence/.test(b.text))&&buttons.some(b=>/Buang/.test(b.text))},
+    {id:'captionless photo chooser exposes four explicit actions',pass:buttons.length===4&&buttons.some(b=>/Analisis/.test(b.text))&&buttons.some(b=>/Ekstrak/.test(b.text))&&buttons.some(b=>/Evidence/.test(b.text))&&buttons.some(b=>/Batal/.test(b.text))},
     {id:'chooser only intercepts PHOTO without caption',pass:/a\.type!=='PHOTO'/.test(receive)&&/String\(m&&m\.caption/.test(receive)},
     {id:'synthetic analysis reuses original Telegram file id',pass:synthetic.caption==='/image_analysis'&&synthetic.photo[0].file_id==='f'&&synthetic.message_id===10},
     {id:'analysis and OCR reuse existing image processing intake',pass:/bseImageProcessingReceive_/.test(callback)&&/SELECTED_ANALYSIS/.test(callback)&&/SELECTED_TEXT/.test(callback)},

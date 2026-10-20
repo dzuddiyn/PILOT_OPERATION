@@ -638,7 +638,7 @@ function bseTelegramResultText_(reference,result,question) {
       'Tarikh kerja: '+String(f.event_date||'').split('-').reverse().join('/'),
       'Tanaman: '+String(f.crop||''),
       'Plot: '+(Array.isArray(f.plot_ids)?f.plot_ids.join(', '):''),
-      'Sila pilih Benar, Betulkan atau Batal pada kad semakan.'].join('\n');
+      'Sila pilih Benar atau Batal pada kad semakan.'].join('\n');
   }
   if(question) {
     lines.push(question);
