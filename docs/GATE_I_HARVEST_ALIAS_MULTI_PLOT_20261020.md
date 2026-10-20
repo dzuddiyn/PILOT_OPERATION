@@ -1,6 +1,17 @@
 # Gate I — Harvest start aliases and compact plot pairs
 
-Checkpoint 2026-10-20: LOCAL PASS; runtime/live still pending.
+Current checkpoint 2026-10-20: **SOURCE MERGED / SCRIPT HEAD 76/76 VERIFIED / REAL APPS SCRIPT RUNTIME 47/47 PASS**. New post-fix Telegram field UX **NOT_RUN**.
+
+## Post-merge proof — independently verified
+- PR #138 MERGED to `main` `eb9381d9e8515d9f5c3407cfdc80c5ffa5d23ca1`.
+- Existing PILOT_OPERATION Script binding and manifest remained unchanged. Runtime preserved nine Gate F-only helper files. Staged code diff vs last Script HEAD was limited to `TelegramWorkerTest.js` and `OperationDecisionReviewTest.js`.
+- Authorized `clasp push --force` completed at 17:53:45 MYT, exit 0. Fresh `clasp pull` independently verified **76/76 source files exact**, without filename/content mismatch.
+- Refreshed Chrome PILOT_OPERATION Apps Script Editor; UI Automation invoked `runBseI011FullRegression` exactly once. Real log `started_at=2026-10-20T10:03:20.501Z`, `finished_at=2026-10-20T10:03:25.933Z`, `total=47`, `passed=47`, `failed=0`, `production_write=false`; execution completed.
+- Independent Apps Script **Executions** UI displays the same function at **18:03:16 MYT**, duration **9.672 seconds**, status **Selesai**.
+- Existing genuine report `772257287` remains owner-controlled; this fix never replays, approves, discards or rewrites the old Telegram report. New card-only field UX and physical harvest are **NOT VERIFIED**.
+- No deployment/version update, Telegram send/callback, or official BSE write.
+
+## Historical pre-merge checkpoint
 
 Actual Telegram BSE-TG-772257287 text: "mula Harverst / M3P1,2 / 13-Sep-26".
 PILOT queue row 56: WAITING_INFO, wrongly Treatment_Event_Log requesting dosage. Operation ledger/review/approval rows for this update: zero.
