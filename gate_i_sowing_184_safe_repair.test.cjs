@@ -38,6 +38,7 @@ const ctx={
  console
 };
 vm.createContext(ctx);
+vm.runInContext(extract(fs.readFileSync('GeminiUnifiedTest.js','utf8'),'bseTransplantFlexibleDate_'),ctx);
 for(const name of ['bsePilotCompactSowingResult_'])vm.runInContext(extract(w,name),ctx);
 for(const name of ['bsePilotSowing184RepairContext_','inspectBsePilotSowing184CardCorrection','repairBsePilotSowing184OpenCard'])vm.runInContext(extract(a,name),ctx);
 function check(name,fn){fn();checks++;console.log('PASS '+name)}

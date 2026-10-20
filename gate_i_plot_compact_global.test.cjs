@@ -1,6 +1,7 @@
 ﻿const fs=require('fs'),assert=require('assert'),vm=require('vm');
 function extract(s,n){let a=s.indexOf('function '+n+'(');if(a<0)throw Error('missing '+n);let i=s.indexOf('{',a),d=0,q='',esc=false;for(;i<s.length;i++){let c=s[i];if(q){if(esc){esc=false;continue}if(c==='\\'){esc=true;continue}if(c===q)q='';continue}if(c==="'"||c==='"'){q=c;continue}if(c==='{')d++;if(c==='}'&&--d===0)return s.slice(a,i+1)}throw Error('uncLOSED '+n)}
 const ctx={bseRuntimeEnvironmentName_:()=> 'PILOT_OPERATION',bseUnifiedSourceContext_:v=>typeof v==='string'?{original:v,clarifications:[]}:v};vm.createContext(ctx);
+vm.runInContext(extract(fs.readFileSync('GeminiUnifiedTest.js','utf8'),'bseTransplantFlexibleDate_'),ctx);
 for(let [file,names] of [['TelegramWorkerTest.js',['bsePilotCompactSowingResult_']],['GeminiUnifiedTest.js',['bseSeedSowingModulePlots_']],['TelegramPlotStatusTest.js',['bseTelegramPlotStatusCommand_','bseTelegramPlotSummaryCommand_','bseTelegramPlotRetrievalCommand_']]]){let s=fs.readFileSync(file,'utf8');for(let n of names)vm.runInContext(extract(s,n),ctx)}
 let t=0;const test=(name,fn)=>{fn();t++;console.log('PASS '+name)};
 test('M4P12 actual two plots from real sowing',()=>{let r=ctx.bsePilotCompactSowingResult_('semai\nPeria Besar 3328(Hua Li)\nM4P12\n1/9');assert.equal(r.validation,'PASS');assert.deepEqual(Array.from(r.candidates.slice(2),x=>x.fields.plot_id),['M4P1','M4P2'])});
