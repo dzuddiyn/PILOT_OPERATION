@@ -10,10 +10,10 @@ const BSE_AI_KB_SOURCES=[
 ];
 
 function bseTelegramAiCommand_(text){
-  return /^\/ask_ai(?:@[A-Za-z0-9_]+)?(?:\s|$)/i.test(String(text||'').trim());
+  return (bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?/^\/ask(?:@[A-Za-z0-9_]+)?(?:\s|$)/i:/^\/ask_ai(?:@[A-Za-z0-9_]+)?(?:\s|$)/i).test(String(text||'').trim());
 }
 function bseTelegramAiQuestion_(text){
-  return String(text||'').trim().replace(/^\/ask_ai(?:@[A-Za-z0-9_]+)?\s*/i,'').trim();
+  return String(text||'').trim().replace(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?/^\/ask(?:@[A-Za-z0-9_]+)?\s*/i:/^\/ask_ai(?:@[A-Za-z0-9_]+)?\s*/i,'').trim();
 }
 function bseTelegramAiAccessAllowed_(book,m,allowedPrivate,allowedGroup){
   if(allowedPrivate||allowedGroup)return true;

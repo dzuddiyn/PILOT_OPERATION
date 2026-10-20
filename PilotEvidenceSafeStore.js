@@ -15,12 +15,34 @@ function bsePilotEvidenceStorageFolder_(){
   const root=DriveApp.getFolderById(bseRuntimeEvidenceFolderId_());
   return bsePilotEvidenceExactChild_(bsePilotEvidenceExactChild_(root,'01_Source_Evidence'),'Evidence_Files');
 }
-function bsePilotEvidenceStoredName_(row){
+function bsePilotEvidenceLegacyStoredName_(row){
   const id=String(row[0]||''),unique=String(row[10]||'');
   if(!/^BSE-EV-[A-Za-z0-9_-]+$/.test(id)||!/^[A-Za-z0-9_-]{8,}$/.test(unique))
     throw Error('EVIDENCE_IDENTITY_INVALID');
   const original=String(row[12]||'evidence').replace(/[^A-Za-z0-9._-]/g,'_').slice(0,90);
   return id+'__'+unique+'__'+original;
+}
+function bsePilotEvidenceStoredName_(row){
+  bsePilotEvidenceLegacyStoredName_(row);
+  const caption=String(row[7]||'').trim();
+  const explicit=caption.match(/\b(\d{1,2})[/-](\d{1,2})[/-](20\d{2})\b/);
+  let date='';
+  if(explicit){
+    const d=Number(explicit[1]),m=Number(explicit[2]),y=Number(explicit[3]),utc=new Date(Date.UTC(y,m-1,d));
+    if(utc.getUTCDate()!==d||utc.getUTCMonth()!==m-1)throw Error('EVIDENCE_CAPTION_DATE_INVALID');
+    date=String(y)+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+  }else{
+    const received=new Date(String(row[6]||''));
+    if(!Number.isFinite(received.getTime()))return bsePilotEvidenceLegacyStoredName_(row);
+    date=Utilities.formatDate(received,'Asia/Kuala_Lumpur','yyyy-MM-dd');
+  }
+  const readable=caption.normalize('NFKD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^A-Za-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,70).replace(/_+$/,'')||'Tanpa_catatan';
+  const id=String(row[0]);
+  const original=String(row[12]||'');
+  const ext=original.match(/\.(jpg|jpeg|png|webp|pdf|mp4|mov|txt)$/i);
+  const suffix=ext?ext[0].toLowerCase():String(row[8]).toUpperCase()==='PHOTO'?'.jpg':'.bin';
+  return date+'_'+readable+'_'+id+suffix;
 }
 function bsePilotEvidenceExactMatch_(folder,name,row){
   const it=folder.getFilesByName(name),found=[];
@@ -45,7 +67,10 @@ function bsePilotEvidenceStoreOnce_(book,row,blob){
   if(!['OPEN','DRIVE_CREATE_PENDING','CONFIRMED','CONFIRMED_TEST'].includes(state))
     throw Error('EVIDENCE_REVIEW_STATE_INVALID_'+state);
   const folder=bsePilotEvidenceStorageFolder_(),name=bsePilotEvidenceStoredName_(canonical);
-  const found=bsePilotEvidenceExactMatch_(folder,name,canonical);
+  const modern=bsePilotEvidenceExactMatch_(folder,name,canonical);
+  const legacy=bsePilotEvidenceExactMatch_(folder,bsePilotEvidenceLegacyStoredName_(canonical),canonical);
+  if(modern&&legacy&&modern!==legacy)throw Error('EVIDENCE_FILENAME_COLLISION');
+  const found=modern||legacy;
   const recorded=String(canonical[19]||'');
   if(recorded){
     if(!found||found!==recorded)throw Error('EVIDENCE_RECORDED_FILE_SOURCE_MISMATCH');

@@ -108,11 +108,29 @@ function bseCensusAssertApprovedRows_(rows,sourceKey,payloadHash,entries,censusI
   const matches=rows.filter(row=>String(row[0])===sourceKey);if(!batchId||matches.length!==entries.length||censusIds.length!==entries.length||matches.some((row,index)=>{const entry=entries[index],dead=Object.prototype.hasOwnProperty.call(entry,'reported_dead_count')?String(entry.reported_dead_count):'',sick=Object.prototype.hasOwnProperty.call(entry,'reported_sick_count')?String(entry.reported_sick_count):'',capacity=Object.prototype.hasOwnProperty.call(entry,'plot_capacity_polybag')?String(entry.plot_capacity_polybag):'',method=String(entry.living_count_method||'');return String(row[2])!==censusIds[index]||String(row[3])!==batchId||String(row[5])!==entry.plot_id||Number(row[8])!==entry.living_plant_count||String(row[9])!=='VERIFIED_TEST'||String(row[13])!==payloadHash||String(row[14]||'')!==dead||String(row[15]||'')!==sick||String(row[16]||'')!==capacity||String(row[17]||'')!==method;}))throw new Error('Audit APPROVED tidak sepadan dengan rekod Banci Pokok TEST.');
 }
 
-function bseCensusOperationalSignal_(text){return /^\s*(?:\d+\.\s*)?(?:REKOD\s+)?BANCI\s+POKOK\s*$/im.test(String(text||''));}
-function bseCensusOperationalCount_(text,label){const m=String(text||'').match(new RegExp('^\\s*(?:'+label+')\\s*[:=-]\\s*(\\d+)\\s*$','im'));return m?Number(m[1]):null;}
+function bseCensusOperationalSignal_(text){return /^\s*(?:\d+\.\s*)?(?:(?:REKOD\s+)?BANCI\s+(?:POKOK|TANAMAN)|POKOK\s+(?:SAKIT|MATI)|KIRA(?:AN)?\s+POKOK)(?:\s+\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})?\s*$/im.test(String(text||''));}
+function bseCensusOperationalCount_(text,label){const aliases=label==='Mati|Dead'?'Mati|Dead|Pokok\\s+Mati':label==='Sakit|Sick'?'Sakit|Sick|Pokok\\s+Sakit':label;const m=String(text||'').match(new RegExp('^\\s*(?:'+aliases+')\\s*[:=-]\\s*(\\d+)\\s*$','im'));return m?Number(m[1]):null;}
 function bseCensusOperationalPlot_(text){const m=String(text||'').match(/^\s*Modul\s*:\s*M\s*([1-9]\d*)\s*[- ]?\s*P\s*([1-9]\d*)\s*$/im);return m?bsePlotSingleLocation_('M'+m[1]+'P'+m[2]).plot_id:'';}
 function bseCensusOperationalCrop_(text){const m=String(text||'').match(/^\s*(?:Jenis\s+Tanaman|Tanaman)\s*:\s*([^\n]+?)\s*$/im),value=m?String(m[1]||'').trim():'';return value&&value!=='-'?value:'';}
-function bseCensusOperationalDate_(text,receivedAt,clarifications){const parse=value=>{const m=String(value||'').match(/^\s*(?:(?:Tarikh\s+Banci|Tarikh)\s*:\s*)?(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})\s*$/im);if(!m)return '';const day=Number(m[1]),month=Number(m[2]),year=Number(m[3]),d=new Date(Date.UTC(year,month-1,day));return year===2026&&d.getUTCFullYear()===year&&d.getUTCMonth()===month-1&&d.getUTCDate()===day?year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0'):'';};let latest='';for(const answer of (clarifications||[])){const value=String(answer||'').split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map(parse).find(Boolean);if(value)latest=value;}if(latest)return latest;const source=String(text||'').split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map(parse).find(Boolean);return source||bsePlantCensusMalaysiaDate_(receivedAt);}
+function bseCensusOperationalDate_(text,receivedAt,clarifications){
+  const parse=value=>{
+    const lines=String(value||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+    for(const line of lines){
+      const numeric=line.match(/^(?:(?:Tarikh(?:\s+Banci)?|Date)\s*[:=-]\s*|(?:(?:\d+\.\s*)?(?:(?:REKOD\s+)?BANCI\s+(?:POKOK|TANAMAN)|POKOK\s+(?:SAKIT|MATI)|KIRA(?:AN)?\s+POKOK))\s+)?(\d{1,2})[\/-](\d{1,2})[\/-](\d{2}|\d{4})\s*$/i);
+      const iso=line.match(/^(?:(?:Tarikh(?:\s+Banci)?|Date)\s*[:=-]\s*)?(20\d{2})-(\d{1,2})-(\d{1,2})\s*$/i);
+      let year,month,day;
+      if(iso){year=Number(iso[1]);month=Number(iso[2]);day=Number(iso[3]);}
+      else if(numeric){day=Number(numeric[1]);month=Number(numeric[2]);year=Number(numeric[3].length===2?'20'+numeric[3]:numeric[3]);}
+      else continue;
+      const d=new Date(Date.UTC(year,month-1,day));
+      if(year===2026&&d.getUTCFullYear()===year&&d.getUTCMonth()===month-1&&d.getUTCDate()===day)
+        return year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    }
+    return '';
+  };
+  let latest='';for(const answer of (clarifications||[])){const found=parse(answer);if(found)latest=found;}
+  return latest||parse(text)||bsePlantCensusMalaysiaDate_(receivedAt);
+}
 function bseCensusOperationalLivingValues_(source,clarifications,plotId){const values=[];const add=text=>{String(text||'').split(/\r?\n/).map(line=>line.trim()).filter(Boolean).forEach(line=>{let m=line.match(/^(?:Hidup|Pokok\s+Hidup|Living)\s*[:=-]?\s*(\d+)\s*(?:pokok)?\s*$/i);if(!m&&plotId)m=line.match(new RegExp('^'+plotId+'\\s*:\\s*(\\d+)\\s+pokok\\s*$','i'));if(!m&&/^\d+$/.test(line)&&plotId)m=[line,line];if(m)values.push(Number(m[1]));});};add(source);(clarifications||[]).forEach(add);return Array.from(new Set(values.filter(value=>Number.isInteger(value)&&value>=0)));}
 function bseTelegramCensusDeterministicResult_(input,receivedAt){
   const context=typeof bseUnifiedSourceContext_==='function'?bseUnifiedSourceContext_(input):{original:String(input||''),clarifications:[],provenance:String(input||'')},source=String(context.original||'');

@@ -44,7 +44,7 @@ const BSE_RUNTIME_ENV_CONFIG = Object.freeze({
   PILOT_OPERATION: Object.freeze({
     name: 'PILOT_OPERATION',
     label: 'PILOT',
-    startToken: 'BSE_PILOT',
+    startToken: 'OpsMate',
     spreadsheetProperty: 'BSE_PILOT_OPERATION_SPREADSHEET_ID',
     approvalGroupsProperty: 'BSE_PILOT_OPERATION_APPROVAL_GROUP_CHAT_IDS',
     legacyChatProperty: 'PILOT_OPERATION_TELEGRAM_CHAT_ID',
@@ -232,6 +232,8 @@ function bseRuntimePilotUiLabels_(text) {
     .replace(/^OCR CONFIRMED TEST\b/gm,'OCR disahkan')
     .replace(/^OCR hanya untuk Evidence yang sudah CONFIRMED_TEST\.$/gm,'OCR hanya untuk lampiran yang sudah disahkan.')
     .replace(/^Status: CONFIRMED_TEST$/gm,'Status: Disahkan')
+    .replace(/(Semakan lampiran BSE-EV-[A-Za-z0-9_-]+\s+—\s+)CONFIRMED TEST\b/g,'$1DISAHKAN')
+    .replace(/^Status: APPROVED_TEST$/gm,'Status: Disahkan dalam pilot')
     .replace(/^Kategori dicadang: FIELD_OPERATION$/gm,'Kategori dicadang: Operasi ladang / peralatan')
     .replace(/^Kategori dicadang: UNCLASSIFIED_TEST$/gm,'Kategori dicadang: Belum dikenal pasti')
     .replace(/^Kategori: FIELD_OPERATION$/gm,'Kategori: Operasi ladang / peralatan')
@@ -504,7 +506,7 @@ function runBseEnvironmentIsolationHarnessTests() {
       if (bseRuntimeSheetName_('GEMINI_TEST_RESULTS') !== 'PILOT_GEMINI_RESULTS' || bseRuntimeSheetName_('SCRIPT_TEST_RESULTS') !== 'PILOT_SCRIPT_RESULTS') throw new Error('PILOT result mapping gagal');
     });
     pass('PILOT_OPERATION start token isolated', function(){
-      if (bseRuntimeStartToken_() !== 'BSE_PILOT') throw new Error('PILOT start token salah');
+      if (bseRuntimeStartToken_() !== 'OpsMate') throw new Error('PILOT start token salah');
     });
     pass('PILOT_OPERATION outgoing text labeled', function(){
       const body=bseRuntimeTelegramPayload_('sendMessage',{text:'Semakan',chat_id:'-1002'});
