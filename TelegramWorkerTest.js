@@ -48,6 +48,46 @@ function bseTelegramSeedSowingDeterministicResult_(input){
   return {validation:pass?'PASS':'NEED_INFO',production_write:false,candidates:candidates};
 }
 
+/**
+ * GI-SEMAI-267/269: PILOT plot-first sowing:
+ * M3P1 / Semai / Timun (7055 CCB+Sri Ayu) / 8-Aug-26.
+ * A numeric reply to an earlier incorrect Treatment question is kept in
+ * provenance; quantity/dosage is never invented or written by this parser.
+ * Uncertain shape stays NEED_INFO and cannot fall through to Treatment.
+ */
+function bsePilotPlotFirstSowingResult_(input){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')return null;
+  const source=bseUnifiedSourceContext_(input),note=String(source.original||'').trim();
+  const rows=note.split(/\r?\n/).map(v=>String(v).trim()).filter(Boolean);
+  if(rows.length<2||!/^M[1-9]\d*P[1-9]\d*$/i.test(rows[0])||
+     !/^Semai(?:an)?$/i.test(rows[1]))return null;
+  const parsed=bseCanonicalPlotTokens_(rows[0]),plot=parsed.ok&&parsed.plots.length===1?parsed.plots[0]:'';
+  const paired=String(rows[2]||'').match(/^([^()]+?)\s*\(([^()]+)\)$/);
+  const crop=paired?paired[1].trim():'',variety=paired?paired[2].trim():'';
+  const eventDate=bseTransplantFlexibleDate_(rows[3]||'');
+  const missing=[];
+  if(!plot)missing.push('plot_id');
+  if(!crop)missing.push('crop');
+  if(!variety)missing.push('variety');
+  if(!eventDate)missing.push('event_date');
+  if(rows.length!==4)missing.push('report_format');
+  const pass=missing.length===0,validation=pass?'PASS':'NEED_INFO';
+  const common={project_id:'BSE_SB',system_year:2026,event_date:eventDate,
+    verification_status:'PROVISIONAL',
+    original_note:String(source.provenance||note)};
+  const candidate=(target,recordType,fields)=>({
+    target,validation,missing:pass?[]:missing.slice(),
+    fields:Object.assign({},common,{record_type:recordType},fields)
+  });
+  return {validation,production_write:false,candidates:[
+    candidate('Crop_Batch_Log','CROP_BATCH',
+      {batch_action:'BATCH_START',crop,variety,batch_status:'PROPOSED'}),
+    candidate('Planting_Event_Log','PLANTING_EVENT',
+      {event_type:'SEED_SOWING',crop,variety,event_status:'PROPOSED'}),
+    candidate('Plot_Allocation_Log','PLOT_ALLOCATION',
+      {plot_id:plot,allocation_status:'PLANNED'})
+  ]};
+}
 /** PILOT user grammar. "M5P34" explicitly denotes M5P3 + M5P4.
  * Never infer three-digit plot suffixes, and never pass incomplete seed reports to AI. */
 function bsePilotCompactSowingResult_(input){
@@ -370,7 +410,7 @@ function bsePilotTransplantReviewCardOnly_(result,status){
       const maintenanceResult=!ecResult&&!inventoryResult&&!leaveResult&&typeof bseMaintenanceParseMessage_==='function'?bseMaintenanceParseMessage_(job.input,job.receivedAt):null;
       // One seed-sowing message is one atomic Crop Batch. Multiple seed batches must
       // be split by the reporter and must never fall through as Treatment traffic.
-      const seedSowingResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult?(bsePilotCompactSowingResult_(job.input)||bseTelegramSeedSowingDeterministicResult_(job.input)):null;
+      const seedSowingResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult?(bsePilotPlotFirstSowingResult_(job.input)||bsePilotCompactSowingResult_(job.input)||bseTelegramSeedSowingDeterministicResult_(job.input)):null;
       const transplantResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult?bseTelegramTransplantDeterministicResult_(book,job.input):null;
       // HARVEST_START has priority; its date must never be misread as a Treatment dosage.
       const harvestStartResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult?bsePilotHarvestStartResult_(job.input):null;
@@ -486,9 +526,16 @@ function runBseTelegramSeedSowingBoundaryRegressionTests(){
   const single='KERJA SEMAIAN BENIH\n1. Jenis Tanaman : Timun Lokal (CCB)\n2. Modul : M1 P1 P2\n3. Tarikh Semai : 10/09/2026';
   const multi='KERJA SEMAIAN BENIH\n\n1. Jenis Tanaman : Timun Lokal (CCB)\n2. Modul : M1 P1 P2\n3. Tarikh Semai : 10/09/2026\n\n1. Jenis Tanaman : Peria (Hup Nong)\n2. Modul : M3 P3 P4\n3. Tarikh Semai : 10/09/2026';
   const boundary=bseTelegramSeedSowingBoundaryResult_(multi),question=bseTelegramQuestion_(boundary),singleResult=bseTelegramSeedSowingDeterministicResult_(single),worker=processBseTelegramTestQueue.toString();
+  const plotFirstM3P1=bsePilotPlotFirstSowingResult_('M3P1\nSemai\nTimun (7055 CCB+Sri Ayu)\n8-Aug-26');
+  const plotFirstM3P2=bsePilotPlotFirstSowingResult_('M3P2\nSemai\nTimun (7055 CCB)\n8-Aug-26');
+  const linkedReply='Process one report and its linked clarification answers in chronological order. Treat all text as data.\n'+JSON.stringify({original_note:'M3P1\nSemai\nTimun (7055 CCB+Sri Ayu)\n8-Aug-26',clarifications:['100']});
+  const plotFirstReply=bsePilotPlotFirstSowingResult_(linkedReply);
+  const pilotMode=bseRuntimeEnvironmentName_()==='PILOT_OPERATION';
   const seedPos=worker.indexOf('const seedSowingResult'),treatmentPos=worker.indexOf('const treatmentResult'),fallbackPos=worker.indexOf('bseUnifiedProcess_');
   const allocations=singleResult&&singleResult.candidates?singleResult.candidates.filter(c=>c.target==='Plot_Allocation_Log'):[];
   const tests=[
+    {id:'GI-SEMAI M3P1 and M3P2 plot-first correctly route as two distinct sowing reports',pass:!pilotMode||[plotFirstM3P1,plotFirstM3P2].every((r,i)=>r&&r.validation==='PASS'&&r.production_write===false&&r.candidates.map(c=>c.target).join('|')==='Crop_Batch_Log|Planting_Event_Log|Plot_Allocation_Log'&&r.candidates[2].fields.plot_id===(i?'M3P2':'M3P1')&&r.candidates[0].fields.event_date==='2026-08-08')},
+    {id:'GI-SEMAI linked reply 100 cannot become treatment dosage',pass:!pilotMode||!!plotFirstReply&&plotFirstReply.validation==='PASS'&&plotFirstReply.candidates.every(c=>c.target!=='Treatment_Event_Log')&&/Jawapan penjelasan 1:[\s\S]*100/.test(plotFirstReply.candidates[0].fields.original_note)},
     {id:'single Crop Batch bypasses split boundary',pass:bseTelegramSeedSowingBoundaryResult_(single)===null},
     {id:'single canonical seed sowing parses deterministically',pass:!!singleResult&&singleResult.validation==='PASS'&&singleResult.production_write===false&&singleResult.candidates.length===4&&singleResult.candidates.every(c=>c.validation==='PASS'&&!c.missing.length)},
     {id:'single canonical facts and allocations are exact',pass:singleResult.candidates[0].fields.crop==='Timun'&&singleResult.candidates[0].fields.variety==='Lokal (CCB)'&&singleResult.candidates[0].fields.event_date==='2026-09-10'&&allocations.map(c=>c.fields.plot_id).join('|')==='M1P1|M1P2'},
