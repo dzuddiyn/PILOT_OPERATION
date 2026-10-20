@@ -2,11 +2,23 @@
 
 **Date:** 2026-10-20 MYT
 **Environment:** PILOT_OPERATION shadow pilot
-**Current status (2026-10-20):** PR #129 MERGED; Apps Script HEAD UPDATED; independent source read-back 76/76 PASS. Apps Script runtime regression is **VERIFIED FAIL (44/47)** from Chrome UI Automation, while post-fix Telegram field UX remains **NOT_RUN**.
+**Current status (2026-10-20, post-field proof):** **SCOPED TELEGRAM CARD-ONLY LIVE PASS** for newly received Telegram message `BSE-TG-772257265`. The real Chrome Apps Script Editor full regression was separately repaired under GI-REG-03 and now **47/47 PASS**, with independent Script HEAD source read-back **76/76 PASS**. This is **not** a full worker-reliability or BSE handover acceptance.
+
+## GI-263-LIVE-01 — Genuine Telegram card-only field proof (20 October 2026)
+
+- Evidence from owner-provided Telegram screenshot: user submitted the text `Tarikh mula tuai / M7P3 / 14-Oct-26` as a fresh Telegram message at approximately **16:12 MYT**; bot gave the short `Memproses Rekod / Laporan` ACK and one correct `Semakan laporan BSE-TG-772257265` approval card by approximately **16:13 MYT**. The visible screenshot segment contains **no separate interim `OPERATION | M7P3 Menunggu pengesahan laporan`**; it shows exactly the intended card with date **14/10/2026**, plot **M7P3**, type **Mula Tuai**, disclaimer that no harvest quantity was specified, and **Benar / Betulkan / Batal** controls. Scope of visual evidence is only the visible chat segment.
+- Independently queried owner PILOT_OPERATION Google Sheet. `PILOT_TELEGRAM_QUEUE` row **39**, update **772257265**: `received_at=2026-10-20T08:13:25.641Z`, ACK `SENT`, ACK message **266**, **one** processing attempt, **no last_error**; later queue state `REPORTER_CONFIRMED`.
+- `PILOT_TELEGRAM_APPROVAL_UI` row **29**: one approval card message **267**, created `2026-10-20T08:13:39.067Z`. **After screenshot capture**, the row had `REPORTER_CONFIRMED` and `acted_at=2026-10-20T08:14:35.473Z`. This later user-side confirmation was **not initiated by the audit agent**.
+- `PILOT_TELEGRAM_APPROVAL_CALLBACK_PENDING` row **32**: callback update **772257266** `PROCESSED`; no callback replay by the audit agent.
+- Independent `PILOT_OPERATION_REVIEW` row **2**: exactly one `APPROVED` review linked to `BSE-TG-772257265|Operation_Log`, approved at `2026-10-20T08:14:32.503Z`, proposal validation PASS.
+- Independent `PILOT_OPERATION_LOG` row **2**: exactly **one** source `BSE-TG-772257265`, date **2026-10-14**, plot **M7P3**, operation type **HARVEST_START**, no fabricated harvest quantity; `verification_status=PROVISIONAL` (not VERIFIED).
+- The earlier identical-content message `BSE-TG-772257263` was handled separately: queue/card status `DISCARDED_BY_REPORTER` at **16:12:45 MYT**, callback update **772257264** `PROCESSED`, and **zero** `PILOT_OPERATION_LOG` rows from that source. One matching M7P3 operation row exists in the inspected PILOT ledger; no duplicate entry was seen.
+- Source/run authority: GitHub canonical `main` **`2c57464fba434327f1514a210f8cfd00aa480a42`**; GI-263 PR #129 merged earlier, GI-REG-03 PR #131 and evidence PR #132 merged; genuine Apps Script I-011 regression `47/47 PASS`, `production_write:false`, at **16:00:38 MYT**.
+- **Verdict:** GI-263 **card-only Telegram UX: SCOPED LIVE PASS** and **post-confirmation PILOT write/read-back: VERIFIED for this one report**. The screenshot does not prove the physical harvest event occurred. This is not evidence that automated retrieval/history, worker reliability, rollback or formal BSE handover passed. No official BSE write, new deployment, agent-triggered callback or user message was performed by this audit. Prior report `772257263` was not replayed or overwritten.
 
 **Historical status at PR creation:** LOCAL PASS ONLY; PR not merged and Script HEAD not updated at that time.
 
-## Post-merge / Script HEAD independent verification — 2026-10-20
+## Historical pre-GI-REG-03 checkpoint / Script HEAD independent verification — 2026-10-20 (before 16:13 MYT)
 
 | Check | Verified state |
 | --- | --- |
@@ -34,7 +46,7 @@ Fresh owner Google Sheet read-back after sync for original genuine `BSE-TG-77225
 - `PILOT_OPERATION_LOG` and `PILOT_OPERATION_REVIEW`: zero matches for this source.
 - The pre-existing Telegram interim message cannot be retroactively removed by source sync; card-only behavior applies to eligible newly processed reports only.
 
-**Verdict:** SOURCE MERGED / SCRIPT HEAD UPDATED / INDEPENDENT SOURCE READ-BACK PASS. Runtime full regression is **VERIFIED FAIL (44/47)**; future live user-facing card-only proof is **NOT_RUN**. Neither is elevated to LIVE PASS.
+**Historical checkpoint verdict (superseded above):** SOURCE MERGED / SCRIPT HEAD UPDATED / INDEPENDENT SOURCE READ-BACK PASS. At the earlier checkpoint, runtime full regression was **FAIL (44/47)** and post-fix card-only field proof was **NOT_RUN**. The later GI-REG-03 runtime **47/47 PASS** and GI-263-LIVE-01 **SCOPED LIVE PASS** are independently recorded above.
 
 ## Original genuine observation
 
