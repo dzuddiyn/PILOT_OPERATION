@@ -3,7 +3,7 @@
 const BSE_TG_TEST_COMMANDS=[
   {command:'start',description:'Daftar atau semak akses TEST'},
   {command:'status',description:'Status plot, contoh: /status M2P1 atau /status M2P12'},
-  {command:'summary',description:'Rumusan plot, contoh: /summary plot M2P1,M2P2'},
+  {command:'summary',description:'Rumusan 2-6 plot: /summary M2P12 atau /summary M2P1,2'},
   {command:'retrieve',description:'Ambil rekod atau Evidence ikut rujukan'},
   {command:'image_to_text',description:'Ekstrak teks gambar (boleh guna butang selepas hantar foto)'},
   {command:'image_analysis',description:'Analisis gambar (boleh guna butang selepas hantar foto)'},
