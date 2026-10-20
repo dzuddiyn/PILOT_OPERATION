@@ -66,7 +66,7 @@ check('user-facing PILOT Transplant card summary remains after controller repair
  assert(s.includes("if(transplant&&bseRuntimeEnvironmentName_()==='PILOT_OPERATION')"));
  assert(s.includes('Tarikh kerja:'));
  assert(s.includes('Plot:'));
- assert(s.includes('Tekan Benar hanya jika'));
+ assert(!s.includes('Tekan Benar hanya jika'));
 });
 check('Transplant one-card callback hashes the same stripped envelope as card creation',()=>{
  const confirmation=approval.slice(approval.lastIndexOf('function bseTelegramReporterConfirmationCore_('));

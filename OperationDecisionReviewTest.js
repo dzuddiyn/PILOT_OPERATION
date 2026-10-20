@@ -90,7 +90,7 @@ function bseDecisionApprovalReviewCore_(book,reviewContext){
 
 function bseOperationConfirmedSummaryFromRows_(reference,rows){
   const row=(rows||[])[(rows||[]).length-1];if(!row)return '';
-  const lines=['REKOD OPERASI','Rujukan : '+String(reference||''),'Tarikh : '+bseApprovalDisplayDate_(String(row[3]||'')),'Plot : '+String(row[5]||''),'Jenis operasi : '+String(row[6]||'')];
+  const lines=['REKOD OPERASI','Rujukan : '+String(reference||''),'Tarikh : '+bseApprovalDisplayDate_(String(row[3]||'')),'Plot : '+String(row[5]||''),'Jenis operasi : '+(String(row[6]||'')==='HARVEST_START'?'Mula Tuai':String(row[6]||''))];
   if(String(row[4]||'').trim())lines.push('Masa : '+String(row[4]));
   if(String(row[7]||'').trim())lines.push('Catatan : '+String(row[7]));
   lines.push('Status : REPORTER_CONFIRMED','Mod TEST - tiada rekod production ditulis.');return lines.join('\n');
