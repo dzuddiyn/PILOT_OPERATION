@@ -397,6 +397,18 @@ function bseTelegramApprovalEnsureCard_(book,queueRow){
   bseApprovalRecomputeQueueStatus_(book,reference);
   return {created:created.length>0,created_cards:created,duplicates:duplicates,pending:pending,candidate_count:envelopes.length,production_write:false};
 }
+function bseTelegramConfirmedPersistedSummary_(book,reference,domain,outcome){
+ if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')return '';
+ const maps={Crop_Batch_Log:['TEST_CROP_BATCH','TEST_PLANTING_EVENT','TEST_PLOT_ALLOCATION'],Measurement_Log:['TEST_MEASUREMENT_LOG'],Transplant_Event_Log:['TEST_TRANSPLANT_EVENT','TEST_ALLOCATION_STATUS_EVENT'],Plant_Census_Log:['TEST_PLANT_CENSUS'],Treatment_Event_Log:['TEST_TREATMENT_EVENT'],EC_Leachate_Log:['TEST_EC_LEACHATE'],Inventory_Event_Log:['TEST_INVENTORY_EVENT'],Input_Usage_Log:['TEST_INPUT_USAGE_LOG'],Claim_Request_Log:['TEST_CLAIM_LOG'],Asset_Proposal_Log:['TEST_ASSET_PROPOSAL'],Asset_Event_Log:['TEST_ASSET_EVENT'],Leave_Record_Log:['TEST_LEAVE_RECORD'],Maintenance_Event_Log:['TEST_MAINTENANCE_EVENT'],Plant_Replacement_Event_Log:['TEST_PLANT_REPLACEMENT_EVENT'],Plant_Condition_Log:['TEST_PLANT_CONDITION'],Observation_Log:['TEST_OBSERVATION_LOG'],Operation_Log:['TEST_OPERATION_LOG'],Decision_Approval_Log:['TEST_DECISION_APPROVAL_LOG']};
+ const source=String(outcome&&outcome.source_key||''),names=maps[String(domain||'')];if(!names||!source.startsWith(reference+'|'))return '';
+ const wanted=['event_date','crop','variety','batch_id','planting_event_id','transplant_event_id','plot_id','plot_ids','allocation_id','event_type','record_type','event_status','allocation_status','from_status','to_status','quantity','unit','item_name','material_name','measurement_type','value','session','treatment_description','status','batch_status','verification_status','plant_count','count','condition','operation_type','description','amount_myr','asset_name','request_status'];
+ const text=v=>String(v==null?'':v).replace(/[\x00-\x1f\x7f]/g,' ').trim().slice(0,140);
+ const found=[],lines=['REKOD DISAHKAN DAN DISIMPAN','Rujukan laporan: '+reference,'Rujukan sumber: '+source,'Jenis: '+domain.replace(/_/g,' ')];
+ for(const name of names){const sh=book.getSheetByName(name);if(!sh||sh.getLastRow()<2)continue;const data=sh.getRange(1,1,Math.min(sh.getLastRow(),500),Math.min(sh.getLastColumn(),90)).getValues(),headers=data[0].map(String),id=headers.indexOf('source_key');if(id<0)continue;const rows=data.slice(1).filter(r=>String(r[id]||'')===source);if(!rows.length)continue;found.push({name,count:rows.length});lines.push('',name.replace(/^TEST_/,'').replace(/_/g,' ')+': '+rows.length+' rekod');for(const row of rows.slice(0,8)){const fields=wanted.map(key=>{const i=headers.indexOf(key);return i>=0&&text(row[i])?key.replace(/_/g,' ')+': '+text(row[i]):''}).filter(Boolean);if(fields.length)lines.push('- '+fields.join(' | '));}if(rows.length>8)lines.push('... '+(rows.length-8)+' rekod tambahan');}
+ if(!found.length)return '';
+ if(domain==='Crop_Batch_Log'&&(found.length!==3||found[0].count!==1||found[1].count!==1||found[2].count<1))return '';
+ return lines.join('\n').slice(0,3900);
+}
 function bseTelegramReporterConfirmationCore_(book,context,input){
   const sheet=bseTelegramApprovalSheet_(book),rows=bseApprovalRows_(sheet),i=rows.findIndex(r=>String(r[10])===String(input.token));
   if(i<0)throw new Error('Token pengesahan tidak ditemui.');
@@ -432,8 +444,10 @@ function bseTelegramReporterConfirmationCore_(book,context,input){
   const domain=bseApprovalDomain_(parsed),outcome=domain.core(book,context);
   sheet.getRange(sheetRow,12,1,8).setValues([[String(input.callback.message.chat.id),String(input.callback.message.message_id),'REPORTER_CONFIRMED','',new Date().toISOString(),String(row[2]),'REPORTER_CONFIRMED','']]);SpreadsheetApp.flush();
   const status=bseApprovalRecomputeQueueStatus_(book,String(row[0])),recordSummary=domain.target==='Transplant_Event_Log'&&bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?bseTelegramPilotConfirmedTransplant_(book,String(row[0]),outcome):domain.target==='Plant_Census_Log'?bseCensusConfirmedSummary_(book,String(row[0]),outcome):domain.target==='Plant_Replacement_Event_Log'?bsePlantReplacementConfirmedSummary_(book,String(row[0]),outcome):domain.target==='EC_Leachate_Log'?bseEcLeachateConfirmedSummary_(book,String(row[0]),outcome):domain.target==='Observation_Log'?bseObservationConfirmedSummary_(book,String(row[0]),outcome):domain.target==='Operation_Log'?bseOperationConfirmedSummary_(book,String(row[0]),outcome):domain.target==='Input_Usage_Log'?bseInputUsageConfirmedSummary_(book,String(row[0]),outcome):domain.target==='Decision_Approval_Log'?bseDecisionApprovalConfirmedSummary_(book,String(row[0]),outcome):domain.target==='Claim_Request_Log'?bseClaimConfirmedSummary_(book,String(row[0]),outcome):'';
-  bseTelegramApprovalCloseCard_(row,'REPORTER_CONFIRMED',context.actor_name,recordSummary||'');
-  try{bseTelegramReporterReceipt_(book,row[3],recordSummary||('Resit TEST '+row[0]+(candidateIndex==null?'':' rekod '+(candidateIndex+1))+' — direkodkan.'));}catch(_){}
+  const verifiedSummary=recordSummary||bseTelegramConfirmedPersistedSummary_(book,String(row[0]),domain.target,outcome);
+  const receiptText=verifiedSummary||('REKOD DISAHKAN - RINGKASAN BELUM DAPAT DISAHKAN\nRujukan: '+String(row[0])+'\nJenis: '+domain.target);
+  bseTelegramApprovalCloseCard_(row,'REPORTER_CONFIRMED',context.actor_name,receiptText);
+  try{bseTelegramReporterReceipt_(book,row[3],receiptText);}catch(_){}
   const ownerNotice=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'
     ?bseTelegramPilotConfirmedOwnerNotice_(book,row,candidateIndex,recordSummary)
     :(recordSummary?recordSummary+'\n\n':'')+'Makluman TEST '+row[0]+(candidateIndex==null?'':' rekod '+(candidateIndex+1))+' telah direkodkan oleh penghantar.';
