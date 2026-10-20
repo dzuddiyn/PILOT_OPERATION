@@ -58,7 +58,7 @@ function bsePilotCompactSowingResult_(input){
   if(!rows.length||!/^(?:[-]\s*)?Semai(?:an)?$/i.test(rows[0]))return null;
   const cropLine=rows[1]||'',plotLine=rows[2]||'',dateLine=rows[3]||'';
   const cropMatch=cropLine.match(/^([^()]+?)\s*\(([^()]+)\)$/);
-  const plotMatch=plotLine.match(/^[-]\s*M([1-9]\d*)P([1-9]\d*)\s*$/i);
+  const plotMatch=plotLine.match(/^[-]?\s*M([1-9]\d*)P([1-9]\d*)\s*$/i);
   const commaPlot=plotLine.match(/^[-]\s*M([1-9]\d*)P([1-9]),\s*([1-9])\s*$/i);
   let plots=[];
   if(commaPlot)plots=['M'+commaPlot[1]+'P'+commaPlot[2],'M'+commaPlot[1]+'P'+commaPlot[3]];
