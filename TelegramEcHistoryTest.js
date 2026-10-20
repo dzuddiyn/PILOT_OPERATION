@@ -42,17 +42,27 @@ function bseTelegramEcHistoryReadingLine_(row){
   if(status==='NUMERIC')return label+' — '+bseEcLeachateDisplayNumber_(row[8])+' : '+bseEcLeachateDisplayNumber_(row[9]);
   return label+' — status '+status;
 }
+function bsePilotEcHistoryHelp_(){
+  return ['SEJARAH EC — EC_IN UTAMA',
+    'Gunakan dalam PM bot:',
+    '/ec_history 2026-10-15 — satu hari',
+    '/ec_history 2026-10 — sebulan',
+    '/ec_history week last — minggu lepas',
+    '',
+    'Hanya rekod yang disahkan dipaparkan.',
+    'Laporan yang masih menunggu Benar belum dikira sebagai sejarah.'].join('\n');
+}
 function bseTelegramEcHistoryRender_(command,groups,maxChars){
-  const limit=Math.max(1000,Number(maxChars||3900)),lines=['EC LEACHING TEST — '+bseTelegramHistoryPeriodLabel_(command)];
+  const limit=Math.max(1000,Number(maxChars||3900)),lines=[(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'SEJARAH EC (EC_IN utama) — ':'EC LEACHING TEST — ')+bseTelegramHistoryPeriodLabel_(command)];
   let displayedRows=0,truncated=false;
-  if(!groups.length)lines.push('Tiada rekod EC Leaching TEST yang disahkan dalam sela masa ini.');
+  if(!groups.length)lines.push(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'Tiada rekod EC yang sudah disahkan untuk tempoh ini. Laporan yang menunggu Benar tidak termasuk.':'Tiada rekod EC Leaching TEST yang disahkan dalam sela masa ini.');
   for(const group of groups){
     const ref=group.source_key.replace(/\|EC_Leachate_Log$/,'');
     const header=['',group.date+' '+group.session,ref].join('\n');
     if((lines.join('\n')+'\n'+header).length>limit){truncated=true;break;}
     lines.push('',group.date+' '+group.session+' | '+ref);
     for(const row of group.rows){
-      const item='• '+bseTelegramEcHistoryReadingLine_(row);
+      const item='• '+(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?bsePilotEcHistoryReadingText_(row):bseTelegramEcHistoryReadingLine_(row));
       if((lines.join('\n')+'\n'+item).length>limit-100){truncated=true;break;}
       lines.push(item);displayedRows++;
     }
@@ -72,7 +82,7 @@ function bseTelegramEcHistoryRetrieve_(book,m){
   };
   if(command.invalid){
     audit('DENIED',command.reason||'INVALID_PERIOD',0,0,0);
-    return {handled:true,text:'Format: /ec_history YYYY-MM | /ec_history YYYY-MM-DD | /ec_history week last | /ec_history week N YYYY-MM | /ec_history week YYYY-MM-DD (tarikh Jumaat).'};
+    return {handled:true,text:bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?bsePilotEcHistoryHelp_():'Format: /ec_history YYYY-MM | /ec_history YYYY-MM-DD | /ec_history week last | /ec_history week N YYYY-MM | /ec_history week YYYY-MM-DD (tarikh Jumaat).'};
   }
   const access=bseTelegramHistoryAccess_(book,m);
   if(!access.ok){
@@ -113,9 +123,9 @@ function runBseTelegramEcHistoryHarnessTests(){
   ];
   const groups=bseTelegramEcHistoryGroups_(rows),rendered=bseTelegramEcHistoryRender_(nth,groups.slice(0,1),3900),source=[bseTelegramEcHistoryRetrieve_,bseTelegramEcHistoryRows_].map(fn=>fn.toString()).join('\n');
   const tests=[
-    {id:'EC history reuses nth Friday week semantics',pass:nth.kind==='WEEK'&&nth.start==='2026-10-09'&&nth.end==='2026-10-15'&&month.kind==='MONTH'},
+    {id:'EC history reuses actual Monday-Sunday week semantics',pass:nth.kind==='WEEK'&&nth.start==='2026-10-05'&&nth.end==='2026-10-11'&&month.kind==='MONTH'},
     {id:'EC rows group by source batch date and session',pass:groups.length===2&&groups[0].rows.length===2&&groups[1].rows.length===1},
-    {id:'EC rendering preserves AK numeric and normal numeric readings',pass:/M3P1 — 2.03 : AK/.test(rendered.text)&&/M3P3 — 1.47 : 2.5/.test(rendered.text)},
+    {id:'EC rendering preserves AK numeric and normal numeric readings',pass:bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?/M3P1.*EC_IN: 0 \(AK\).*EC leachate: 2.03/.test(rendered.text)&&/M3P3.*EC_IN: 2.5.*EC leachate: 1.47/.test(rendered.text):/M3P1 — 2.03 : AK/.test(rendered.text)&&/M3P3 — 1.47 : 2.5/.test(rendered.text)},
     {id:'only confirmed TEST rows are read',pass:/REPORTER_CONFIRMED_TEST/.test(bseTelegramEcHistoryRows_.toString())&&/production_write/.test(source)},
     {id:'PM owner or registered-active access is reused',pass:/bseTelegramHistoryAccess_/.test(bseTelegramEcHistoryRetrieve_.toString())},
     {id:'retrieval has no EC writer or production writer',pass:!/appendRow\(.*TEST_EC_LEACHATE|bseEcLeachateReviewCore_|production_write\s*:\s*true/.test(source)}
