@@ -324,10 +324,15 @@ function bsePilotHarvestStartResult_(input){
   // A recognized incomplete phrase must NEVER fall through into Treatment.
   if(!rows.length||!/^(?:tarikh\s+)?mula\s+(?:harvest|harverst|tuai)\b/i.test(rows[0]))return null;
   const header=/^(?:tarikh\s+)?mula\s+(?:(?:harvest|harverst)(?:\s*\/\s*tuai)?|tuai(?:\s*\/\s*(?:harvest|harverst))?)$/i.test(rows[0]);
-  const parsed=bseCanonicalPlotTokens_(rows[1]||''),plots=parsed.ok?parsed.plots:[];
-  const validPlots=plots.length>=1&&plots.length<=2&&
-    new Set(plots).size===plots.length;
-  const date=bseTransplantFlexibleDate_(rows[2]||'');
+  // Either plot/date or date/plot: never infer either field from received_at.
+  const firstPlots=bseCanonicalPlotTokens_(rows[1]||''),secondPlots=bseCanonicalPlotTokens_(rows[2]||'');
+  const firstDate=bseTransplantFlexibleDate_(rows[1]||''),secondDate=bseTransplantFlexibleDate_(rows[2]||'');
+  const plotFirst=firstPlots.ok&&!firstDate&&!secondPlots.ok&&!!secondDate;
+  const dateFirst=!!firstDate&&!firstPlots.ok&&secondPlots.ok&&!secondDate;
+  const parsed=plotFirst?firstPlots:dateFirst?secondPlots:{ok:false,plots:[]};
+  const plots=parsed.ok?parsed.plots:[];
+  const validPlots=plots.length>=1&&plots.length<=2&&new Set(plots).size===plots.length;
+  const date=plotFirst?secondDate:dateFirst?firstDate:'';
   const malformed=!header||rows.length!==3;
   const validation=malformed?'REJECTED':validPlots&&date?'PASS':'NEED_INFO';
   const missing=[];if(!validPlots)missing.push('plot_id');if(!date)missing.push('event_date');
@@ -505,7 +510,7 @@ function bsePilotTransplantReviewCardOnly_(result,status){
     }
     try {
       if(!bsePilotTransplantReviewCardOnly_(result,reviewStatus)&&!bsePilotSowingReviewCardOnly_(result,reviewStatus)&&!bsePilotTreatmentReviewCardOnly_(result,reviewStatus)&&!bsePilotOperationReviewCardOnly_(result,reviewStatus)){
-      const payload={chat_id:job.chatId,text:claimMissingText||bseTelegramResultText_('BSE-TG-'+job.id,result,question)};
+      const payload={chat_id:job.chatId,text:result.transplant_already_recorded?bsePilotTransplantExistingExactText_('BSE-TG-'+job.id,result.transplant_already_recorded):claimMissingText||bseTelegramResultText_('BSE-TG-'+job.id,result,question)};
       if(/^\d+$/.test(job.messageId))payload.reply_parameters={message_id:Number(job.messageId),allow_sending_without_reply:true};
       if(question||claimMissingText)payload.reply_markup={force_reply:true,input_field_placeholder:'Jawapan untuk laporan ini'};
       const sent=bseTelegramApi_('sendMessage',payload);
@@ -538,6 +543,13 @@ function bseTelegramWorkerFinalizeResult_(book,rawResult,job){
   const guarded=bseUnifiedGuard_(rawResult,{received_at:job.receivedAt,queue_reference:'BSE-TG-'+job.id,root_reference:'BSE-TG-'+(job.rootId||job.id),source_input:job.input});
   if(guarded&&Array.isArray(guarded.candidates))guarded.candidates.forEach(c=>{if(c&&c.fields)c.fields.original_note=job.provenance;});
   const result=bsePilotCycleEndQueueGuard_(book,bseTreatmentQueueGuard_(book,bseCensusQueueGuard_(book,bseTransplantQueueGuard_(book,guarded))));
+  // Observed exact-date/plot Transplant already in PILOT: informational terminal
+  // response only. Never mutate prior records or issue approval cards.
+  if(book&&result&&result.validation==='NEED_INFO'&&result.candidates&&result.candidates.length===1&&
+      result.candidates[0].target==='Transplant_Event_Log'){
+    const previous=bsePilotTransplantExistingExact_(book,job.input);
+    if(previous)result.transplant_already_recorded=previous;
+  }
   if(!result||result.production_write!==false||!Array.isArray(result.candidates)||!result.candidates.length||!['PASS','NEED_INFO','REJECTED','CONFLICT'].includes(result.validation))throw new Error('Invalid output');
   return result;
 }
@@ -728,6 +740,7 @@ function bseTelegramReportContext_(rows,current) {
 }
 
 function bseTelegramQuestion_(result) {
+  if(result&&result.transplant_already_recorded)return '';
   if(!result||result.validation!=='NEED_INFO'||!Array.isArray(result.candidates))return '';
   if(result.candidates.some(c=>c&&c.fields&&c.fields.operation_type==='CYCLE_END'&&Array.isArray(c.missing)&&c.missing.includes('active_allocation_match')))return 'Plot tidak mempunyai tepat satu allocation tanaman ACTIVE yang boleh ditamatkan pada tarikh dilaporkan. Sila semak status plot atau hubungi penyelia. Tiada plot ditutup.';
   if(result.seed_sowing_split_required===true)return 'Laporan semaian mengandungi lebih daripada satu set tanaman. Sila hantar setiap semaian secara berasingan: satu jenis tanaman/varieti, satu modul, dan satu tarikh semai untuk setiap mesej.';
@@ -808,6 +821,7 @@ function sendBsePilotTransplantQuestionCorrection(){
     return outcome;
   } finally{lock.releaseLock();}
 }function bseTelegramQueueStatus_(result){
+  if(result&&result.transplant_already_recorded)return 'ALREADY_RECORDED';
   if(result&&result.validation==='NEED_INFO')return 'WAITING_INFO';
   const actionable=!!(result&&result.validation==='PASS'&&result.production_write===false&&Array.isArray(result.candidates)&&result.candidates.some(candidate=>candidate&&candidate.validation==='PASS'));
   return actionable?'NEEDS_HUMAN_REVIEW':'NEEDS_ATTENTION';
