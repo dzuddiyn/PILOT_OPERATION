@@ -27,6 +27,7 @@ const ctx={
  bseTransplantReallocationForBook_:()=>({kind:'NONE'})
 };
 vm.createContext(ctx);
+vm.runInContext(extract(gem,'bseCanonicalPlotTokens_'),ctx);
 for(const n of ['bseTransplantPlots_','bseTransplantPlotCompare_','bseTransplantFlexibleDate_','bseTransplantExplicitDateContext_'])vm.runInContext(extract(gem,n),ctx);
 for(const n of ['bsePilotCompactTransplantDate_','bsePilotTransplantChronology_','bseTelegramTransplantBuildResult_','bseTelegramTransplantDeterministicResult_','bseTelegramQuestion_','bseTelegramQueueStatus_'])vm.runInContext(extract(worker,n),ctx);
 let count=0;const check=(label,fn)=>{fn();count++;console.log('PASS '+label)};

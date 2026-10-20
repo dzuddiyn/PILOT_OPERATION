@@ -684,19 +684,23 @@ function bseUnifiedGuardSeedSowing_(r,source) {
 
 // Compact transplant grammar is intentionally narrower than general plot IDs.
 // M1P34 means M1P3 and M1P4; three-or-more digits are ambiguous and rejected.
+function bseCanonicalPlotTokens_(value){
+ const raw=String(value||'').trim().replace(/^[-]\s*/,'').toUpperCase();
+ const m=raw.match(/^M([1-9]\d*)P([1-9](?:[1-9])?)(?:\s*,\s*(?:M\1P)?([1-9]))?$/i);
+ if(!m)return {ok:false,plots:[],reason:'PLOT_FORMAT_INVALID'};
+ const digits=m[2];if(m[3]&&digits.length!==1)return {ok:false,plots:[],reason:'PLOT_AMBIGUOUS'};
+ const nums=m[3]?[digits,m[3]]:digits.length===2?digits.split(''):[digits];
+ if(new Set(nums).size!==nums.length)return {ok:false,plots:[],reason:'PLOT_DUPLICATE'};
+ return {ok:true,plots:nums.map(n=>'M'+m[1]+'P'+n),reason:''};
+}
 function bseTransplantPlots_(input){
   const text=String(input||'');
   if(!/\bpindah\s+anak\s+pokok\b/i.test(text))return {ok:false,plots:[],reason:'TRANSPLANT_PHRASE_MISSING'};
   // Explicit source labels describe where seedlings came from, not transplant
   // destinations. Exclude only those labelled lines from destination parsing.
   const destinationText=text.split(/\r?\n/).filter(line=>!/^\s*(?:Plot\s+asal|Dari\s+plot)\s*:/i.test(line)).join('\n');
-  const tokens=[];const matcher=/\bM([1-9]\d*)P(\d+)\b/ig;let match;
-  while((match=matcher.exec(destinationText))){
-    const digits=match[2];
-    if(!/^[1-9]\d*$/.test(digits)||digits.length>2)return {ok:false,plots:[],reason:'TRANSPLANT_PLOT_AMBIGUOUS'};
-    const numbers=digits.length===2?[digits[0],digits[1]]:[digits];
-    numbers.forEach(number=>tokens.push('M'+match[1]+'P'+number));
-  }
+  const tokens=[];const matcher=/\bM[1-9]\d*P[1-9]\d*(?:\s*,\s*(?:M[1-9]\d*P)?[1-9])?/ig;let match;
+  while((match=matcher.exec(destinationText))){const parsed=bseCanonicalPlotTokens_(match[0]);if(!parsed.ok)return {ok:false,plots:[],reason:'TRANSPLANT_PLOT_AMBIGUOUS'};tokens.push(...parsed.plots)}
   if(!tokens.length)return {ok:false,plots:[],reason:'TRANSPLANT_PLOT_MISSING'};
   const plots=tokens.slice().sort(bseTransplantPlotCompare_);
   if(new Set(plots).size!==plots.length)return {ok:false,plots:[],reason:'TRANSPLANT_PLOT_DUPLICATE'};
