@@ -1,5 +1,8 @@
 # OpsMate BSE site B v1.0 Final Handover
 
+## GI-PR127 Script HEAD independent proof ? 2026-10-20
+- Owner-approved PR #127 merged main d4f7ec5, original wrong card BSE-TG-772257261 previously cancelled with Batal callback 772257262 processed once and zero erroneous domain records. Script HEAD pushed 74 files at 14:32:02 MYT; fresh independent pull 65/65 canonical sources/manifest MATCH with 9 runtime-only helpers preserved, no drift. Exact prior failed harvest message and Treatment interim reply regression from pulled source 12/12 PASS; full pre-merge Node suite 57/57 PASS. **SCRIPT HEAD VERIFIED; NEW TELEGRAM LIVE NOT YET TESTED.** No Script version/deployment or domain writes. Evidence docs/GATE_I_PR127_SCRIPT_HEAD_VERIFY_20261020.md. Worker reliability and formal handover OPEN.
+
 ## GI-261 harvest routing regression (LOCAL PASS, 2026-10-20)
 - Real BSE-TG-772257261 misclassified into Treatment, wrong event date and parsed dosage, card OPEN and no domain write. PILOT harvest parser prioritised, treatment excluded, redundant interim treatment notice suppressed. Dedicated 12/12 and full Node 57/57 PASS. NOT merged, Script HEAD NOT updated and LIVE NOT VERIFIED. Evidence docs/GATE_I_261_HARVEST_TREATMENT_MISROUTE_20261020.md. Worker reliability and handover remain open.
 
