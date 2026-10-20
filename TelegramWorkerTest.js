@@ -72,10 +72,11 @@ function bsePilotCompactSowingResult_(input){
     const aa=a.match(/^M(\d+)P(\d+)$/),bb=b.match(/^M(\d+)P(\d+)$/);
     return Number(aa[1])-Number(bb[1])||Number(aa[2])-Number(bb[2]);
   });
-  const rawDate=dateLine.match(/^[-]\s*(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})\s*$/);
+  const latest=(source.clarifications||[]).map(v=>String(v||'').trim()).filter(v=>/^(?:Tarikh\s+Semai\s*:\s*)?\d{1,2}\/\d{1,2}(?:\/\d{2,4})?$/i.test(v)).slice(-1)[0]||'';
+  const rawDate=(latest||dateLine).match(/^(?:[-]\s*|Tarikh\s+Semai\s*:\s*)?(\d{1,2})\/(\d{1,2})(?:\/(\d{2}|\d{4}))?\s*$/i);
   let eventDate='';
   if(rawDate){
-    const day=Number(rawDate[1]),month=Number(rawDate[2]),year=rawDate[3].length===2?2000+Number(rawDate[3]):Number(rawDate[3]);
+    const day=Number(rawDate[1]),month=Number(rawDate[2]),year=!rawDate[3]?2026:rawDate[3].length===2?2000+Number(rawDate[3]):Number(rawDate[3]);
     const v=new Date(Date.UTC(year,month-1,day));
     if(year===2026&&v.getUTCFullYear()===year&&v.getUTCMonth()===month-1&&v.getUTCDate()===day)
       eventDate=year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0');

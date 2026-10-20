@@ -80,6 +80,8 @@ function bseTelegramHistoryCommand_(text,now){
   if(!/^\/history\b/i.test(raw))return null;
   let m=raw.match(/^\/history\s+(?:week|minggu)\s+(?:last|lepas)\s*$/i);
   if(m)return bseTelegramHistoryLastCompleteWeek_(now||new Date());
+  m=raw.match(/^\/history\s+(?:week|minggu)\s+(\d{1,2})\s*$/i);
+  if(m){const nowMonth=bseTelegramHistoryMytDate_(now||new Date()).slice(0,7);return bseTelegramHistoryNthWeekOfMonth_(nowMonth,Number(m[1]))||{invalid:true,reason:'WEEK_NOT_IN_MONTH'};}
   m=raw.match(/^\/history\s+(?:week|minggu)\s+(\d)\s*(?:-\s*)?\(?\s*([a-z]{3,9})\s+(\d{4})\s*\)?\s*$/i);
   if(m){
     const month=bseTelegramHistoryMonthKey_(m[2],m[3]);
