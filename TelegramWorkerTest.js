@@ -58,15 +58,7 @@ function bsePilotCompactSowingResult_(input){
   if(!rows.length||!/^(?:[-]\s*)?Semai(?:an)?$/i.test(rows[0]))return null;
   const cropLine=rows[1]||'',plotLine=rows[2]||'',dateLine=rows[3]||'';
   const cropMatch=cropLine.match(/^([^()]+?)\s*\(([^()]+)\)$/);
-  const plotMatch=plotLine.match(/^[-]?\s*M([1-9]\d*)P([1-9]\d*)\s*$/i);
-  const commaPlot=plotLine.match(/^[-]?\s*M([1-9]\d*)P([1-9]),\s*([1-9])\s*$/i);
-  let plots=[];
-  if(commaPlot)plots=['M'+commaPlot[1]+'P'+commaPlot[2],'M'+commaPlot[1]+'P'+commaPlot[3]];
-  else if(plotMatch){
-    // Two one-digit plots concatenate: P34 means P3 and P4.
-    if(plotMatch[2].length===2)plots=['M'+plotMatch[1]+'P'+plotMatch[2][0],'M'+plotMatch[1]+'P'+plotMatch[2][1]];
-    else if(plotMatch[2].length===1)plots=['M'+plotMatch[1]+'P'+plotMatch[2]];
-  }
+  let plots=bseCanonicalPlotTokens_(plotLine).plots;
   const plotNumbersAreUnique=new Set(plots).size===plots.length;
   plots=Array.from(new Set(plots)).sort((a,b)=>{
     const aa=a.match(/^M(\d+)P(\d+)$/),bb=b.match(/^M(\d+)P(\d+)$/);
