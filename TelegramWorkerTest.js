@@ -265,6 +265,13 @@ function bsePilotHarvestStartResult_(input){
     remarks:'Tarikh mula tuai dilaporkan; tiada kuantiti hasil dinyatakan.'};
   return {validation,production_write:false,candidates:[{target:'Operation_Log',validation,missing,fields}]};
 }
+function bsePilotTreatmentReviewCardOnly_(result,status){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||status!=='NEEDS_HUMAN_REVIEW'||
+     !result||result.validation!=='PASS'||result.production_write!==false||
+     !Array.isArray(result.candidates)||!result.candidates.length)return false;
+  return result.candidates.every(c=>c&&c.target==='Treatment_Event_Log'&&
+    c.validation==='PASS'&&Array.isArray(c.missing)&&c.missing.length===0);
+}
 function bsePilotSowingReviewCardOnly_(result,status){
   if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||status!=='NEEDS_HUMAN_REVIEW'||
      !result||result.validation!=='PASS'||result.production_write!==false||
@@ -354,11 +361,13 @@ function bsePilotTransplantReviewCardOnly_(result,status){
       // be split by the reporter and must never fall through as Treatment traffic.
       const seedSowingResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult?(bsePilotCompactSowingResult_(job.input)||bseTelegramSeedSowingDeterministicResult_(job.input)):null;
       const transplantResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult?bseTelegramTransplantDeterministicResult_(book,job.input):null;
-      const censusResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&typeof bseTelegramCensusDeterministicResult_==='function'?bseTelegramCensusDeterministicResult_(job.input,job.receivedAt):null;
-      const treatmentResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&!censusResult&&typeof bseTreatmentListParseMessage_==='function'?bseTreatmentListParseMessage_(job.input,job.receivedAt):null;
-      const plantReplacementResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&!censusResult&&!treatmentResult&&typeof bsePlantReplacementParseMessage_==='function'?bsePlantReplacementParseMessage_(job.input,job.receivedAt):null;
-      const plantConditionResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&!censusResult&&!treatmentResult&&!plantReplacementResult&&typeof bsePlantConditionParseMessage_==='function'?bsePlantConditionParseMessage_(job.input,job.receivedAt):null;
-      const harvestStartResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&!censusResult&&!treatmentResult&&!plantReplacementResult&&!plantConditionResult?bsePilotHarvestStartResult_(job.input):null;
+      // HARVEST_START has priority; its date must never be misread as a Treatment dosage.
+      const harvestStartResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult?bsePilotHarvestStartResult_(job.input):null;
+      const censusResult=!harvestStartResult&&!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&typeof bseTelegramCensusDeterministicResult_==='function'?bseTelegramCensusDeterministicResult_(job.input,job.receivedAt):null;
+      const treatmentResult=!harvestStartResult&&!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&!censusResult&&typeof bseTreatmentListParseMessage_==='function'?bseTreatmentListParseMessage_(job.input,job.receivedAt):null;
+      const plantReplacementResult=!harvestStartResult&&!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&!censusResult&&!treatmentResult&&typeof bsePlantReplacementParseMessage_==='function'?bsePlantReplacementParseMessage_(job.input,job.receivedAt):null;
+      const plantConditionResult=!harvestStartResult&&!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&!censusResult&&!treatmentResult&&!plantReplacementResult&&typeof bsePlantConditionParseMessage_==='function'?bsePlantConditionParseMessage_(job.input,job.receivedAt):null;
+
       const operationDecisionResult=!harvestStartResult&&!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&!censusResult&&!treatmentResult&&!plantReplacementResult&&!plantConditionResult&&typeof bseOperationDecisionDeterministicResult_==='function'?bseOperationDecisionDeterministicResult_(job.input):null;
       const rawResult=ecResult||inventoryResult||leaveResult||maintenanceResult||seedSowingResult||transplantResult||censusResult||treatmentResult||plantReplacementResult||plantConditionResult||harvestStartResult||operationDecisionResult||bseUnifiedProcess_(job.input,job.receivedAt);
       if(typeof bseLeaveApplyReporterSnapshot_==='function')bseLeaveApplyReporterSnapshot_(rawResult,job);
@@ -397,7 +406,7 @@ function bsePilotTransplantReviewCardOnly_(result,status){
       return;
     }
     try {
-      if(!bsePilotTransplantReviewCardOnly_(result,reviewStatus)&&!bsePilotSowingReviewCardOnly_(result,reviewStatus)){
+      if(!bsePilotTransplantReviewCardOnly_(result,reviewStatus)&&!bsePilotSowingReviewCardOnly_(result,reviewStatus)&&!bsePilotTreatmentReviewCardOnly_(result,reviewStatus)){
       const payload={chat_id:job.chatId,text:claimMissingText||bseTelegramResultText_('BSE-TG-'+job.id,result,question)};
       if(/^\d+$/.test(job.messageId))payload.reply_parameters={message_id:Number(job.messageId),allow_sending_without_reply:true};
       if(question||claimMissingText)payload.reply_markup={force_reply:true,input_field_placeholder:'Jawapan untuk laporan ini'};

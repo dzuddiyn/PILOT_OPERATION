@@ -161,6 +161,9 @@ function bseChlorineTreatmentDate_(header,receivedAt){
 function bseChlorineTreatmentParseMessage_(text,receivedAt){
   const context=typeof bseUnifiedSourceContext_==='function'?bseUnifiedSourceContext_(text):{original:String(text||''),clarifications:[],provenance:String(text||'')},source=String(context.original||'').trim(),provenance=String(context.provenance||source);
   if(!source)return null;
+  // Reported harvest-start dates are never doses or treatment event dates.
+  if(typeof bseRuntimeEnvironmentName_==='function'&&bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&
+     /^Tarikh\s+mula\s+(?:harvest|harverst|tuai)\b/i.test(source))return null;
   const lines=source.split(/\r?\n/).map(line=>line.trim()).filter(Boolean),header=lines[0]||'';
   if(!/\bchlorine\b/i.test(header)||lines.length<2)return null;
   const eventDate=bseChlorineTreatmentDate_(header,receivedAt);if(!eventDate)return null;
@@ -179,6 +182,9 @@ function bseTreatmentListParseMessage_(text,receivedAt){
   const context=typeof bseUnifiedSourceContext_==='function'?bseUnifiedSourceContext_(text):{original:String(text||''),clarifications:[],provenance:String(text||'')};
   const source=String(context.original||'').trim(),clarifications=Array.isArray(context.clarifications)?context.clarifications:[],provenance=String(context.provenance||source);
   if(!source)return null;
+  // PILOT harvest-start lines are NEVER treatment items or dosage.
+  if(typeof bseRuntimeEnvironmentName_==='function'&&bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&
+     /^Tarikh\s+mula\s+(?:harvest|harverst|tuai)\b/i.test(source))return null;
   const chlorine=bseChlorineTreatmentParseMessage_(source,receivedAt);if(chlorine)return chlorine;
   if(/^\s*(?:\d+\.\s*)?(?:REKOD\s+)?BANCI\s+POKOK\s*$/im.test(source))return null;
   // Numbered treatment sections are independent records. Never pool doses across crops/plots.

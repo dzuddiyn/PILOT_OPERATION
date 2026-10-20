@@ -1,5 +1,8 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## GI-261 harvest routing regression (LOCAL PASS, 2026-10-20)
+- Real BSE-TG-772257261 misclassified into Treatment, wrong event date and parsed dosage, card OPEN and no domain write. PILOT harvest parser prioritised, treatment excluded, redundant interim treatment notice suppressed. Dedicated 12/12 and full Node 57/57 PASS. NOT merged, Script HEAD NOT updated and LIVE NOT VERIFIED. Evidence docs/GATE_I_261_HARVEST_TREATMENT_MISROUTE_20261020.md. Worker reliability and handover remain open.
+
 ## Gate I card wording + harvest-start support ? 2026-10-20 (LOCAL PASS)
 - Owner crossed out two redundant `Benar` instruction lines from transplant approval card and requested all cards omit those literal lines. Parser previously lacked explicit `Tarikh mula harvest/harverst / tuai` support. PILOT-only deterministic route now proposes one `Operation_Log` `HARVEST_START` using user-provided date and single plot, with no fabricated crop/yield or status transition; existing human confirmation unchanged. Real M7P3 has confirmed transplant dated 2026-09-06 and ACTIVE status (read-only). Targeted 19/19, transplant 9/9 and 29/29, full Node regression 56/56 PASS. **SOURCE LOCAL PASS ONLY; NOT MERGED, NOT PUSHED TO APPS SCRIPT, NOT LIVE VERIFIED**. See docs/GATE_I_CLEAN_CARDS_HARVEST_START_20261020.md. Worker reliability and formal BSE acceptance OPEN.
 
