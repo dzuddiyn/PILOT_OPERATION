@@ -1,7 +1,17 @@
 # GI-SEMAI-274–276 — Semai date/plot order
 
 **Environment:** PILOT_OPERATION
-**State:** LOCAL PASS; not merged / Script HEAD not synchronized / Telegram field proof pending
+**Current status:** PR #136 MERGED; Script HEAD 76/76 VERIFIED; real Apps Script full regression 47/47 PASS. New Telegram date-before-plot field UX NOT_VERIFIED.
+
+## Post-merge evidence — 2026-10-20
+
+- Canonical main merge: `1024534fde08b9aff7740df0601939ba9460cdd3`.
+- Script HEAD updated using `clasp push --force` with unchanged manifest and nine preserved Gate F runtime helpers. Independent `clasp pull`: 76/76 matching files.
+- Real Chrome UI Automation run at 17:02:32 MYT: I-011 47 PASS / 0 FAIL, `production_write:false`. Independent Executions UI status: Selesai, 7.393 seconds.
+- Live PILOT read-back: 274 and linked Reply 276 remain WAITING_INFO, no M3P2 sowing records. Separate report 275 was REPORTER_CONFIRMED and has one approved Crop Batch, one SEED_SOWING event and one M3P1 PLANNED allocation, all PROVISIONAL.
+- No old messages replayed or approved by the agent; no new deployment or official BSE writes.
+
+## Historical local-only baseline
 
 ## Genuine observation
 
