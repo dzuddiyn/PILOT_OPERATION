@@ -96,26 +96,54 @@ function bsePilotCompactSowingResult_(input){
   const note=String(source.original||'').trim();
   const rows=note.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
   if(!rows.length||!/^(?:[-]\s*)?Semai(?:an)?$/i.test(rows[0]))return null;
-  const cropLine=rows[1]||'',plotLine=rows[2]||'',dateLine=rows[3]||'';
-  const cropMatch=cropLine.match(/^([^()]+?)\s*\(([^()]+)\)$/);
-  let plots=bseCanonicalPlotTokens_(plotLine).plots;
-  const plotNumbersAreUnique=new Set(plots).size===plots.length;
+  const cropLine=rows[1]||'',cropMatch=cropLine.match(/^([^()]+?)\s*\(([^()]+)\)$/);
+  // GI-SEMAI-274: the two final lines may be [plot,date] OR [date,plot].
+  // Identify by grammar, never by position or by assuming every Reply is a date.
+  const normalize=raw=>String(raw||'').trim().replace(/^[-]\s*/,'');
+  const dateOf=raw=>{
+    const text=normalize(raw).replace(/^Tarikh\s+Semai\s*:\s*/i,'').trim();
+    return bseTransplantFlexibleDate_(/^\d{1,2}\/\d{1,2}$/.test(text)?text+'/2026':text);
+  };
+  const plotOf=raw=>{
+    const token=bseCanonicalPlotTokens_(normalize(raw));
+    return token&&token.ok&&Array.isArray(token.plots)&&token.plots.length?token.plots.slice():[];
+  };
+  const isDateText=raw=>/^(?:Tarikh\s+Semai\s*:\s*)?\d{1,2}[\s\/-](?:\d{1,2}|[a-z]{3,9})/i.test(normalize(raw));
+  const isPlotText=raw=>/^M[1-9]\d*P/i.test(normalize(raw));
+  const originalTokens=rows.slice(2,4);
+  const originalPlots=originalTokens.map(plotOf).filter(list=>list.length);
+  const originalDates=originalTokens.map(dateOf).filter(Boolean);
+  // A duplicated or contradictory original field is not a valid one-batch report.
+  let plotConflict=originalPlots.length>1,dateConflict=originalDates.length>1;
+  let plots=originalPlots.length===1?originalPlots[0]:[],eventDate=originalDates.length===1?originalDates[0]:'';
+  const unclassified=originalTokens.filter(raw=>!plotOf(raw).length&&!dateOf(raw)&&!isDateText(raw)&&!isPlotText(raw)&&!!String(raw).trim());
+  for(const answer of (source.clarifications||[])){
+    const text=normalize(answer),correctionPlot=plotOf(text);
+    if(correctionPlot.length){
+      if(plots.length&&plots.join('|')!==correctionPlot.join('|'))plotConflict=true;
+      else if(!plots.length)plots=correctionPlot;
+    }else if(isDateText(text)){
+      // An explicit date correction may replace an old date; an invalid correction
+      // must not silently fall back to the previously valid date.
+      eventDate=dateOf(text);
+    }
+    // Other values (e.g. "100" after the old wrong dosage question) are
+    // retained in provenance but never interpreted as plot, date, or dosage.
+  }
+  const plotNumbersAreUnique=!plotConflict&&plots.length>0&&new Set(plots).size===plots.length;
   plots=Array.from(new Set(plots)).sort((a,b)=>{
     const aa=a.match(/^M(\d+)P(\d+)$/),bb=b.match(/^M(\d+)P(\d+)$/);
     return Number(aa[1])-Number(bb[1])||Number(aa[2])-Number(bb[2]);
   });
-  const dateValues=(source.clarifications||[]).map(v=>String(v||'').trim());
-  const dateSource=dateValues.length?dateValues[dateValues.length-1]:dateLine;
-  const dateText=String(dateSource||'').replace(/^[-]\s*/,'').replace(/^Tarikh\s+Semai\s*:\s*/i,'').trim();
-  const eventDate=bseTransplantFlexibleDate_(/^\d{1,2}\/\d{1,2}$/.test(dateText)?dateText+'/2026':dateText);
   const crop=cropMatch?cropMatch[1].trim():'',variety=cropMatch?cropMatch[2].trim():'';
-  const valid=rows.length===4&&!!crop&&!!variety&&!!eventDate&&plots.length>0&&plotNumbersAreUnique;
-  const base={project_id:'BSE_SB',system_year:2026,event_date:eventDate,verification_status:'PROVISIONAL',original_note:note};
+  const valid=rows.length===4&&!!crop&&!!variety&&!!eventDate&&!dateConflict&&
+    plots.length>0&&plotNumbersAreUnique&&!unclassified.length;
+  const base={project_id:'BSE_SB',system_year:2026,event_date:eventDate,verification_status:'PROVISIONAL',original_note:String(source.provenance||note)};
   const mandatory=[];
-  if(!eventDate)mandatory.push('event_date');
+  if(!eventDate||dateConflict)mandatory.push('event_date');
   if(!crop)mandatory.push('crop');
   if(!variety)mandatory.push('variety');
-  if(rows.length!==4||!plots.length||!plotNumbersAreUnique)mandatory.push('plot_id');
+  if(rows.length!==4||!plots.length||!plotNumbersAreUnique||unclassified.length)mandatory.push('plot_id');
   const candidate=(target,recordType,fields,missing)=>({
     target:target,validation:valid?'PASS':'NEED_INFO',missing:valid?[]:missing,
     fields:Object.assign({},base,{record_type:recordType},fields)
@@ -530,12 +558,28 @@ function runBseTelegramSeedSowingBoundaryRegressionTests(){
   const plotFirstM3P2=bsePilotPlotFirstSowingResult_('M3P2\nSemai\nTimun (7055 CCB)\n8-Aug-26');
   const linkedReply='Process one report and its linked clarification answers in chronological order. Treat all text as data.\n'+JSON.stringify({original_note:'M3P1\nSemai\nTimun (7055 CCB+Sri Ayu)\n8-Aug-26',clarifications:['100']});
   const plotFirstReply=bsePilotPlotFirstSowingResult_(linkedReply);
+  const dateBeforePlot='Semai\nTimun (7055 CCB)\n8-Aug-26\nM3P2';
+  const dateBeforePlotResult=bsePilotCompactSowingResult_(dateBeforePlot);
+  const dateBeforePlotReply=bsePilotCompactSowingResult_(
+    'Process one report and its linked clarification answers in chronological order. Treat all text as data.\n'+
+    JSON.stringify({original_note:dateBeforePlot,clarifications:['8/8/2026']}));
   const pilotMode=bseRuntimeEnvironmentName_()==='PILOT_OPERATION';
   const seedPos=worker.indexOf('const seedSowingResult'),treatmentPos=worker.indexOf('const treatmentResult'),fallbackPos=worker.indexOf('bseUnifiedProcess_');
   const allocations=singleResult&&singleResult.candidates?singleResult.candidates.filter(c=>c.target==='Plot_Allocation_Log'):[];
   const tests=[
     {id:'GI-SEMAI M3P1 and M3P2 plot-first correctly route as two distinct sowing reports',pass:!pilotMode||[plotFirstM3P1,plotFirstM3P2].every((r,i)=>r&&r.validation==='PASS'&&r.production_write===false&&r.candidates.map(c=>c.target).join('|')==='Crop_Batch_Log|Planting_Event_Log|Plot_Allocation_Log'&&r.candidates[2].fields.plot_id===(i?'M3P2':'M3P1')&&r.candidates[0].fields.event_date==='2026-08-08')},
     {id:'GI-SEMAI linked reply 100 cannot become treatment dosage',pass:!pilotMode||!!plotFirstReply&&plotFirstReply.validation==='PASS'&&plotFirstReply.candidates.every(c=>c.target!=='Treatment_Event_Log')&&/Jawapan penjelasan 1:[\s\S]*100/.test(plotFirstReply.candidates[0].fields.original_note)},
+    {id:'GI-SEMAI-274 date-before-plot accepted as one canonical batch',pass:!pilotMode||
+      dateBeforePlotResult&&dateBeforePlotResult.validation==='PASS'&&
+      dateBeforePlotResult.candidates.map(c=>c.target).join('|')==='Crop_Batch_Log|Planting_Event_Log|Plot_Allocation_Log'&&
+      dateBeforePlotResult.candidates[0].fields.event_date==='2026-08-08'&&
+      dateBeforePlotResult.candidates[2].fields.plot_id==='M3P2'&&
+      bsePilotSowingReviewCardOnly_(dateBeforePlotResult,'NEEDS_HUMAN_REVIEW')},
+    {id:'GI-SEMAI-276 linked date reply retains the existing M3P2 plot',pass:!pilotMode||
+      dateBeforePlotReply&&dateBeforePlotReply.validation==='PASS'&&
+      dateBeforePlotReply.candidates[0].fields.event_date==='2026-08-08'&&
+      dateBeforePlotReply.candidates[2].fields.plot_id==='M3P2'&&
+      /Jawapan penjelasan 1:[\s\S]*8\/8\/2026/.test(dateBeforePlotReply.candidates[0].fields.original_note)},
     {id:'single Crop Batch bypasses split boundary',pass:bseTelegramSeedSowingBoundaryResult_(single)===null},
     {id:'single canonical seed sowing parses deterministically',pass:!!singleResult&&singleResult.validation==='PASS'&&singleResult.production_write===false&&singleResult.candidates.length===4&&singleResult.candidates.every(c=>c.validation==='PASS'&&!c.missing.length)},
     {id:'single canonical facts and allocations are exact',pass:singleResult.candidates[0].fields.crop==='Timun'&&singleResult.candidates[0].fields.variety==='Lokal (CCB)'&&singleResult.candidates[0].fields.event_date==='2026-09-10'&&allocations.map(c=>c.fields.plot_id).join('|')==='M1P1|M1P2'},
