@@ -102,7 +102,19 @@ function runBseTreatmentReviewHarnessTests(){
 
 
 function bseTreatmentListPlots_(text){
-  const source=String(text||'').toUpperCase(),plots=[];
+  let source=String(text||'').toUpperCase();
+  const plots=[];
+  // GI-REG-03: "M3 P1 P2" expands into two explicit same-module plots.
+  // Unsupported longer bare-P lists fail closed instead of silently dropping plots.
+  let ambiguous=false;
+  source=source.split(/\r?\n/).map(line=>{
+    const shorthand=line.match(/^\s*(?:PLOT\s*:\s*)?(M\s*[1-9]\d*)\s+((?:P\s*[1-9]\s*){2,})$/);
+    if(!shorthand)return line;
+    const parts=shorthand[2].match(/P\s*[1-9]/g)||[];
+    if(parts.length!==2){ambiguous=true;return line;}
+    return shorthand[1].replace(/\s+/g,'')+parts[0].replace(/\s+/g,'')+','+parts[1].replace(/\D/g,'');
+  }).join('\n');
+  if(ambiguous)return [];
   const tokens=source.match(/M\s*[1-9]\d*\s*[- ]?\s*P\s*[1-9]\d*(?:\s*,\s*(?:M\s*[1-9]\d*\s*P\s*)?[1-9])?/g)||[];
   for(const token of tokens){const result=bseCanonicalPlotTokens_(token.replace(/\s+/g,'').replace(/^M(\d+)-P/,'M$1P'));if(!result.ok)return [];plots.push(...result.plots)}
   return Array.from(new Set(plots)).sort(bseCropBatchPlotCompare_);

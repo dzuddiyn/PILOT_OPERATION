@@ -1,5 +1,8 @@
 # OpsMate BSE site B v1.0 Final Handover
 
+## GI-REG-03 three distinct regression fixes (2026-10-20; LOCAL PASS / PR REVIEW)
+- Based on actual PILOT_OPERATION Apps Script Editor run 15:19 MYT: I-011 full regression 44/47, three failures in Treatment shorthand plot parsing, Transplant comma/date plot parsing, and Census receipt assertion. Separate feature branch fixes the two parser paths and aligns the Census source-contract harness with current verified `receiptText` flow. Original three local VM harnesses 3/3 PASS, targeted 11/11 PASS, Node 59/59 suites PASS, JS/CJS syntax PASS. **NOT MERGED / Apps Script HEAD NOT UPDATED / runtime full 47-check retest NOT RUN / field UX NOT RUN**. No Telegram or Sheet writes; original GI-263 card remains untouched. See `docs/GATE_I_REG_03_THREE_REGRESSION_FIX_20261020.md`.
+
 ## GI-PR129 post-merge verification (2026-10-20; HEAD VERIFIED / FIELD UX PENDING)
 - PR #129 merged to canonical main at `92189791a4e5a296d95ee6d26f1a5a756c83e452` (GitHub independent read-back: merged). PILOT_OPERATION Apps Script HEAD was updated from that main with nine already-present Gate F runtime helpers retained.
 - Post-push independent `clasp pull` matched **76/76 total files (75 JavaScript + manifest), zero set/content differences**; the GI-263 Operation card-only predicate exists once. Node regression 58/58 suites PASS, syntax 75/75 PASS. No Apps Script version or deployment change performed.
