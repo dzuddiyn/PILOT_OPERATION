@@ -2,7 +2,39 @@
 
 **Date:** 2026-10-20 MYT
 **Environment:** PILOT_OPERATION shadow pilot
-**Status:** LOCAL PASS ONLY; not merged, no Apps Script HEAD sync or live proof of amended behavior.
+**Current status (2026-10-20):** PR #129 MERGED; Apps Script HEAD UPDATED; independent source read-back 76/76 PASS. Apps Script runtime regression is **VERIFIED FAIL (44/47)** from Chrome UI Automation, while post-fix Telegram field UX remains **NOT_RUN**.
+
+**Historical status at PR creation:** LOCAL PASS ONLY; PR not merged and Script HEAD not updated at that time.
+
+## Post-merge / Script HEAD independent verification — 2026-10-20
+
+| Check | Verified state |
+| --- | --- |
+| PR #129 | MERGED at GitHub, `main` merge commit `92189791a4e5a296d95ee6d26f1a5a756c83e452` |
+| Local targeted GI-263 | 12/12 PASS |
+| Existing Transplant regression | 9/9 PASS |
+| Full local Node regression before sync | 58/58 suites PASS |
+| Apps Script staging syntax | 75/75 JavaScript PASS, `git diff --check` PASS |
+| Pre-push runtime drift guard | PASS: no drift from the first independent Script HEAD pull |
+| Runtime-preservation policy | All 9 existing Gate F-only helpers retained; 2 canonical `PilotRole*` modules included |
+| Script HEAD source sync | `clasp push --force` success (exit 0); NOT a version/deployment update |
+| Independent post-push pull | 76/76 files match exactly (75 JS + `appsscript.json`), 0 missing/extra/content differences |
+| Script HEAD new predicate | `bsePilotOperationReviewCardOnly_` present exactly once |
+| clasp run access | Permission/API execution error; superseded by actual Apps Script UI Automation run (not counted as runtime PASS) |
+| Apps Script `runBseI011FullRegression` | VERIFIED RUN / FAIL: owner Chrome Apps Script Editor UI Automation, 2026-10-20 15:19 MYT, 47 total / 44 PASS / 3 FAIL, `production_write:false` |
+| Runtime failure 1 | `runBseTreatmentD043AcceptanceHarnessTests`: plots are canonical and complete (parser output for `M3 P1 P2` incomplete) |
+| Runtime failure 2 | `runBseTelegramTransplantReallocationDeterministicHarnessTests`: strict one-line transplant shorthand extracts crop destination and date (date is misread as an additional plot) |
+| Runtime failure 3 | `runBseCensusConfirmationSummaryHarnessTests`: confirmation uses canonical read-back summary for card and receipt (current receipt call differs from asserted shape) |
+| Actual new Telegram Operation card-only UX | NOT_RUN: requires fresh genuine user report; do not manufacture |
+| PILOT_OPERATION production boundaries | No official BSE write, no version/deployment update or reporter callback by this task |
+
+Fresh owner Google Sheet read-back after sync for original genuine `BSE-TG-772257263`:
+- `PILOT_TELEGRAM_QUEUE` row 38: `NEEDS_HUMAN_REVIEW`, ACK `SENT`, one processing attempt.
+- `PILOT_TELEGRAM_APPROVAL_UI` row 28: approval card `OPEN`, Telegram approval message 264, no action/decision timestamp.
+- `PILOT_OPERATION_LOG` and `PILOT_OPERATION_REVIEW`: zero matches for this source.
+- The pre-existing Telegram interim message cannot be retroactively removed by source sync; card-only behavior applies to eligible newly processed reports only.
+
+**Verdict:** SOURCE MERGED / SCRIPT HEAD UPDATED / INDEPENDENT SOURCE READ-BACK PASS. Runtime full regression is **VERIFIED FAIL (44/47)**; future live user-facing card-only proof is **NOT_RUN**. Neither is elevated to LIVE PASS.
 
 ## Original genuine observation
 
