@@ -9,11 +9,14 @@ function bseTelegramEcHistoryAudit_(book){
   bseEnsureAdditiveHeaders_(s,BSE_EC_HISTORY_AUDIT_HEADERS);
   return s;
 }
+function bseTelegramEcHistoryPrefix_(){
+  return bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'/ec':'/ec_history';
+}
 function bseTelegramEcHistoryCommand_(text,now){
-  const raw=String(text||'').trim();
-  if(!/^\/ec_history\b/i.test(raw))return null;
-  const translated=raw.replace(/^\/ec_history\b/i,'/history');
-  return bseTelegramHistoryCommand_(translated,now);
+  const raw=String(text||'').trim(),pilot=bseTelegramEcHistoryPrefix_()==='/ec';
+  const match=pilot?/^\/ec(?=\s|$)/i:/^\/ec_history(?=\s|$)/i;
+  if(!match.test(raw))return null;
+  return bseTelegramHistoryCommand_(raw.replace(match,'/history'),now);
 }
 function bseTelegramEcHistoryRows_(book,command){
   const sheet=book.getSheetByName('TEST_EC_LEACHATE');
@@ -45,9 +48,9 @@ function bseTelegramEcHistoryReadingLine_(row){
 function bsePilotEcHistoryHelp_(){
   return ['SEJARAH EC — EC_IN UTAMA',
     'Gunakan dalam PM bot:',
-    '/ec_history 2026-10-15 — satu hari',
-    '/ec_history 2026-10 — sebulan',
-    '/ec_history week last — minggu lepas',
+    '/ec 2026-10-15 — satu hari',
+    '/ec 2026-10 — sebulan',
+    '/ec week last — minggu lepas',
     '',
     'Hanya rekod yang disahkan dipaparkan.',
     'Laporan yang masih menunggu Benar belum dikira sebagai sejarah.'].join('\n');
@@ -106,16 +109,16 @@ function diagnoseBseEcHistoryCoverageTest(){
   return {confirmed_rows:rows.length,dates:dates,production_write:false};
 }
 function diagnoseBseEcNthWeekHistoryTest(){
-  const book=boundTestBook_(),command=bseTelegramEcHistoryCommand_('/ec_history week 2 2026-10'),rows=bseTelegramEcHistoryRows_(book,command),groups=bseTelegramEcHistoryGroups_(rows),rendered=bseTelegramEcHistoryRender_(command,groups,3900);
+  const book=boundTestBook_(),command=bseTelegramEcHistoryCommand_(bseTelegramEcHistoryPrefix_()+' week 2 2026-10'),rows=bseTelegramEcHistoryRows_(book,command),groups=bseTelegramEcHistoryGroups_(rows),rendered=bseTelegramEcHistoryRender_(command,groups,3900);
   return {period:command.period,matched_batches:groups.length,matched_rows:rows.length,displayed_rows:rendered.displayed_rows,text:rendered.text,production_write:false};
 }
 function diagnoseBseEcKnownWeekTest(){
-  const book=boundTestBook_(),command=bseTelegramEcHistoryCommand_('/ec_history week 3 2026-09'),rows=bseTelegramEcHistoryRows_(book,command),groups=bseTelegramEcHistoryGroups_(rows),rendered=bseTelegramEcHistoryRender_(command,groups,3900);
+  const book=boundTestBook_(),command=bseTelegramEcHistoryCommand_(bseTelegramEcHistoryPrefix_()+' week 3 2026-09'),rows=bseTelegramEcHistoryRows_(book,command),groups=bseTelegramEcHistoryGroups_(rows),rendered=bseTelegramEcHistoryRender_(command,groups,3900);
   return {period:command.period,matched_batches:groups.length,matched_rows:rows.length,displayed_rows:rendered.displayed_rows,text:rendered.text,production_write:false};
 }
 function runBseTelegramEcHistoryHarnessTests(){
-  const nth=bseTelegramEcHistoryCommand_('/ec_history week 2 2026-10');
-  const month=bseTelegramEcHistoryCommand_('/ec_history 2026-10');
+  const nth=bseTelegramEcHistoryCommand_(bseTelegramEcHistoryPrefix_()+' week 2 2026-10');
+  const month=bseTelegramEcHistoryCommand_(bseTelegramEcHistoryPrefix_()+' 2026-10');
   const rows=[
     ['BSE-TG-1|EC_Leachate_Log','B1','1','2026-10-10','PAGI','PLOT','M3','M3P1',2.03,0,'AK_ZERO','REPORTER_CONFIRMED_TEST',false,'','', '11','h'],
     ['BSE-TG-1|EC_Leachate_Log','B1','1','2026-10-10','PAGI','PLOT','M3','M3P3',1.47,2.5,'NUMERIC','REPORTER_CONFIRMED_TEST',false,'','', '11','h'],

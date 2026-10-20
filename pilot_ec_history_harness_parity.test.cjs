@@ -17,7 +17,7 @@ for(const name of ['TelegramHistoryTest.js','EcLeachateTest.js','PilotEcUnifiedI
 }
 for(const e of ['PILOT_OPERATION','TEST']){
  env=e;
- const diag=cx.bseTelegramEcHistoryCommand_('/ec_history week 2 2026-10');console.log('DATE_DIAG '+e+' '+JSON.stringify(diag));
+ const diag=cx.bseTelegramEcHistoryCommand_(cx.bseTelegramEcHistoryPrefix_()+' week 2 2026-10');console.log('DATE_DIAG '+e+' '+JSON.stringify(diag));
  const tests=cx.runBseTelegramEcHistoryHarnessTests();
  assert(tests.every(x=>x.pass));
  console.log('PASS '+e+' EC history harness '+tests.length+'/'+tests.length);
