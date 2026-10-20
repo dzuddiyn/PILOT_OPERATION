@@ -1,6 +1,12 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
-## GI-263 Operation card-only (2026-10-20; LOCAL PASS)
+## GI-PR129 post-merge verification (2026-10-20; HEAD VERIFIED / FIELD UX PENDING)
+- PR #129 merged to canonical main at `92189791a4e5a296d95ee6d26f1a5a756c83e452` (GitHub independent read-back: merged). PILOT_OPERATION Apps Script HEAD was updated from that main with nine already-present Gate F runtime helpers retained.
+- Post-push independent `clasp pull` matched **76/76 total files (75 JavaScript + manifest), zero set/content differences**; the GI-263 Operation card-only predicate exists once. Node regression 58/58 suites PASS, syntax 75/75 PASS. No Apps Script version or deployment change performed.
+- Fresh PILOT_OPERATION Sheet read-back for genuine `BSE-TG-772257263`: queue `NEEDS_HUMAN_REVIEW`, ACK `SENT`, review card `OPEN` (Telegram message 264), no Operation_Log or Operation_Review row. No callback or Telegram message replay initiated.
+- `clasp run` returned permission error, but owner Chrome Apps Script **UI Automation** executed the real `runBseI011FullRegression` on 2026-10-20 at 15:19 MYT: **47 total / 44 PASS / 3 FAIL**, `production_write:false`. Failures: `runBseTreatmentD043AcceptanceHarnessTests` (incomplete plot parsing), `runBseTelegramTransplantReallocationDeterministicHarnessTests` (one-line shorthand over-parses the date as a plot), and `runBseCensusConfirmationSummaryHarnessTests` (receipt-path assertion mismatch). These are independent regression findings, not evidence that `BSE-TG-772257263` ran a Treatment workflow or was approved. No new genuine eligible Operation report yet: **GI-263 post-fix Telegram card-only FIELD UX NOT_RUN**; worker reliability / handover OPEN. Detail: `docs/GATE_I_263_OPERATION_CARD_ONLY_20261020.md`.
+
+## GI-263 original pre-merge checkpoint (2026-10-20; historical LOCAL PASS)
 - Genuine Mula Tuai BSE-TG-772257263 parsed to Operation_Log / HARVEST_START correctly but sent redundant interim OPERATION | M7P3 / Menunggu pengesahan laporan before the actual Benar card. Added PILOT-only guard to suppress interim for one complete PASS Operation candidate, preserving approval card, NEED_INFO prompts and other environments. Dedicated 12/12 and full regression 58/58 suites PASS; Script HEAD NOT UPDATED and Telegram post-fix LIVE NOT TESTED. Evidence: docs/GATE_I_263_OPERATION_CARD_ONLY_20261020.md. Worker reliability / formal handover OPEN.
 
 ## GI-261 harvest routing regression (LOCAL PASS, 2026-10-20)
