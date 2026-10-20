@@ -42,7 +42,7 @@ check('TEST and PILOT_TEST retain original worker result messages',()=>{
 });
 check('one send result branch is skipped but approval card still runs',()=>{
  const s=extract(worker,'processBseTelegramTestQueue');
- const guard=s.indexOf('if(!bsePilotTransplantReviewCardOnly_(result,reviewStatus)&&!bsePilotSowingReviewCardOnly_(result,reviewStatus)&&!bsePilotTreatmentReviewCardOnly_(result,reviewStatus)&&!bsePilotOperationReviewCardOnly_(result,reviewStatus))');
+ const guard=s.indexOf('if(!bsePilotTransplantReviewCardOnly_(result,reviewStatus)&&!bsePilotSowingReviewCardOnly_(result,reviewStatus)&&!bsePilotTreatmentReviewCardOnly_(result,reviewStatus)&&!bsePilotOperationReviewCardOnly_(result,reviewStatus)&&!bsePilotEcReviewCardOnly_(result,reviewStatus))');
  const send=s.indexOf("bseTelegramApi_('sendMessage',payload)",guard);
  const finalize=s.indexOf("sheet.getRange(job.row,7).setValue(reviewStatus)",send);
  const card=s.indexOf('bseTelegramApprovalEnsureCard_(book,latest)',finalize);

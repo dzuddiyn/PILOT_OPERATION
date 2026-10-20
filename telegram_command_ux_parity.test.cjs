@@ -10,8 +10,8 @@ check('history accepts day and month',()=>{assert.equal(ctx.bseTelegramHistoryCo
 check('history rejects invalid calendar dates',()=>assert.equal(ctx.bseTelegramHistoryCommand_('/history 2026-02-30').reason,'DATE'));
 check('history rejects unknown arguments',()=>assert.equal(ctx.bseTelegramHistoryCommand_('/history bogus').reason,'FORMAT'));
 check('history month alias works',()=>assert.equal(ctx.bseTelegramHistoryCommand_('/history month 2026-10').period,'2026-10'));
-check('ec_history command maps to history',()=>assert.equal(ctx.bseTelegramEcHistoryCommand_('/ec_history 2026-10').kind,'MONTH'));
-check('ec_history ignores unrelated command',()=>assert.equal(ctx.bseTelegramEcHistoryCommand_('/history 2026-10'),null));
+check('PILOT /ec command maps to history',()=>assert.equal(ctx.bseTelegramEcHistoryCommand_('/ec 2026-10').kind,'MONTH'));
+check('PILOT /ec ignores unrelated command',()=>assert.equal(ctx.bseTelegramEcHistoryCommand_('/history 2026-10'),null));
 check('OCR extraction command parses strict ID',()=>{const x=ctx.bseEvidenceOcrCommand_('/ocr BSE-EV-FICTIONAL1');assert.equal(x.action,'EXTRACT');assert.equal(x.evidence_id,'BSE-EV-FICTIONAL1')});
 check('OCR confirm and discard require evidence ID',()=>{assert.equal(ctx.bseEvidenceOcrCommand_('/ocr confirm BSE-EV-FICTIONAL1').action,'CONFIRM');assert.equal(ctx.bseEvidenceOcrCommand_('/ocr discard BSE-EV-FICTIONAL1').action,'DISCARD');assert.equal(ctx.bseEvidenceOcrCommand_('/ocr confirm'),null)});
 check('OCR rejects unsafe arbitrary text',()=>assert.equal(ctx.bseEvidenceOcrCommand_('/ocr BSE-EV-1 trailing'),null));
