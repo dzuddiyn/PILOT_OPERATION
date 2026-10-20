@@ -91,11 +91,11 @@ function bseTransplantFindReallocation_(cropValue,destinationPlots,batches,alloc
   const destination=plots[0],crop=bseTransplantNormalizeCrop_(cropValue);if(!crop)return {kind:'NONE',reason:'CROP_REQUIRED'};
   const approved=new Set((reviews||[]).filter(row=>String(row[3])==='Crop_Batch_Log'&&String(row[5])==='APPROVED').map(row=>String(row[11]))),effective=bseActiveAllocationEffectiveStatuses_(statusEvents||[]);
   const approvedAllocations=(allocations||[]).filter(row=>approved.has(String(row[2]||''))&&String(row[6]||'')==='PLANNED');
-  const occupied=approvedAllocations.some(row=>bseTransplantEffectivePlanPlot_(row,effective)===destination);
+  const occupied=approvedAllocations.some(row=>{const state=effective[String(row[3]||'')];return !(state&&state.status==='INACTIVE')&&bseTransplantEffectivePlanPlot_(row,effective)===destination;});
   if(occupied)return {kind:'NONE',reason:'DESTINATION_ALREADY_PLANNED'};
   const candidates=[];
   (batches||[]).forEach(batch=>{const batchId=String(batch[2]||'');if(!batchId||!approved.has(batchId)||bseTransplantNormalizeCrop_(batch[4])!==crop)return;
-    approvedAllocations.filter(row=>String(row[2])===batchId).forEach(row=>{const state=effective[String(row[3]||'')];if(state&&state.status==='ACTIVE')return;const fromPlot=String(row[5]||'');if(sourcePlotId&&fromPlot!==String(sourcePlotId))return;if(fromPlot&&fromPlot!==destination)candidates.push({batch_id:batchId,crop:String(batch[4]||''),variety:String(batch[5]||''),allocation_id:String(row[3]||''),from_plot_id:fromPlot,to_plot_id:destination});});
+    approvedAllocations.filter(row=>String(row[2])===batchId).forEach(row=>{const state=effective[String(row[3]||'')];if(state&&['ACTIVE','INACTIVE'].includes(state.status))return;const fromPlot=String(row[5]||'');if(sourcePlotId&&fromPlot!==String(sourcePlotId))return;if(fromPlot&&fromPlot!==destination)candidates.push({batch_id:batchId,crop:String(batch[4]||''),variety:String(batch[5]||''),allocation_id:String(row[3]||''),from_plot_id:fromPlot,to_plot_id:destination});});
   });
   return candidates.length===1?Object.assign({kind:'UNIQUE'},candidates[0]):{kind:candidates.length?'MULTIPLE':'NONE',reason:candidates.length?'SOURCE_AMBIGUOUS':'SOURCE_NOT_FOUND',matches:candidates};
 }
@@ -137,8 +137,8 @@ function bseTransplantFindMatches_(proposal,batches,allocations,reviews,statusEv
   batches.forEach(batch=>{
     const batchId=String(batch[2]||''),sourceKey=String(batch[0]||'');if(!batchId||!approved.has(batchId)||bseTransplantNormalizeCrop_(batch[4])!==crop)return;
     const candidates=allocations.filter(row=>String(row[2])===batchId&&String(row[6])==='PLANNED').map(row=>({allocation_id:String(row[3]),plot_id:String(row[5])}));
-    const active=new Set(statusEvents.filter(row=>String(row[4])===batchId&&String(row[8])==='ACTIVE').map(row=>String(row[5])));
-    const selected=proposal.plots.map(plot=>candidates.find(item=>item.plot_id===plot&& !active.has(item.allocation_id)));
+    const latest=bseActiveAllocationEffectiveStatuses_(statusEvents),active=new Set(Object.keys(latest).filter(id=>latest[id].batch_id===batchId&&latest[id].status==='ACTIVE'));
+    const selected=proposal.plots.map(plot=>candidates.find(item=>item.plot_id===plot&& !active.has(item.allocation_id)&&!(latest[item.allocation_id]&&latest[item.allocation_id].status==='INACTIVE')));
     if(selected.every(Boolean))matches.push({batch_id:batchId,source_key:sourceKey,allocations:selected});
   });
   return matches.length===1?Object.assign({kind:'UNIQUE'},matches[0]):{kind:matches.length?'MULTIPLE':'NONE',matches:matches};
@@ -150,8 +150,8 @@ function bseTransplantFindPlannedMatchesByPlots_(plots,batches,allocations,revie
   (batches||[]).forEach(batch=>{
     const batchId=String(batch[2]||'');if(!batchId||!approved.has(batchId))return;
     const candidates=(allocations||[]).filter(row=>String(row[2])===batchId&&String(row[6])==='PLANNED').map(row=>({allocation_id:String(row[3]),plot_id:String(row[5])}));
-    const active=new Set((statusEvents||[]).filter(row=>String(row[4])===batchId&&String(row[8])==='ACTIVE').map(row=>String(row[5])));
-    const selected=normalized.map(plot=>candidates.find(item=>item.plot_id===plot&&!active.has(item.allocation_id)));
+    const latest=bseActiveAllocationEffectiveStatuses_(statusEvents||[]);
+    const selected=normalized.map(plot=>candidates.find(item=>item.plot_id===plot&&!(latest[item.allocation_id]&&['ACTIVE','INACTIVE'].includes(latest[item.allocation_id].status))));
     if(selected.every(Boolean))matches.push({batch_id:batchId,source_key:String(batch[0]||''),crop:String(batch[4]||''),variety:String(batch[5]||''),allocations:selected});
   });
   return matches.length===1?Object.assign({kind:'UNIQUE'},matches[0]):{kind:matches.length?'MULTIPLE':'NONE',matches:matches};

@@ -36,13 +36,9 @@ function bseTreatmentProposal_(encoded,original){
   const canonical={event_date:f.event_date,crop:f.crop,treatment_description:f.treatment_description,plot_ids:plots,event_status:f.event_status,verification_status:'PROVISIONAL',original_note:original,production_write:false};
   return {fields:f,plots:plots,canonical:canonical};
 }
-function bseTreatmentStatusEventsAsOf_(eventDate,statusEvents,transplantEvents){
-  const cutoff=String(eventDate||''),dates={};
-  (transplantEvents||[]).forEach(row=>{const id=String(row[2]||''),date=String(row[4]||'');if(id&&bseCropBatchDate_(date))dates[id]=date;});
-  return (statusEvents||[]).filter(row=>{const transplantEventId=String(row[3]||''),effectiveDate=dates[transplantEventId];return effectiveDate&&effectiveDate<=cutoff;});
-}
-function bseTreatmentFindMatchesByPlotsAsOf_(plotIds,eventDate,batches,allocations,reviews,statusEvents,transplantEvents){
-  const cutoff=String(eventDate||''),approved=new Set((reviews||[]).filter(row=>String(row[3])==='Crop_Batch_Log'&&String(row[5])==='APPROVED').map(row=>String(row[11]))),eligible=bseTreatmentStatusEventsAsOf_(cutoff,statusEvents,transplantEvents),effective=bseActiveAllocationEffectiveStatuses_(eligible),matches=[];
+function bseTreatmentStatusEventsAsOf_(eventDate,statusEvents,transplantEvents,operationRows){return bsePilotCycleStatusEventsAsOf_(eventDate,statusEvents,transplantEvents,operationRows);}
+function bseTreatmentFindMatchesByPlotsAsOf_(plotIds,eventDate,batches,allocations,reviews,statusEvents,transplantEvents,operationRows){
+  const cutoff=String(eventDate||''),approved=new Set((reviews||[]).filter(row=>String(row[3])==='Crop_Batch_Log'&&String(row[5])==='APPROVED').map(row=>String(row[11]))),eligible=bseTreatmentStatusEventsAsOf_(cutoff,statusEvents,transplantEvents,operationRows),effective=bseActiveAllocationEffectiveStatuses_(eligible),matches=[];
   (batches||[]).forEach(batch=>{
     const batchId=String(batch[2]||''),batchDate=String(batch[3]||'');
     if(!batchId||!approved.has(batchId)||!bseCropBatchDate_(batchDate)||batchDate>cutoff)return;
@@ -59,22 +55,22 @@ function bseTreatmentFindMatchesByPlotsAsOf_(plotIds,eventDate,batches,allocatio
   });
   return matches.length===1?Object.assign({kind:'UNIQUE'},matches[0]):{kind:matches.length?'MULTIPLE':'NONE',matches:matches};
 }
-function bseTreatmentFindMatches_(proposal,batches,allocations,reviews,statusEvents,transplantEvents){
-  const crop=bseTransplantNormalizeCrop_(proposal.fields.crop),base=bseTreatmentFindMatchesByPlotsAsOf_(proposal.plots,proposal.fields.event_date,batches,allocations,reviews,statusEvents,transplantEvents),all=base.kind==='UNIQUE'?[base]:(base.matches||[]),matches=all.filter(match=>bseTransplantNormalizeCrop_(match.crop)===crop);
+function bseTreatmentFindMatches_(proposal,batches,allocations,reviews,statusEvents,transplantEvents,operationRows){
+  const crop=bseTransplantNormalizeCrop_(proposal.fields.crop),base=bseTreatmentFindMatchesByPlotsAsOf_(proposal.plots,proposal.fields.event_date,batches,allocations,reviews,statusEvents,transplantEvents,operationRows),all=base.kind==='UNIQUE'?[base]:(base.matches||[]),matches=all.filter(match=>bseTransplantNormalizeCrop_(match.crop)===crop);
   return matches.length===1?Object.assign({kind:'UNIQUE'},matches[0]):{kind:matches.length?'MULTIPLE':'NONE',matches:matches};
 }
-function bseTreatmentMatchForBook_(book,proposal){return bseTreatmentFindMatches_(proposal,bseTransplantRowsByName_(book,'TEST_CROP_BATCH',BSE_CROP_BATCH_HEADERS),bseTransplantRowsByName_(book,'TEST_PLOT_ALLOCATION',BSE_PLOT_ALLOCATION_HEADERS),bseTransplantRowsByName_(book,'TEST_CROP_BATCH_REVIEW',BSE_CROP_BATCH_REVIEW_HEADERS),bseTransplantRowsByName_(book,'TEST_ALLOCATION_STATUS_EVENT',BSE_ALLOCATION_STATUS_EVENT_HEADERS),bseTransplantRowsByName_(book,'TEST_TRANSPLANT_EVENT',BSE_TRANSPLANT_EVENT_HEADERS));}
+function bseTreatmentMatchForBook_(book,proposal){return bseTreatmentFindMatches_(proposal,bseTransplantRowsByName_(book,'TEST_CROP_BATCH',BSE_CROP_BATCH_HEADERS),bseTransplantRowsByName_(book,'TEST_PLOT_ALLOCATION',BSE_PLOT_ALLOCATION_HEADERS),bseTransplantRowsByName_(book,'TEST_CROP_BATCH_REVIEW',BSE_CROP_BATCH_REVIEW_HEADERS),bseTransplantRowsByName_(book,'TEST_ALLOCATION_STATUS_EVENT',BSE_ALLOCATION_STATUS_EVENT_HEADERS),bseTransplantRowsByName_(book,'TEST_TRANSPLANT_EVENT',BSE_TRANSPLANT_EVENT_HEADERS),bsePilotCycleEndRows_(book,'TEST_OPERATION_LOG',BSE_OPERATION_LOG_HEADERS));}
 function bseTreatmentReconcileCandidates_(book,result){
   if(!result||result.production_write!==false||!Array.isArray(result.candidates)||!result.candidates.length||!result.candidates.every(c=>c&&c.target==='Treatment_Event_Log'))return result;
-  const batches=bseTransplantRowsByName_(book,'TEST_CROP_BATCH',BSE_CROP_BATCH_HEADERS),allocations=bseTransplantRowsByName_(book,'TEST_PLOT_ALLOCATION',BSE_PLOT_ALLOCATION_HEADERS),reviews=bseTransplantRowsByName_(book,'TEST_CROP_BATCH_REVIEW',BSE_CROP_BATCH_REVIEW_HEADERS),statuses=bseTransplantRowsByName_(book,'TEST_ALLOCATION_STATUS_EVENT',BSE_ALLOCATION_STATUS_EVENT_HEADERS),transplants=bseTransplantRowsByName_(book,'TEST_TRANSPLANT_EVENT',BSE_TRANSPLANT_EVENT_HEADERS);
+  const batches=bseTransplantRowsByName_(book,'TEST_CROP_BATCH',BSE_CROP_BATCH_HEADERS),allocations=bseTransplantRowsByName_(book,'TEST_PLOT_ALLOCATION',BSE_PLOT_ALLOCATION_HEADERS),reviews=bseTransplantRowsByName_(book,'TEST_CROP_BATCH_REVIEW',BSE_CROP_BATCH_REVIEW_HEADERS),statuses=bseTransplantRowsByName_(book,'TEST_ALLOCATION_STATUS_EVENT',BSE_ALLOCATION_STATUS_EVENT_HEADERS),transplants=bseTransplantRowsByName_(book,'TEST_TRANSPLANT_EVENT',BSE_TRANSPLANT_EVENT_HEADERS),operationLogs=bsePilotCycleEndRows_(book,'TEST_OPERATION_LOG',BSE_OPERATION_LOG_HEADERS);
   result.candidates.forEach(candidate=>{
     const f=candidate.fields||{};
-    if(!String(f.crop||'').trim()&&Array.isArray(f.plot_ids)&&f.plot_ids.length){const inferred=bseTreatmentFindMatchesByPlotsAsOf_(f.plot_ids,f.event_date,batches,allocations,reviews,statuses,transplants);if(inferred.kind==='UNIQUE'&&String(inferred.crop||'').trim()){f.crop=String(inferred.crop).trim();candidate.missing=(candidate.missing||[]).filter(k=>k!=='crop');}}
+    if(!String(f.crop||'').trim()&&Array.isArray(f.plot_ids)&&f.plot_ids.length){const inferred=bseTreatmentFindMatchesByPlotsAsOf_(f.plot_ids,f.event_date,batches,allocations,reviews,statuses,transplants,operationLogs);if(inferred.kind==='UNIQUE'&&String(inferred.crop||'').trim()){f.crop=String(inferred.crop).trim();candidate.missing=(candidate.missing||[]).filter(k=>k!=='crop');}}
     const missing=(candidate.missing||[]).filter(k=>!['active_allocation_unverified','allocation_state_unverified','batch_match'].includes(k));
     let ok=false;
     if(!missing.length){
       const single={validation:'PASS',production_write:false,candidates:[Object.assign({},candidate,{validation:'PASS',missing:[]})]};
-      try{const proposal=bseTreatmentProposal_(JSON.stringify(single),String(f.original_note||''));ok=bseTreatmentFindMatches_(proposal,batches,allocations,reviews,statuses,transplants).kind==='UNIQUE';}catch(_){ok=false;}
+      try{const proposal=bseTreatmentProposal_(JSON.stringify(single),String(f.original_note||''));ok=bseTreatmentFindMatches_(proposal,batches,allocations,reviews,statuses,transplants,operationLogs).kind==='UNIQUE';}catch(_){ok=false;}
     }
     candidate.validation=ok?'PASS':'NEED_INFO';
     candidate.missing=ok?[]:Array.from(new Set(missing.concat('batch_match')));

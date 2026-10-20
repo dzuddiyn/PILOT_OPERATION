@@ -457,15 +457,17 @@ function bsePilotTransplantReviewCardOnly_(result,status){
       // be split by the reporter and must never fall through as Treatment traffic.
       const seedSowingResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult?(bsePilotPlotFirstSowingResult_(job.input)||bsePilotCompactSowingResult_(job.input)||bseTelegramSeedSowingDeterministicResult_(job.input)):null;
       const transplantResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult?bseTelegramTransplantDeterministicResult_(book,job.input):null;
+      // CYCLE_END must take precedence over generic AI/Treatment; it never infers plot release.
+      const cycleEndResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult?bsePilotCycleEndResult_(job.input):null;
       // HARVEST_START has priority; its date must never be misread as a Treatment dosage.
-      const harvestStartResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult?bsePilotHarvestStartResult_(job.input):null;
-      const censusResult=!harvestStartResult&&!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&typeof bseTelegramCensusDeterministicResult_==='function'?bseTelegramCensusDeterministicResult_(job.input,job.receivedAt):null;
-      const treatmentResult=!harvestStartResult&&!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&!censusResult&&typeof bseTreatmentListParseMessage_==='function'?bseTreatmentListParseMessage_(job.input,job.receivedAt):null;
-      const plantReplacementResult=!harvestStartResult&&!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&!censusResult&&!treatmentResult&&typeof bsePlantReplacementParseMessage_==='function'?bsePlantReplacementParseMessage_(job.input,job.receivedAt):null;
-      const plantConditionResult=!harvestStartResult&&!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&!censusResult&&!treatmentResult&&!plantReplacementResult&&typeof bsePlantConditionParseMessage_==='function'?bsePlantConditionParseMessage_(job.input,job.receivedAt):null;
+      const harvestStartResult=!cycleEndResult&&!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult?bsePilotHarvestStartResult_(job.input):null;
+      const censusResult=!cycleEndResult&&!harvestStartResult&&!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&typeof bseTelegramCensusDeterministicResult_==='function'?bseTelegramCensusDeterministicResult_(job.input,job.receivedAt):null;
+      const treatmentResult=!cycleEndResult&&!harvestStartResult&&!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&!censusResult&&typeof bseTreatmentListParseMessage_==='function'?bseTreatmentListParseMessage_(job.input,job.receivedAt):null;
+      const plantReplacementResult=!cycleEndResult&&!harvestStartResult&&!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&!censusResult&&!treatmentResult&&typeof bsePlantReplacementParseMessage_==='function'?bsePlantReplacementParseMessage_(job.input,job.receivedAt):null;
+      const plantConditionResult=!cycleEndResult&&!harvestStartResult&&!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&!censusResult&&!treatmentResult&&!plantReplacementResult&&typeof bsePlantConditionParseMessage_==='function'?bsePlantConditionParseMessage_(job.input,job.receivedAt):null;
 
-      const operationDecisionResult=!harvestStartResult&&!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&!censusResult&&!treatmentResult&&!plantReplacementResult&&!plantConditionResult&&typeof bseOperationDecisionDeterministicResult_==='function'?bseOperationDecisionDeterministicResult_(job.input):null;
-      const rawResult=ecResult||inventoryResult||leaveResult||maintenanceResult||seedSowingResult||transplantResult||censusResult||treatmentResult||plantReplacementResult||plantConditionResult||harvestStartResult||operationDecisionResult||bseUnifiedProcess_(job.input,job.receivedAt);
+      const operationDecisionResult=!cycleEndResult&&!harvestStartResult&&!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult&&!censusResult&&!treatmentResult&&!plantReplacementResult&&!plantConditionResult&&typeof bseOperationDecisionDeterministicResult_==='function'?bseOperationDecisionDeterministicResult_(job.input):null;
+      const rawResult=cycleEndResult||ecResult||inventoryResult||leaveResult||maintenanceResult||seedSowingResult||transplantResult||censusResult||treatmentResult||plantReplacementResult||plantConditionResult||harvestStartResult||operationDecisionResult||bseUnifiedProcess_(job.input,job.receivedAt);
       if(typeof bseLeaveApplyReporterSnapshot_==='function')bseLeaveApplyReporterSnapshot_(rawResult,job);
       if(typeof bseMaintenanceApplyReporterSnapshot_==='function')bseMaintenanceApplyReporterSnapshot_(rawResult,job);
       if(typeof bsePlantReplacementApplyReporterSnapshot_==='function')bsePlantReplacementApplyReporterSnapshot_(rawResult,job);
@@ -535,7 +537,7 @@ function bsePilotTransplantReviewCardOnly_(result,status){
 function bseTelegramWorkerFinalizeResult_(book,rawResult,job){
   const guarded=bseUnifiedGuard_(rawResult,{received_at:job.receivedAt,queue_reference:'BSE-TG-'+job.id,root_reference:'BSE-TG-'+(job.rootId||job.id),source_input:job.input});
   if(guarded&&Array.isArray(guarded.candidates))guarded.candidates.forEach(c=>{if(c&&c.fields)c.fields.original_note=job.provenance;});
-  const result=bseTreatmentQueueGuard_(book,bseCensusQueueGuard_(book,bseTransplantQueueGuard_(book,guarded)));
+  const result=bsePilotCycleEndQueueGuard_(book,bseTreatmentQueueGuard_(book,bseCensusQueueGuard_(book,bseTransplantQueueGuard_(book,guarded))));
   if(!result||result.production_write!==false||!Array.isArray(result.candidates)||!result.candidates.length||!['PASS','NEED_INFO','REJECTED','CONFLICT'].includes(result.validation))throw new Error('Invalid output');
   return result;
 }
@@ -727,6 +729,7 @@ function bseTelegramReportContext_(rows,current) {
 
 function bseTelegramQuestion_(result) {
   if(!result||result.validation!=='NEED_INFO'||!Array.isArray(result.candidates))return '';
+  if(result.candidates.some(c=>c&&c.fields&&c.fields.operation_type==='CYCLE_END'&&Array.isArray(c.missing)&&c.missing.includes('active_allocation_match')))return 'Plot tidak mempunyai tepat satu allocation tanaman ACTIVE yang boleh ditamatkan pada tarikh dilaporkan. Sila semak status plot atau hubungi penyelia. Tiada plot ditutup.';
   if(result.seed_sowing_split_required===true)return 'Laporan semaian mengandungi lebih daripada satu set tanaman. Sila hantar setiap semaian secara berasingan: satu jenis tanaman/varieti, satu modul, dan satu tarikh semai untuk setiap mesej.';
   if(result.transplant_date_conflict){
     const c=result.transplant_date_conflict;
