@@ -1,0 +1,15 @@
+﻿const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const s=fs.readFileSync('TelegramApprovalUiTest.js','utf8');
+const a=s.indexOf('function bseTelegramPilotConfirmedTransplantFromRows_('),b=s.indexOf('function bseTelegramPilotConfirmedTransplant_(',a);
+const ctx={bseApprovalDisplayDate_:x=>x.slice(8,10)+'/'+x.slice(5,7)+'/'+x.slice(0,4)};vm.createContext(ctx);vm.runInContext(s.slice(a,b),ctx);
+const key='BSE-TG-772257228|Transplant_Event_Log',outcome={source_key:key,transplant_event_id:'BSE-SB-TR-20260831-001',batch_id:'BSE-SB-CB-20260825-001'};
+const row=[key,'772257228',outcome.transplant_event_id,outcome.batch_id,'2026-08-31','TRANSPLANT','Cucumber','7055 (CCB)','M3P3|M3P4','COMPLETED','VERIFIED_TEST','','','dzuddiyn','hash'];
+const t=p=>[key,'772257228','uid',outcome.transplant_event_id,outcome.batch_id,'allocation',p,'PLANNED','ACTIVE','time','dzuddiyn','hash'];
+const summary=ctx.bseTelegramPilotConfirmedTransplantFromRows_('BSE-TG-772257229',outcome,[row],[t('M3P3'),t('M3P4')]);
+for(const word of ['BSE-TG-772257229','BSE-TG-772257228',outcome.batch_id,outcome.transplant_event_id,'Cucumber','7055 (CCB)','31/08/2026','M3P3','M3P4','ACTIVE','dzuddiyn'])assert(summary.includes(word),word);
+assert.equal(ctx.bseTelegramPilotConfirmedTransplantFromRows_('ref',outcome,[],[t('M3P3'),t('M3P4')]),'');
+assert.equal(ctx.bseTelegramPilotConfirmedTransplantFromRows_('ref',outcome,[row],[t('M3P3')]),'');
+assert.equal(ctx.bseTelegramPilotConfirmedTransplantFromRows_('ref',outcome,[row,row],[t('M3P3'),t('M3P4')]),'');
+const bad=row.slice();bad[10]='PROVISIONAL';assert.equal(ctx.bseTelegramPilotConfirmedTransplantFromRows_('ref',outcome,[bad],[t('M3P3'),t('M3P4')]),'');
+assert(s.includes("domain.target==='Transplant_Event_Log'&&bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?bseTelegramPilotConfirmedTransplant_"));
+console.log('GI_CARD_SUMMARY 6/6 PASS');
