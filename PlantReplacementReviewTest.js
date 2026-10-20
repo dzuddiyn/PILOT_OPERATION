@@ -39,7 +39,7 @@ function bsePlantReplacementDate_(text,receivedAt){
 }
 function bsePlantReplacementLocation_(text){
   const m=String(text||'').toUpperCase().match(/\bM\s*([1-9]\d*)\s*P\s*([1-9]\d*)\b/);
-  return m?{plot_id:'M'+m[1]+'P'+m[2],module_id:'M'+m[1]}:{plot_id:'',module_id:''};
+  if(!m)return {plot_id:'',module_id:''};const single=bsePlotSingleLocation_(text);return single.ok?{plot_id:single.plot_id,module_id:single.plot_id.split('P')[0]}:{plot_id:'',module_id:''};
 }
 function bsePlantReplacementCrop_(text){
   const m=String(text||'').match(/(?:Jenis\s+Tanaman|Tanaman|Crop)\s*[:=-]?\s*([^\n]+)/i);

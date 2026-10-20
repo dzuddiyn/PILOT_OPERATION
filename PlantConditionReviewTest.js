@@ -33,7 +33,7 @@ function bsePlantConditionDate_(text,receivedAt){
 function bsePlantConditionLocation_(text){
   const source=String(text||'').toUpperCase();
   const plot=source.match(/\bM\s*([1-9]\d*)\s*P\s*([1-9]\d*)\b/);
-  if(plot)return {plot_id:'M'+plot[1]+'P'+plot[2],module_id:'M'+plot[1]};
+  if(plot){const single=bsePlotSingleLocation_(source);return single.ok?{plot_id:single.plot_id,module_id:single.plot_id.split('P')[0]}:{plot_id:'',module_id:''};}
   const module=source.match(/\bM\s*([1-9]\d*)\b/);
   return {plot_id:'',module_id:module?'M'+module[1]:''};
 }
