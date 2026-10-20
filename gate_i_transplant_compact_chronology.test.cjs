@@ -30,6 +30,9 @@ vm.createContext(ctx);
 for(const n of ['bseTransplantPlots_','bseTransplantPlotCompare_','bseTransplantExplicitDateContext_'])vm.runInContext(extract(gem,n),ctx);
 for(const n of ['bsePilotCompactTransplantDate_','bsePilotTransplantChronology_','bseTelegramTransplantBuildResult_','bseTelegramTransplantDeterministicResult_','bseTelegramQuestion_','bseTelegramQueueStatus_'])vm.runInContext(extract(worker,n),ctx);
 let count=0;const check=(label,fn)=>{fn();count++;console.log('PASS '+label)};
+check('real Cucumber 7055 report 228 inline final date parsed',()=>{const d=ctx.bseTransplantExplicitDateContext_({original:'Pindah anak pokok Cucumber 7055 (CCB), batch BSE-SB-CB-20260825-001, M3P3 dan M3P4, 31/08/2026',clarifications:[]});assert.equal(d.ok,true);assert.equal(d.date,'2026-08-31')});
+check('invalid calendar and year rejected',()=>{for(const date of ['31/02/2026','31/08/2025']){const d=ctx.bseTransplantExplicitDateContext_({original:'Pindah anak pokok Cucumber 7055 (CCB), M3P3 dan M3P4, '+date,clarifications:[]});assert.equal(d.ok,false)}});
+check('conflicting original and clarification date rejected',()=>{const d=ctx.bseTransplantExplicitDateContext_({original:'Pindah anak pokok Timun ke M5P1, 31/08/2026',clarifications:['01/09/2026']});assert.equal(d.ok,false)});
 const report='Transplant\n- Timun\n- M5P12\n- 7/9/26';
 check('report 772257174 expands approved M5P12 into M5P1 and M5P2',()=>{
  const r=ctx.bseTelegramTransplantDeterministicResult_({},report);
