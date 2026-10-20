@@ -47,7 +47,7 @@ function bseMaintenanceComponent_(text){
 function bseMaintenanceLocation_(text){
   const source=String(text||'').toUpperCase();
   const plot=source.match(/\bM\s*(\d+)\s*P\s*(\d+)\b/);
-  if(plot)return 'M'+plot[1]+'P'+plot[2];
+  if(plot){const single=bsePlotSingleLocation_(source);return single.ok?single.plot_id:'';}
   const module=source.match(/\bM\s*(\d+)\b/);
   return module?'M'+module[1]:'';
 }
@@ -71,6 +71,7 @@ function bseMaintenanceParseMessage_(text,receivedAt){
   const missing=[];
   if(!component)missing.push('asset_or_component');
   if(!eventDate)missing.push('event_date');
+  if(/M\s*[1-9]\d*\s*P\s*[1-9]\d*/i.test(source)&&!location)missing.push('plot_id');
   return {validation:missing.length?'NEED_INFO':'PASS',production_write:false,candidates:[{
     target:'Maintenance_Event_Log',validation:missing.length?'NEED_INFO':'PASS',missing:missing,fields:fields
   }]};

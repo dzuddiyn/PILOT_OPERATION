@@ -239,12 +239,12 @@ function bseAssetName_(source,item) {
     .replace(/\bbaru\b$/i,'').trim();
 }
 
-function bseInventoryPlotIds_(text) {
-  const source=String(text||'').toUpperCase(), found=[], compact=source.match(/M\s*(\d+)\s*P\s*(\d+)/g)||[];
-  compact.forEach(token=>{const m=token.match(/M\s*(\d+)\s*P\s*(\d+)/);if(m)found.push('M'+m[1]+'P'+m[2]);});
-  const module=source.match(/\bM\s*(\d+)\b/);
-  if(module){const re=/\bP\s*(\d+)\b/g;let m;while((m=re.exec(source)))found.push('M'+module[1]+'P'+m[1]);}
-  return Array.from(new Set(found));
+function bseInventoryPlotIds_(text){
+  const source=String(text||'').toUpperCase(),plots=[];
+  const matched=source.match(/M\s*[1-9]\d*\s*P\s*[1-9]\d*(?:\s*,\s*(?:M\s*[1-9]\d*\s*P\s*)?[1-9])?/g)||[];
+  for(const token of matched){const result=bseCanonicalPlotTokens_(token.replace(/\s+/g,''));if(!result.ok)return [];plots.push(...result.plots);}
+  const mod=source.match(/\bM\s*([1-9]\d*)\b/);if(mod){const standalone=[...source.matchAll(/\bP\s*([1-9])\b/g)].map(x=>x[1]);for(const n of standalone)plots.push('M'+mod[1]+'P'+n);}
+  return Array.from(new Set(plots));
 }
 
 /** Deterministic narrow D1 route. Returns null for all unrelated reports. */

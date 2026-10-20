@@ -103,13 +103,10 @@ function runBseTreatmentReviewHarnessTests(){
 
 function bseTreatmentListPlots_(text){
   const source=String(text||'').toUpperCase(),plots=[];
-  const compact=source.match(/M\s*([1-9]\d*)\s*[- ]?\s*P\s*([1-9]\d*)/g)||[];
-  compact.forEach(token=>{const m=token.match(/M\s*([1-9]\d*)\s*[- ]?\s*P\s*([1-9]\d*)/);if(!m)return;const module=m[1],digits=m[2];if(digits.length===1)plots.push('M'+module+'P'+digits);else if(digits.length===2&&digits[0]!=='0'&&digits[1]!=='0')digits.split('').forEach(plot=>plots.push('M'+module+'P'+plot));});
-  const module=source.match(/\bM\s*([1-9]\d*)\b/);
-  if(module){const re=/\bP\s*([1-9])\b/g;let m;while((m=re.exec(source)))plots.push('M'+module[1]+'P'+m[1]);}
+  const tokens=source.match(/M\s*[1-9]\d*\s*[- ]?\s*P\s*[1-9]\d*(?:\s*,\s*(?:M\s*[1-9]\d*\s*P\s*)?[1-9])?/g)||[];
+  for(const token of tokens){const result=bseCanonicalPlotTokens_(token.replace(/\s+/g,'').replace(/^M(\d+)-P/,'M$1P'));if(!result.ok)return [];plots.push(...result.plots)}
   return Array.from(new Set(plots)).sort(bseCropBatchPlotCompare_);
 }
-
 function bseTreatmentListCrop_(text){
   const source=String(text||''),m=source.match(/(?:Jenis\s+Tanaman|Tanaman|Crop)\s*[:=-]?\s*([^\n]+)/i);
   return m?String(m[1]||'').trim():'';

@@ -684,6 +684,7 @@ function bseUnifiedGuardSeedSowing_(r,source) {
 
 // Compact transplant grammar is intentionally narrower than general plot IDs.
 // M1P34 means M1P3 and M1P4; three-or-more digits are ambiguous and rejected.
+function bsePlotSingleLocation_(text){const matches=String(text||'').toUpperCase().match(/M\s*[1-9]\d*\s*P\s*[1-9]\d*(?:\s*,\s*(?:M\s*[1-9]\d*\s*P\s*)?[1-9])?/g)||[];if(matches.length!==1)return {ok:false,plot_id:'',reason:matches.length?'MULTIPLE_PLOTS':'PLOT_MISSING'};const token=matches[0].replace(/\s+/g,'');const p=bseCanonicalPlotTokens_(token);return {ok:p.ok&&p.plots.length===1,plot_id:p.ok&&p.plots.length===1?p.plots[0]:'',reason:p.ok&&p.plots.length===1?'':'MULTIPLE_OR_INVALID_PLOTS'};}
 function bseCanonicalPlotTokens_(value){
  const raw=String(value||'').trim().replace(/^[-]\s*/,'').toUpperCase();
  const m=raw.match(/^M([1-9]\d*)P([1-9](?:[1-9])?)(?:\s*,\s*(?:M\1P)?([1-9]))?$/i);
