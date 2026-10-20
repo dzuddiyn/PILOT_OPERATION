@@ -90,7 +90,7 @@ function bsePlantReplacementActiveMatchByPlot_(book,eventDate,plotId){
   const reviews=bseTransplantRowsByName_(book,'TEST_CROP_BATCH_REVIEW',BSE_CROP_BATCH_REVIEW_HEADERS);
   const statuses=bseTransplantRowsByName_(book,'TEST_ALLOCATION_STATUS_EVENT',BSE_ALLOCATION_STATUS_EVENT_HEADERS);
   const transplants=bseTransplantRowsByName_(book,'TEST_TRANSPLANT_EVENT',BSE_TRANSPLANT_EVENT_HEADERS);
-  const eligible=bseCensusStatusEventsAsOf_(eventDate,statuses,transplants);
+  const eligible=bseCensusStatusEventsAsOf_(eventDate,statuses,transplants,bsePilotCycleEndRows_(book,'TEST_OPERATION_LOG',BSE_OPERATION_LOG_HEADERS));
   return bseActiveAllocationFindMatchesByPlots_([plotId],batches,allocations,reviews,eligible);
 }
 function bsePlantReplacementResolveOperationalContext_(book,result){
