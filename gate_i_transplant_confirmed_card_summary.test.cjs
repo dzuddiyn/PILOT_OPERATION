@@ -7,6 +7,9 @@ const row=[key,'772257228',outcome.transplant_event_id,outcome.batch_id,'2026-08
 const t=p=>[key,'772257228','uid',outcome.transplant_event_id,outcome.batch_id,'allocation',p,'PLANNED','ACTIVE','time','dzuddiyn','hash'];
 const summary=ctx.bseTelegramPilotConfirmedTransplantFromRows_('BSE-TG-772257229',outcome,[row],[t('M3P3'),t('M3P4')]);
 for(const word of ['BSE-TG-772257229','BSE-TG-772257228',outcome.batch_id,outcome.transplant_event_id,'Cucumber','7055 (CCB)','31/08/2026','M3P3','M3P4','ACTIVE','dzuddiyn'])assert(summary.includes(word),word);
+assert(summary.startsWith('REKOD PINDAH ANAK POKOK DISAHKAN'));
+assert(summary.includes('M3P3 kini ACTIVE (sebelum ini PLANNED); M3P4 kini ACTIVE (sebelum ini PLANNED)'));
+assert(!summary.includes(' ? '));
 assert.equal(ctx.bseTelegramPilotConfirmedTransplantFromRows_('ref',outcome,[],[t('M3P3'),t('M3P4')]),'');
 assert.equal(ctx.bseTelegramPilotConfirmedTransplantFromRows_('ref',outcome,[row],[t('M3P3')]),'');
 assert.equal(ctx.bseTelegramPilotConfirmedTransplantFromRows_('ref',outcome,[row,row],[t('M3P3'),t('M3P4')]),'');
