@@ -95,6 +95,10 @@ function bseTelegramPilotNoticeParent_(rows,sourceChat,reporter,replyId){
         const statusRetrieval=bseTelegramPlotStatusRetrieve_(book,m);
         if(statusRetrieval.handled&&statusRetrieval.text){if(m.chat.type==='private')bseTelegramPrivateCommandReply_(m,statusRetrieval.text);else bseTelegramApi_('sendMessage',{chat_id:sourceChat,text:statusRetrieval.text,reply_parameters:{message_id:Number(m.message_id),allow_sending_without_reply:true}});}
       }
+      else if(typeof bseTelegramPlotStatusUsageRetrieve_==='function'&&typeof bseTelegramPlotStatusUsageCommand_==='function'&&bseTelegramPlotStatusUsageCommand_(m&&m.text)&&(m&&m.chat&&(m.chat.type==='private'||allowedGroup))){
+        const help=bseTelegramPlotStatusUsageRetrieve_(book,m);
+        if(help.handled&&help.text){if(m.chat.type==='private')bseTelegramPrivateCommandReply_(m,help.text);else bseTelegramApi_('sendMessage',{chat_id:sourceChat,text:help.text,reply_parameters:{message_id:Number(m.message_id),allow_sending_without_reply:true}});}
+      }
       else if(rejectPromptReply){rejectReplies.push({chat_id:sourceChat,message_id:String(m.message_id),reply_to_message_id:replyId,user_id:reporter,text:typeof m.text==='string'?m.text:''});}
       else if(typeof bseImageProcessingCorrectionReceive_==='function'&&bseImageProcessingCorrectionReceive_(book,m).handled){}
       else if((evidence=typeof bseImageActionReceive_==='function'?bseImageActionReceive_(book,m):null)&&evidence.handled){if(evidence.text){if(m&&m.chat&&m.chat.type==='private')bseTelegramPrivateCommandReply_(m,evidence.text);else bseTelegramApi_('sendMessage',{chat_id:sourceChat,text:evidence.text,reply_parameters:{message_id:Number(m.message_id),allow_sending_without_reply:true}});}}
