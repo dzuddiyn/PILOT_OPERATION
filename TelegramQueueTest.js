@@ -63,6 +63,25 @@ function bseTelegramPilotNoticeParent_(rows,sourceChat,reporter,replyId){
       const correctionSession=!replyId&&typeof bseTelegramCorrectionSessionMatch_==='function'?bseTelegramCorrectionSessionMatch_(book,sourceChat,reporter,saved):{match:null,ambiguous:false};
       let evidence=null;
       if(m&&allowedGroup&&typeof bsePilotRegistrationGroupStartHint_==='function'&&bsePilotRegistrationGroupStartHint_(m,me.username).handled){const hint=bsePilotRegistrationGroupStartHint_(m,me.username);bseTelegramApi_('sendMessage',{chat_id:sourceChat,text:hint.text,reply_markup:hint.reply_markup,reply_parameters:{message_id:Number(m.message_id),allow_sending_without_reply:true}});}
+      // The real PILOT Telegram receiver must intercept /summary before generic
+      // slash-command acknowledgement, independent of later optional route probes.
+      else if(m&&m.chat&&m.from&&!m.from.is_bot&&typeof m.text==='string'&&
+              /^\/summary(?=\s|$)/i.test(m.text.trim())&&
+              (m.chat.type==='private'||allowedGroup)){
+        if(typeof bseTelegramPlotRetrievalCommand_!=='function'||
+           typeof bseTelegramPlotStatusRetrieve_!=='function'||
+           typeof bseTelegramPlotSummaryUsageRetrieve_!=='function')
+          throw new Error('PILOT_SUMMARY_ROUTE_DEPENDENCY_MISSING');
+        const summaryRequest=bseTelegramPlotRetrievalCommand_(m.text);
+        const summaryResponse=summaryRequest&&summaryRequest.kind==='SUMMARY'
+          ?bseTelegramPlotStatusRetrieve_(book,m)
+          :bseTelegramPlotSummaryUsageRetrieve_(book,m);
+        if(!summaryResponse||!summaryResponse.handled||!summaryResponse.text)
+          throw new Error('PILOT_SUMMARY_ROUTE_NO_RESPONSE');
+        if(m.chat.type==='private')bseTelegramPrivateCommandReply_(m,summaryResponse.text);
+        else bseTelegramApi_('sendMessage',{chat_id:sourceChat,text:summaryResponse.text,reply_parameters:{message_id:Number(m.message_id),allow_sending_without_reply:true}});
+        console.log('PILOT_SUMMARY_ROUTED: '+JSON.stringify({kind:summaryRequest&&summaryRequest.kind==='SUMMARY'?'SUMMARY':'USAGE',production_write:false}));
+      }
       else if(privateStart){const registration=typeof bseTelegramRegistrationHandleStart_==='function'?bseTelegramRegistrationHandleStart_(book,m,me.username):bseTelegramPrivateOptInRegister_(book,m,me.username);if(registration&&registration.text)bseTelegramPrivateCommandReply_(m,registration.text);}
       else if(m&&m.chat&&m.from&&m.chat.type==='private'&&bseTelegramDeleteCommand_(m.text)){
         const deletion=bseTelegramDeleteReceiveCommand_(book,m);
