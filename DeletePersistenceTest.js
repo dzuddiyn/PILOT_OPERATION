@@ -1,4 +1,4 @@
-﻿/** @OnlyCurrentDoc */
+/** @OnlyCurrentDoc */
 // GI-FIELD-UX-DELETE-PERSISTENCE-07: injected-store journal protocol.
 // NOT WIRED to live Sheets, callback, Telegram or any real record mutation.
 function bseDeletePersistCreate_(store,plan){
@@ -18,8 +18,8 @@ function bseDeletePersistCreate_(store,plan){
     approval_source_key:plan.approval_source_key,expected_hash:plan.expected_hash,
     expected_revision:plan.expected_revision};
   store.writeJournal(id,journal);
-  const observed=store.readJournal(id);
-  if(!observed||JSON.stringify(observed)!==JSON.stringify(journal))
+  let observed;try{observed=store.readJournal(id);}catch(_){return {status:'WRITE_OUTCOME_UNKNOWN'};}
+  if(!observed||Object.keys(journal).some(k=>observed[k]!==journal[k]))
     return {status:'WRITE_OUTCOME_UNKNOWN'};
   return {status:'PREPARED',journal:observed};
 }
