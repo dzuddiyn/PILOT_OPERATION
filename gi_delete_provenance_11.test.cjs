@@ -1,0 +1,17 @@
+﻿'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
+const source=fs.readFileSync(__dirname+'/DeleteProvenanceTest.js','utf8'),ctx={};vm.createContext(ctx);vm.runInContext(source,ctx);
+const ak='BSE-TG-772257418|Inventory_Event_Log|C1',lk='BSE-TG-772257418|INVENTORY_OUT',ah='9'.repeat(64),lh='a'.repeat(64);
+const approval={source_key:ak,decision_status:'REPORTER_CONFIRMED',payload_hash:ah},ledger={source_key:lk,status:'APPROVED_TEST',payload_hash:lh,event_id:'BSE-SB-INV-FIXTURE'};
+const commit_receipt={receipt_id:'TEST_ONLY_RECEIPT_11',approval_source_key:ak,ledger_source_key:lk,approval_hash:ah,ledger_hash:lh,event_id:ledger.event_id,authenticated_origin:'TEST_ONLY',commit_time:'2026-10-21T00:00:00Z',immutable_commit_id:'TEST_ONLY_HASH'};
+const base={source_kind:'INDEPENDENT_COMMIT_AUDIT',approval,ledger,commit_receipt,approval_matches:1,ledger_matches:1,receipt_matches:1,audit_readback_verified:true,ledger_readback_verified:true,approval_readback_verified:true};
+const check=x=>ctx.bseDeleteProvenance11Verify_({...base,...x});
+test('distinct hashes are allowed with matching independent fixture receipt',()=>assert.equal(check().status,'VERIFIED_PROVENANCE_ONLY'));
+test('legacy no receipt stays unverified',()=>assert.equal(check({commit_receipt:null}).status,'UNVERIFIED'));
+test('receipt ledger mismatch stays unverified',()=>assert.equal(check({commit_receipt:{...commit_receipt,ledger_source_key:lk+'C1'}}).reason,'RECEIPT_MISMATCH'));
+test('wrong ledger event id stays unverified',()=>assert.equal(check({ledger:{...ledger,event_id:'OTHER'}}).reason,'RECEIPT_MISMATCH'));
+test('not independently sourced is rejected',()=>assert.equal(check({source_kind:'SELF_ASSERTED'}).reason,'NO_INDEPENDENT_COMMIT_AUDIT'));
+test('no audit readback fails',()=>assert.equal(check({audit_readback_verified:false}).reason,'READBACK_NOT_VERIFIED'));
+test('duplicate receipt fails',()=>assert.equal(check({receipt_matches:2}).reason,'NON_UNIQUE_EVIDENCE'));
+test('unconfirmed approval fails',()=>assert.equal(check({approval:{...approval,decision_status:'OPEN'}}).reason,'NOT_APPROVED'));
+test('verifier has no operational IO',()=>assert.doesNotMatch(source,/SpreadsheetApp|UrlFetchApp|appendRow\(|setValue\(|bseTelegramApi_\(/));
