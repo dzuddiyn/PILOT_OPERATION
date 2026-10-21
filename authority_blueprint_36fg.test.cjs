@@ -1,0 +1,11 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm');
+const ctx={};vm.createContext(ctx);vm.runInContext(fs.readFileSync(__dirname+'/NondeleteAuthorityBlueprint36FG.js','utf8'),ctx);
+const tabs=['TEST_ONLY_NONDELETE_INTENT','TEST_ONLY_NONDELETE_LEDGER','TEST_ONLY_NONDELETE_EVIDENCE','TEST_ONLY_NONDELETE_RECEIPT'];
+const f=(over={})=>({getWorkbookMetadata:()=>({id:'1vwmO6nE_hVfFgT0zkaNPzZklminYtZT24jrGL-ODBoY',tabs,...over}),getAccessEvidence:()=>({owner:'dzuddiyn01@gmail.com'})});
+test('36F schema blueprint is not a provisioning action',()=>{const x=ctx.bseNondelete36FBlueprint_();assert.equal(x.provisioned,false);assert.equal(x.write_allowed,false);assert.equal(x.tables.approval.columns.includes('nonce'),true)});
+test('36G correct metadata still requires explicit provisioning approval',()=>assert.equal(ctx.bseNondelete36GPreflight_(f()).status,'PROVISION_APPROVAL_REQUIRED'));
+test('36G wrong workbook denies',()=>assert.equal(ctx.bseNondelete36GPreflight_(f({id:'WRONG'})).status,'WRONG_WORKBOOK'));
+test('36G missing transaction tab denies',()=>assert.equal(ctx.bseNondelete36GPreflight_(f({tabs:tabs.slice(1)})).status,'TRANSACTION_TABS_MISSING'));
+test('36G existing authority must reconcile, never duplicate',()=>assert.equal(ctx.bseNondelete36GPreflight_(f({tabs:[...tabs,'TEST_ONLY_NONDELETE_APPROVAL_AUTH']})).status,'RECONCILE_EXISTING_AUTHORITY'));
+test('36G untrusted owner evidence denies',()=>{const x=f();x.getAccessEvidence=()=>({owner:'UNKNOWN'});assert.equal(ctx.bseNondelete36GPreflight_(x).status,'OWNER_MISMATCH')});
