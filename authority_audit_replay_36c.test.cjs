@@ -1,0 +1,11 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm');const c={};vm.createContext(c);
+for(const n of ['AuthorityContract36B.js','AuthorityAuditReplay36C.js'])vm.runInContext(fs.readFileSync(__dirname+'/'+n,'utf8'),c);
+const a={approval_id:'TEST_36C',nonce:'nonce123456789abcdef',event_id:'TEST_ONLY_36_A',approval_hash:'a'.repeat(64),ledger_hash:'b'.repeat(64),status:'PENDING',revision:1};
+const next={...a,status:'APPROVED',revision:2};
+function fixture(){let rows=[{...a}],release=0;return {store:{read:()=>rows.map(x=>({...x})),append:x=>rows.push({...x})},lock:{tryLock:()=>true,releaseLock:()=>release++},get rows(){return rows},get release(){return release}}}
+test('append-only approval transition and duplicate replay',()=>{const f=fixture();assert.equal(c.bseAudit36C_(f.store,a.approval_id,next,{lock:f.lock}).status,'APPENDED_SYNTHETIC_HOLD');assert.equal(c.bseAudit36C_(f.store,a.approval_id,next,{lock:f.lock}).status,'ALREADY_APPLIED');assert.equal(f.rows.length,2);assert.equal(f.release,2)});
+test('revision conflict and invalid transition denied',()=>{const f=fixture();assert.equal(c.bseAudit36C_(f.store,a.approval_id,{...next,revision:4},{lock:f.lock}).status,'REVISION_OR_IDENTITY_CONFLICT');assert.equal(c.bseAudit36C_(f.store,a.approval_id,{...next,status:'CONSUMED'},{lock:f.lock}).status,'INVALID_TRANSITION')});
+test('identity tampering and audit corruption denied',()=>{const f=fixture();assert.equal(c.bseAudit36C_(f.store,a.approval_id,{...next,nonce:'fake'},{lock:f.lock}).status,'IDENTITY_CONFLICT');f.rows[0].revision=5;assert.equal(c.bseAudit36C_(f.store,a.approval_id,next,{lock:f.lock}).status,'AUDIT_CORRUPT')});
+test('crash after append reconciles to already applied',()=>{const f=fixture(),append=f.store.append;f.store.append=x=>{append(x);throw Error('CRASH')};assert.equal(c.bseAudit36C_(f.store,a.approval_id,next,{lock:f.lock}).status,'WRITE_OUTCOME_UNKNOWN');f.store.append=append;assert.equal(c.bseAudit36C_(f.store,a.approval_id,next,{lock:f.lock}).status,'ALREADY_APPLIED');assert.equal(f.rows.length,2)});
+test('busy lock prevents append',()=>{const f=fixture();f.lock.tryLock=()=>false;assert.equal(c.bseAudit36C_(f.store,a.approval_id,next,{lock:f.lock}).status,'LOCK_BUSY');assert.equal(f.rows.length,1)});
