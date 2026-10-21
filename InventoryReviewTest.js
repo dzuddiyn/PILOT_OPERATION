@@ -283,11 +283,22 @@ function bseInventoryParseMessage_(text, receivedAt) {
 
   // Scoped PILOT_OPERATION multi-item fertilizer receipts: never infer a product.
   if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&explicitIn&&!explicitOut&&/\bbaja\s+in\b/i.test(source)){
-    const specs=[],regex=/\b(\d+(?:[.,]\d+)?)\s*set\s+baja\s+([FN])\b/ig;let match;
-    while((match=regex.exec(source))){
+    // Validate ALL supplied lines before emitting any approval-ready candidate.
+    // A valid line must not hide an unknown product, zero quantity or wrong unit.
+    const lines=source.split(/\r?\n/).map(line=>line.trim()).filter(Boolean),specs=[];
+    let unverified=false;
+    lines.forEach((line,index)=>{
+      const value=index===0?line.replace(/^baja\s+in\b\s*:?\s*/i,'').trim():line;
+      if(!value)return;
+      if(/^(?:tarikh\s*:\s*)?(?:\d{1,2}[\/-]\d{1,2}[\/-]\d{4}|\d{4}-\d{2}-\d{2})$/i.test(value))return;
+      if(/^(?:Penanggungjawab|Bertanggungjawab|Responsible)\s*:\s*\S.*$/i.test(value))return;
+      const match=value.match(/^(\d+(?:[.,]\d+)?)\s*set\s+baja\s+([FN])$/i);
+      if(!match){unverified=true;return;}
       const checked=bseInventoryValidateQuantity_(Number(match[1].replace(',','.')),'set');
-      if(checked.ok)specs.push({item_name:match[2].toUpperCase()==='F'?'Fruitka':'Benegro N',quantity:checked.quantity,unit:'set'});
-    }
+      if(!checked.ok){unverified=true;return;}
+      specs.push({item_name:match[2].toUpperCase()==='F'?'Fruitka':'Benegro N',quantity:checked.quantity,unit:'set'});
+    });
+    if(unverified||!specs.length)return {validation:'NEED_INFO',production_write:false,candidates:[{target:'Inventory_Event_Log',validation:'NEED_INFO',missing:['unverified_fertilizer_lines'],fields:Object.assign({},base,{record_type:'INVENTORY_IN',item_name:'',quantity:undefined,unit:undefined})}]};
     if(specs.length){
       const distinct=new Set(specs.map(x=>x.item_name));
       if(distinct.size!==specs.length)return {validation:'NEED_INFO',production_write:false,candidates:[{target:'Inventory_Event_Log',validation:'NEED_INFO',missing:['duplicate_fertilizer_item'],fields:Object.assign({},base,{record_type:'INVENTORY_IN',item_name:'',quantity:undefined,unit:undefined})}]};
@@ -368,6 +379,32 @@ function bseInventoryParseMessage_(text, receivedAt) {
 
   if(explicitIn||explicitOut){
     const domain=explicitOut?'INVENTORY_OUT':'INVENTORY_IN', movement=explicitOut?'OUT':'IN';
+    // PILOT Baja Out: never take the global quantity from an unrelated
+    // fertilizer line, or multiply an unscoped quantity over several plots.
+    if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&explicitOut&&/\bbaja\s+out\b/i.test(source)){
+      const productLines=source.split(/\r?\n/).filter(line=>/\bbaja\s+([FN])\b/i.test(line));
+      const namedProducts=productLines.flatMap(line=>[...line.matchAll(/\bbaja\s+([FN])\b/ig)].map(m=>m[1].toUpperCase()));
+      const individuallyScoped=productLines.length===namedProducts.length&&productLines.every(line=>bseInventoryPlotIds_(line).length>0);
+      const taggedQuantityProducts=[...source.matchAll(/\b\d+(?:[.,]\d+)?\s*(?:kg|g|L|ml|beg|botol|unit|pcs|pek|kotak|set|tong)\s+([FN])\b/ig)].map(m=>m[1].toUpperCase());
+      const conflictingProducts=(new Set(namedProducts).size>1&&!individuallyScoped)||
+        taggedQuantityProducts.some(label=>namedProducts.length>0&&!namedProducts.includes(label));
+      const unknownProduct=source.split(/\r?\n/).some(line=>{
+        if(/^\s*baja\s+out\b/i.test(line))return false;
+        const m=line.match(/\bbaja\s+([^\s]+)/i);
+        return !!m&&!/^[FN]$/i.test(m[1]);
+      });
+      const invalidQuantity=/(?:^|\s)(?:0+(?:[.,]0+)?|-\d+(?:[.,]\d+)?)\s*(?:kg|g|L|ml|beg|botol|unit|pcs|pek|kotak|set|tong)\b/i.test(source);
+      const unscopedMultiPlotQuantity=plots.length>1&&!!qty;
+      if(conflictingProducts||unknownProduct||invalidQuantity||unscopedMultiPlotQuantity){
+        const destinations=plots.length?plots:[''];
+        return {validation:'NEED_INFO',production_write:false,candidates:destinations.map(destination=>({
+          target:'Inventory_Event_Log',validation:'NEED_INFO',
+          missing:['item_name','quantity','unit'],
+          fields:Object.assign({},base,{record_type:'INVENTORY_OUT',event_type:'INVENTORY_OUT',
+            movement_type:'OUT',destination,item_name:'',quantity:undefined,unit:undefined})
+        }))};
+      }
+    }
     const destinations=explicitOut&&plots.length?plots:[''];
     const scopedOneSet=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&explicitOut&&plots.length>0&&!qty&&!!item&&!/^(?:baja\\s*out|baja)$/i.test(String(item).trim());
     // Scope fertilizer shorthand to its own source line, never the entire report.

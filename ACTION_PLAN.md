@@ -1,5 +1,8 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## GI-FIELD-UX-FIX-03A (2026-10-21; LOCAL PASS / NOT MERGED)
+- Draft PR #157 isolated Baja/Banci repair: reject silently dropped invalid Baja In lines and Baja Out cross-product/unscoped quantities; preserve valid separate-plot fertilizer shorthand. TDD RED->GREEN, Baja 20/20, focused 41/41, full Node 120/120 PASS. No merge, Script HEAD, Telegram or Sheets write. Evidence `docs/GI_FIELD_UX_FIX_03A_20261021.md`. Next real gate: owner-authorized MERGE-04 after remote verification.
+
 ## GI-HARVEST-287 (2026-10-20; MERGED / SCRIPT HEAD VERIFIED / RUNTIME PASS)
 - PR #138 MERGED to canonical main `eb9381d9e8515d9f5c3407cfdc80c5ffa5d23ca1`. Owner-authorized `clasp push --force` updated PILOT_OPERATION Script HEAD at 17:53:45 MYT. Independent fresh `clasp pull` verified **76/76 exact files** (75 JS + manifest), zero filename/content mismatch, preserving nine runtime-only Gate F helpers; manifest and Script binding unchanged. Chrome Apps Script Editor was reloaded and UI Automation explicitly executed `runBseI011FullRegression` once. Real Apps Script log: `started_at=2026-10-20T10:03:20.501Z`, `finished_at=2026-10-20T10:03:25.933Z`, **47/47 PASS, 0 FAIL**, `production_write:false`. Separate Apps Script Executions UI confirms **20 Oct 2026, 18:03:16 MYT, Selesai (9.672 sec)**. Targeted original-source fixture **21/21 PASS**, Node suites **63/63 PASS**. Supports four Harvest/Tuai phrases and observed `Harverst` typo, and `MxPyz` -> two distinct plots/cards. **New Telegram post-fix UX NOT_RUN**. No replay of `BSE-TG-772257287`, no approval/callback, PILOT or official BSE ledger write, no Script version/deployment update. Evidence: `docs/GATE_I_HARVEST_ALIAS_MULTI_PLOT_20261020.md`.
 
