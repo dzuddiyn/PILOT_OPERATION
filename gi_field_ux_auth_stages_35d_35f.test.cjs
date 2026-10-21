@@ -1,0 +1,13 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm');
+const c={};vm.createContext(c);
+for(const n of ['NondeleteAuthSource35D.js','NondeleteAuthStages35EF.js'])vm.runInContext(fs.readFileSync(__dirname+'/'+n,'utf8'),c);
+const r={environment:'TEST_ONLY',workbook_id:'1vwmO6nE_hVfFgT0zkaNPzZklminYtZT24jrGL-ODBoY',event_id:'TEST_ONLY_35_X',approval_source_key:'X',ledger_source_key:'Y',approval_hash:'h',ledger_hash:'k'};
+const a={...r,status:'APPROVED',actor_verified:true,revision:1,issued_ms:500,expires_ms:3500};
+const d=(rows=[a],now=1000)=>({readRecords:()=>rows,now:()=>now});
+test('35D valid proof is HOLD',()=>assert.equal(c.bseNondelete35DSource_(d(),r).status,'INSPECTED_HOLD'));
+test('35D duplicates and absent fail closed',()=>{for(const rows of [[],[a,a]])assert.equal(c.bseNondelete35DSource_(d(rows),r).status,'MISSING_OR_DUPLICATE')});
+test('35D tamper fails closed',()=>{for(const v of [{actor_verified:false},{revision:2},{approval_hash:'bad'},{status:'REVOKED'}])assert.equal(c.bseNondelete35DSource_(d([{...a,...v}]),r).status,'UNVERIFIED')});
+test('35D freshness fails closed',()=>{for(const t of [4000,400])assert.equal(c.bseNondelete35DSource_(d([a],t),r).status,'STALE')});
+test('35E cannot grant write',()=>{const x=c.bseNondelete35EBridge_(d(),r);assert.equal(x.write_allowed,false);assert.equal(x.status,'TRUSTED_ACTOR_BINDING_MISSING')});
+test('35F holds deployment and writes',()=>{const x=c.bseNondelete35FReadiness_(d(),r);assert.equal(x.script_head_push,false);assert.equal(x.live_write,false);assert.equal(x.status,'OWNER_APPROVAL_GATE')});
