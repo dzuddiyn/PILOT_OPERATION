@@ -1,0 +1,10 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm');
+const c={};vm.createContext(c);vm.runInContext(fs.readFileSync(__dirname+'/NondeleteIssuerRuntime36N.js','utf8'),c);
+const d={getEffectiveEmail:()=> 'dzuddiyn01@gmail.com',getActiveEmail:()=> 'dzuddiyn01@gmail.com',getWorkbookId:()=> '1vwmO6nE_hVfFgT0zkaNPzZklminYtZT24jrGL-ODBoY'};
+test('matching runtime still holds issuer',()=>{const x=c.bseNondelete36NProbe_(d,{explicit_user_action_proof:true});assert.equal(x.status,'TRUSTED_ISSUER_NOT_BOUND');assert.equal(x.approval_issued,false)});
+test('no actor action proof holds',()=>assert.equal(c.bseNondelete36NProbe_(d,{}).status,'ACTION_PROOF_MISSING'));
+test('different active account holds',()=>assert.equal(c.bseNondelete36NProbe_({...d,getActiveEmail:()=> 'other@gmail.com'},{}).status,'ACTOR_UNVERIFIED'));
+test('different effective account holds',()=>assert.equal(c.bseNondelete36NProbe_({...d,getEffectiveEmail:()=> 'other@gmail.com'},{}).status,'EXECUTOR_UNVERIFIED'));
+test('different workbook holds',()=>assert.equal(c.bseNondelete36NProbe_({...d,getWorkbookId:()=> 'OTHER'},{}).status,'WORKBOOK_MISMATCH'));
+test('runtime missing or errors hold',()=>{assert.equal(c.bseNondelete36NProbe_({},{}).status,'RUNTIME_UNBOUND');assert.equal(c.bseNondelete36NProbe_({...d,getActiveEmail:()=>{throw Error('missing')}},{}).status,'RUNTIME_READ_FAILED')});
