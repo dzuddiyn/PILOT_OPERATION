@@ -800,6 +800,21 @@ function bseTelegramQuestion_(result) {
   if(reallocationSource){const f=reallocationSource.fields||{},crop=String(f.crop||'tanaman'),to=Array.isArray(f.plot_ids)&&f.plot_ids.length===1?String(f.plot_ids[0]):'plot baharu',options=Array.isArray(f.source_plot_options)?f.source_plot_options.map(String).filter(Boolean):[],optionText=options.length?' Pilihan yang sistem jumpa: '+(options.length===1?options[0]:options.slice(0,-1).join(', ')+' atau '+options[options.length-1])+'.':'';return 'Untuk laporan pindah anak pokok '+crop+' ke '+to+', anak pokok itu berasal dari plot mana?'+optionText+' Balas satu plot sahaja. Sila gunakan Reply pada soalan ini.';}
   const unmatchedTransplant=result.candidates.find(c=>c&&c.target==='Transplant_Event_Log'&&Array.isArray(c.missing)&&c.missing.includes('batch_match'));
   if(unmatchedTransplant)return 'Laporan pindah tanam belum dapat dipadankan dengan rekod tanaman yang tersedia. Sila nyatakan jenis/varieti tanaman, plot sebenar, tarikh semai serta tarikh pindah tanam. Jika semaian itu belum direkodkan, maklumkan perkara tersebut. Gunakan Reply pada soalan ini. Tiada rekod pindah tanam ditulis.';
+  if(typeof bseRuntimeEnvironmentName_==='function'&&bseRuntimeEnvironmentName_()==='PILOT_OPERATION'){
+    const inventory=result.candidates.filter(c=>c&&c.target==='Inventory_Event_Log');
+    if(inventory.length&&inventory.some(c=>Array.isArray(c.missing)&&c.missing.length)){
+      const outbound=inventory.some(c=>c.fields&&c.fields.record_type==='INVENTORY_OUT');
+      const date=inventory[0].fields&&inventory[0].fields.event_date||'DD/MM/YYYY';
+      if(outbound)return 'Maklumat Baja Out belum lengkap. Nyatakan jenis baja yang digunakan dan plot sebenar. Contoh format:\nBaja Out\nTarikh: DD/MM/YYYY\nM4P1 & M4P2\nBaja F\n\nSatu set bagi setiap plot hanya jika jenis baja jelas. Gunakan Reply untuk lengkapkan laporan. Tiada rekod inventori ditulis.';
+      return 'Maklumat Baja In belum lengkap. Nyatakan tarikh, jenis baja dan jumlah sebenar. Contoh format:\nBaja In\nTarikh: DD/MM/YYYY\n2 set Baja F\n3 set Baja N\n\nGunakan Reply untuk lengkapkan laporan. Tiada rekod inventori ditulis.';
+    }
+    const census=result.candidates.find(c=>c&&c.target==='Plant_Census_Log'&&Array.isArray(c.missing)&&c.missing.some(x=>x==='crop'||x==='batch_match'||x==='census_date_before_active'));
+    if(census){
+      const entry=census.fields&&Array.isArray(census.fields.census_entries)?census.fields.census_entries[0]:null;
+      const plot=entry&&entry.plot_id||'plot dilaporkan';
+      return 'Banci '+plot+' sudah diterima, tetapi tanaman/batch yang sah pada tarikh banci belum dapat dipastikan. Sila nyatakan tanaman, tarikh banci dan jika berkaitan tarikh semai/pindah tanam. Balas menggunakan Reply pada soalan ini. Bilangan Mati/Sakit yang telah diberi tidak perlu diulang. Tiada rekod banci disahkan.';
+    }
+  }
   const labels={event_date:isTransplant?'Tarikh Pindah sebenar (hari/bulan/tahun)':'tarikh laporan (hari/bulan/tahun)',plot_id:'plot yang betul',measurement_type:'jenis bacaan',value:'nilai bacaan',item_name:'nama bahan',quantity:'jumlah penggunaan sebenar',unit:'unit penggunaan',decision_subject:'perkara cadangan',approval_status:'status semakan',observation_facts:'fakta gejala/pemerhatian',crop:'jenis tanaman',variety:'varieti tanaman',living_plant_count:'jumlah pokok hidup',reported_dead_count:'bilangan pokok mati',reported_sick_count:'bilangan pokok sakit',plot_capacity_polybag:'kapasiti polybag plot yang sah',census_counts_conflict:'semakan semula bilangan Mati/Sakit kerana melebihi kapasiti plot',census_date_before_active:'Tarikh Banci sebenar pada atau selepas plot menjadi ACTIVE',treatment_dosage:'jumlah/dos bahan rawatan yang belum lengkap',batch_match:'jenis tanaman, plot dan tarikh semai yang sepadan dengan kerja ini',session:'sesi Pagi atau Petang',ec_readings:'baris bacaan EC yang sah',ec_full_report:'laporan EC penuh untuk pembetulan',duplicate_scope:'scope modul/plot yang tidak berganda',module_scope:'baris scope modul hanya boleh menggunakan x : x'};
   const missing=[];
   result.candidates.forEach(c=>{if(c&&Array.isArray(c.missing))c.missing.forEach(k=>{if(labels[k])missing.push(labels[k]);});});

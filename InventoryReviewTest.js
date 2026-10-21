@@ -281,6 +281,20 @@ function bseInventoryParseMessage_(text, receivedAt) {
   const qty=bseInventoryExtractQuantity_(source), dateInfo=bseInventoryExtractEventDate_(source,receivedAt), responsible=bseInventoryDeclaredResponsible_(source);
   const base={project_id:'BSE_SB',system_year:2026,event_date:dateInfo.value,event_date_explicit:dateInfo.explicit,event_date_valid:dateInfo.valid,crop:'',item_name:item,quantity:qty&&qty.quantity,unit:qty&&qty.unit,original_note:source,verification_status:'PROVISIONAL',responsible_name:responsible,responsible_source:responsible?'DECLARED':'',router_confidence:'HIGH'};
 
+  // Scoped PILOT_OPERATION multi-item fertilizer receipts: never infer a product.
+  if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&explicitIn&&!explicitOut&&/\bbaja\s+in\b/i.test(source)){
+    const specs=[],regex=/\b(\d+(?:[.,]\d+)?)\s*set\s+baja\s+([FN])\b/ig;let match;
+    while((match=regex.exec(source))){
+      const checked=bseInventoryValidateQuantity_(Number(match[1].replace(',','.')),'set');
+      if(checked.ok)specs.push({item_name:match[2].toUpperCase()==='F'?'Fruitka':'Benegro N',quantity:checked.quantity,unit:'set'});
+    }
+    if(specs.length){
+      const distinct=new Set(specs.map(x=>x.item_name));
+      if(distinct.size!==specs.length)return {validation:'NEED_INFO',production_write:false,candidates:[{target:'Inventory_Event_Log',validation:'NEED_INFO',missing:['duplicate_fertilizer_item'],fields:Object.assign({},base,{record_type:'INVENTORY_IN',item_name:'',quantity:undefined,unit:undefined})}]};
+      const candidates=specs.map(x=>({target:'Inventory_Event_Log',validation:dateInfo.valid?'PASS':'NEED_INFO',missing:dateInfo.valid?[]:['event_date'],fields:Object.assign({},base,{record_type:'INVENTORY_IN',event_type:'INVENTORY_IN',movement_type:'IN',item_name:x.item_name,quantity:x.quantity,unit:x.unit,destination:''})}));
+      return {validation:dateInfo.valid?'PASS':'NEED_INFO',production_write:false,candidates:candidates};
+    }
+  }
   if(ambiguousAsset)return {validation:'NEED_INFO',production_write:false,inventory_ambiguity:{item_name:item||source,source_key:'',options:classification.options},candidates:[{target:'Inventory_Classification_Log',validation:'NEED_INFO',missing:['classification'],fields:Object.assign({},base,{record_type:'INVENTORY_CLASSIFICATION'})}]};
 
   if(claim){
@@ -355,6 +369,7 @@ function bseInventoryParseMessage_(text, receivedAt) {
   if(explicitIn||explicitOut){
     const domain=explicitOut?'INVENTORY_OUT':'INVENTORY_IN', movement=explicitOut?'OUT':'IN';
     const destinations=explicitOut&&plots.length?plots:[''];
+    const scopedOneSet=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&explicitOut&&plots.length>0&&!qty&&!!item&&!/^(?:baja\\s*out|baja)$/i.test(String(item).trim());
     // Scope fertilizer shorthand to its own source line, never the entire report.
     // A mixed F/N report must not inherit the first product for every plot.
     const lineItems={}; let mixedShorthand=false;
@@ -362,18 +377,21 @@ function bseInventoryParseMessage_(text, receivedAt) {
       source.split(/\r?\n/).forEach(line=>{
         const match=line.match(/(?:^|\s)(F|N)(?=\s|$)/i);
         if(!match)return;
+        const linePlots=bseInventoryPlotIds_(line);
+        if(!linePlots.length)return;
         mixedShorthand=true;
         const lineItem=match[1].toUpperCase()==='F'?'Fruitka':'Benegro N';
-        bseInventoryPlotIds_(line).forEach(plot=>{
+        linePlots.forEach(plot=>{
           if(lineItems[plot]&&lineItems[plot]!==lineItem)lineItems[plot]='';
           else if(!Object.prototype.hasOwnProperty.call(lineItems,plot))lineItems[plot]=lineItem;
         });
       });
     }
     const candidates=destinations.map(destination=>{
-      const scopedItem=mixedShorthand?(lineItems[destination]||''):item;
+      const scopedItem=mixedShorthand?(lineItems[destination]||''):(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&explicitOut&&/^(?:baja\s*out|baja)$/i.test(String(item||'').trim())?'':item);
       const fields=Object.assign({},base,{record_type:domain,event_type:domain,movement_type:movement,destination:destination,item_name:scopedItem});
-      const missing=[]; if(!fields.item_name)missing.push('item_name'); if(!qty)missing.push('quantity','unit'); if(!fields.event_date||fields.event_date_valid===false)missing.push('event_date');
+      if(scopedOneSet){fields.quantity=1;fields.unit='set';}
+      const missing=[]; if(!fields.item_name)missing.push('item_name'); if(!qty&&!scopedOneSet)missing.push('quantity','unit'); if(!fields.event_date||fields.event_date_valid===false)missing.push('event_date');
       return {target:'Inventory_Event_Log',validation:missing.length?'NEED_INFO':'PASS',missing:Array.from(new Set(missing)),fields:fields};
     });
     return {validation:candidates.every(c=>c.validation==='PASS')?'PASS':'NEED_INFO',production_write:false,candidates:candidates};
