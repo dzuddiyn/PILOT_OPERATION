@@ -1,0 +1,11 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm');
+const c={};vm.createContext(c);vm.runInContext(fs.readFileSync(__dirname+'/NondeleteIssuerBatch36OQ.js','utf8'),c);
+const request={environment:'TEST_ONLY',workbook_id:'1vwmO6nE_hVfFgT0zkaNPzZklminYtZT24jrGL-ODBoY'};
+test('36O no probe blocks',()=>assert.equal(c.bseNondelete36OPrepare_({}).status,'PROBE_UNBOUND'));
+test('36O synthetic positive cannot authenticate decision',()=>assert.equal(c.bseNondelete36OPrepare_({probe:()=>({status:'READ_ONLY_IDENTITY_EVIDENCE'})}).status,'OWNER_ACTION_PROOF_REQUIRED'));
+test('36P mocked positive cannot issue',()=>{const a={verifySession:()=>true,verifyExplicitDecision:()=>true};assert.equal(c.bseNondelete36PPrepare_(a).issued,false);assert.equal(c.bseNondelete36PPrepare_(a).status,'INDEPENDENT_ISSUER_NOT_INSTALLED')});
+test('36P negative identity denies',()=>assert.equal(c.bseNondelete36PPrepare_({verifySession:()=>false,verifyExplicitDecision:()=>true}).status,'AUTH_NOT_PROVEN'));
+test('36Q wrong workbook denies',()=>assert.equal(c.bseNondelete36QPrepare_({}, {...request,workbook_id:'other'}).status,'SCOPE_DENIED'));
+test('36Q unbound store denies',()=>assert.equal(c.bseNondelete36QPrepare_({},request).status,'STORE_UNBOUND'));
+test('36Q fake complete store still cannot write',()=>{const d={readApproval:()=>({}),readAudit:()=>[],readTransaction:()=>({})};const x=c.bseNondelete36QPrepare_(d,request);assert.equal(x.status,'ATOMIC_WRITER_APPROVAL_REQUIRED');assert.equal(x.transaction_write,false)});

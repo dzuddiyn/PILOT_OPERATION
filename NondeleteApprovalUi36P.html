@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ms"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BSE OpsMate | TEST_ONLY Approval Preview</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#20262c;background:#f6f7f8}
+*{box-sizing:border-box}body{margin:0;padding:28px 16px}.wrap{max-width:670px;margin:auto}
+header{margin-bottom:22px}h1{font-size:1.6rem;line-height:1.25;margin:6px 0}h2{font-size:1.05rem;margin:0 0 12px}
+.muted{color:#697680}.hint{font-size:.88rem}.panel{background:white;border:1px solid #dae1e5;border-radius:14px;padding:22px;margin:14px 0}
+.tag{font-size:.76rem;font-weight:700;letter-spacing:.04em;color:#44515d}.status{min-height:26px;margin-top:12px}
+.field{display:flex;gap:10px;flex-wrap:wrap}input{flex:1;min-width:230px;border:1px solid #bdc9d1;border-radius:7px;padding:12px;font-size:1rem}
+button{border:1px solid #364855;border-radius:7px;padding:11px 16px;background:#fff;color:#243540;cursor:pointer;font:inherit;font-weight:650}
+button:disabled{opacity:.48;cursor:not-allowed}.primary{background:#253b4a;color:white}.danger{border-color:#9d5961;color:#913744}
+button:focus-visible,input:focus-visible{outline:3px solid #a7c8ed;outline-offset:2px}
+dl{margin:0;display:grid;grid-template-columns:minmax(115px,1fr) minmax(0,2fr);gap:11px 16px}
+dt{color:#65727b}dd{margin:0;overflow-wrap:anywhere;font-weight:550}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+@media(max-width:480px){dl{grid-template-columns:1fr}dt{margin-top:8px}dd{margin-top:-8px}}
+</style></head><body><main class="wrap">
+<header><div class="tag">BSE OPSMATE · TEST_ONLY · SYNTHETIC UI</div>
+<h1>Semak kelulusan rekod</h1><p class="muted">Tiada kelulusan atau transaksi sebenar dilakukan oleh prototaip ini.</p></header>
+<section class="panel" aria-labelledby="find-title">
+<h2 id="find-title">1. Cari transaksi untuk disemak</h2>
+<label for="event">Event ID sintetik</label>
+<div class="field"><input id="event" autocomplete="off" placeholder="TEST_ONLY_36_..." maxlength="100">
+<button id="load" type="button">Semak</button></div>
+<p class="hint muted">Hanya BAJA dan CENSUS; sumber transaksi mesti disahkan oleh server.</p></section>
+<section id="review" class="panel" hidden aria-labelledby="review-title">
+<h2 id="review-title">2. Sahkan butiran transaksi ini</h2>
+<dl><dt>Event</dt><dd id="eventValue"></dd><dt>Operasi</dt><dd id="opValue"></dd>
+<dt>Sumber approval</dt><dd id="sourceValue"></dd><dt>Sumber ledger</dt><dd id="ledgerValue"></dd>
+<dt>Approval hash</dt><dd id="approvalHash"></dd><dt>Ledger hash</dt><dd id="ledgerHash"></dd>
+<dt>Luput pada</dt><dd id="expires"></dd></dl>
+<p class="hint muted">Identiti Google, nonce, expiry dan hash akan disemak semula oleh server apabila keputusan dihantar.</p>
+<div class="actions"><button id="reject" class="danger" type="button" disabled>Tolak</button>
+<button id="approve" class="primary" type="button" disabled>Luluskan transaksi ini</button></div>
+</section><p id="status" class="status" role="status" aria-live="polite">Bersedia untuk semakan sintetik.</p>
+</main><script>
+(function(){
+'use strict';
+const byId=id=>document.getElementById(id);
+const load=byId('load'),approve=byId('approve'),reject=byId('reject'),review=byId('review');
+let challenge=null,busy=false;
+const status=t=>{byId('status').textContent=t;};
+const controls=enabled=>{approve.disabled=!enabled;reject.disabled=!enabled;load.disabled=busy;};
+function reset(){challenge=null;review.hidden=true;controls(false);}
+function bridge(method,arg,done){
+  const b=window.google&&window.google.script&&window.google.script.run;
+  if(!b){reset();status('Backend TEST_ONLY belum dipasang. Tiada tindakan boleh dilakukan.');return;}
+  try{b.withSuccessHandler(done).withFailureHandler(()=>{busy=false;reset();status('Semakan server gagal. Tiada kelulusan direkod.');})[method](arg);}
+  catch(e){busy=false;reset();status('Backend tidak tersedia. Tiada kelulusan direkod.');}
+}
+load.addEventListener('click',()=>{
+ if(busy)return;reset();
+ const id=byId('event').value.trim();
+ if(!/^TEST_ONLY_36_[A-Z0-9_]{1,80}$/.test(id)){status('Event ID sintetik tidak sah.');return;}
+ busy=true;controls(false);status('Sedang membaca transaksi dari server...');
+ bridge('bse36pLoadPreview',{event_id:id},r=>{
+  busy=false;if(!r||r.status!=='PREVIEW_READY_SYNTHETIC'||!r.challenge_id||!r.nonce||!r.preview){reset();status('Transaksi tidak boleh disemak.');return;}
+  const p=r.preview;
+  if(p.event_id!==id||!['BAJA','CENSUS'].includes(p.operation)){reset();status('Maklumat transaksi tidak sepadan.');return;}
+  challenge={challenge_id:r.challenge_id,nonce:r.nonce};
+  const fields={eventValue:p.event_id,opValue:p.operation,sourceValue:p.approval_source_key,
+    ledgerValue:p.ledger_source_key,approvalHash:p.approval_hash,ledgerHash:p.ledger_hash,
+    expires:new Date(r.expires_ms).toLocaleString('ms-MY')};
+  for(const [name,val] of Object.entries(fields))byId(name).textContent=String(val||'');
+  review.hidden=false;controls(true);status('Semak semua medan sebelum memilih satu tindakan.');
+ });
+});
+function decide(action){
+ if(busy||!challenge)return;busy=true;controls(false);status('Sedang menghantar keputusan sintetik...');
+ bridge('bse36pSubmitDecision',{...challenge,decision:action},r=>{
+  busy=false;reset();
+  const allowed=['SIM_APPROVED_ONLY','SIM_REJECTED_ONLY','ALREADY_APPLIED_SYNTHETIC'];
+  status(r&&allowed.includes(r.status)?'Ujian sintetik selesai: '+r.status+'. Tiada transaksi sebenar.':'Keputusan tidak diterima oleh server. Tiada transaksi sebenar.');
+ });
+}
+approve.addEventListener('click',()=>decide('APPROVE'));
+reject.addEventListener('click',()=>decide('REJECT'));
+reset();
+})();
+</script></body></html>

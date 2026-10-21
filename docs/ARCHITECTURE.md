@@ -1,5 +1,8 @@
 # OpsMate BSE site B v1.0 Final Handover — Architecture
 
+## GI-FIELD-UX-NONDELETE-36P — Owner approval authority mode (LOCKED 2026-10-21)
+- Google authenticated approval UI is the primary owner consent channel for TEST_ONLY BAJA/CENSUS; Ed25519 signer is optional defense-in-depth, not a dependency. The candidate is owner-only Apps Script HTMLService Web App running as the accessing user; no Web App deployment or Script HEAD push authorized. Individual per-transaction approval, server-bound nonce/expiry/hashes, independent audit anchoring and replay protection remain mandatory. See `docs/GI_FIELD_UX_NONDELETE_36P_AUTHORITY_MODE_LOCK.md` and `authority_mode_36p.lock.json`. LIVE ISSUER NOT INSTALLED; all writes HOLD.
+
 ## Tujuan dan sempadan
 
 BSE OpsMate dalam repositori ini ialah workflow **TEST-only** untuk menerima

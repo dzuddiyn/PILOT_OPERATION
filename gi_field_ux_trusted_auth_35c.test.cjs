@@ -1,0 +1,20 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),vm=require('vm'),fs=require('fs');
+const ctx={};vm.createContext(ctx);
+for(const n of ['NondeleteSheetsAdapterTest.js','CommitProvenanceTest.js','NondeleteTrustedAuth35C.js'])vm.runInContext(fs.readFileSync(__dirname+'/'+n,'utf8'),ctx);
+const id='1vwmO6nE_hVfFgT0zkaNPzZklminYtZT24jrGL-ODBoY';
+const req={environment:'TEST_ONLY',workbook_id:id,synthetic_only:true,production_write:false,official_bse_write:false,approval_source_key:'BSE-TG-900035|Inventory_Event_Log|C1',ledger_source_key:'BSE-TG-900035|INVENTORY_IN|ITEM_F',approval_hash:'a'.repeat(64),ledger_hash:'b'.repeat(64),event_id:'TEST_ONLY_35_C'};
+const approval={...req,status:'APPROVED',owner_identity:'TEST_ONLY_OWNER_35C',revision:1};
+function fixture(){
+ const headers={TEST_ONLY_NONDELETE_INTENT:['approval_source_key','ledger_source_key','approval_hash','ledger_hash','event_id','status'],TEST_ONLY_NONDELETE_LEDGER:['source_key','payload_hash','event_id','status'],TEST_ONLY_NONDELETE_EVIDENCE:['approval_source_key','ledger_source_key','approval_hash','ledger_hash','event_id','verified','status'],TEST_ONLY_NONDELETE_RECEIPT:['receipt_id','approval_source_key','ledger_source_key','approval_hash','ledger_hash','event_id','status']};
+ let held=false,release=0,reads=0;const tabs={};
+ for(const [k,cols] of Object.entries(headers)){const rows=[cols.slice()];tabs[k]={rows,getLastRow:()=>rows.length,getLastColumn:()=>cols.length,appendRow:v=>rows.push(v.slice()),getRange:(r,c,n=1,w=cols.length)=>({getValues:()=>rows.slice(r-1,r-1+n).map(v=>v.slice(c-1,c-1+w)),setValues:v=>v.forEach((x,i)=>rows[r-1+i].splice(c-1,x.length,...x))})};}
+ const f={tabs,book:{getId:()=>id,getSheetByName:n=>tabs[n]},lock:{tryLock:()=>{held=true;return true},releaseLock:()=>{held=false;release++}},approvalStore:{read:()=>{reads++;assert.equal(held,true);return {...approval}}},get release(){return release},get reads(){return reads}};
+ return f;
+}
+test('single-lock approved transaction and idempotent replay',()=>{const f=fixture();assert.equal(ctx.bseNondelete35CAtomic_(f,req).status,'COMMITTED_SYNTHETIC');assert.equal(ctx.bseNondelete35CAtomic_(f,req).status,'COMMITTED_SYNTHETIC');assert.equal(f.tabs.TEST_ONLY_NONDELETE_LEDGER.rows.length,2);assert.equal(f.tabs.TEST_ONLY_NONDELETE_EVIDENCE.rows.length,2);assert.equal(f.release,2)});
+test('spoofed request flags do not override approval store',()=>{const f=fixture();f.approvalStore.read=()=>({...approval,status:'REVOKED'});assert.equal(ctx.bseNondelete35CAtomic_(f,{...req,owner_authorized:true}).status,'AUTH_NOT_VERIFIED');assert.equal(f.tabs.TEST_ONLY_NONDELETE_INTENT.rows.length,1)});
+test('hash, owner, revision and event mismatches deny writes',()=>{for(const bad of [{approval_hash:'x'},{owner_identity:'INTRUDER'},{revision:2},{event_id:'REPLAY'}]){const f=fixture();f.approvalStore.read=()=>({...approval,...bad});assert.equal(ctx.bseNondelete35CAtomic_(f,req).status,'AUTH_NOT_VERIFIED');assert.equal(f.tabs.TEST_ONLY_NONDELETE_LEDGER.rows.length,1)}});
+test('revoked after first approved commit cannot replay',()=>{const f=fixture();assert.equal(ctx.bseNondelete35CAtomic_(f,req).status,'COMMITTED_SYNTHETIC');f.approvalStore.read=()=>({...approval,status:'REVOKED'});assert.equal(ctx.bseNondelete35CAtomic_(f,req).status,'AUTH_NOT_VERIFIED');assert.equal(f.tabs.TEST_ONLY_NONDELETE_LEDGER.rows.length,2)});
+test('unavailable authority and lock busy fail closed',()=>{const f=fixture();delete f.approvalStore;assert.equal(ctx.bseNondelete35CAtomic_(f,req).status,'AUTHORITY_UNAVAILABLE');const g=fixture();g.lock.tryLock=()=>false;assert.equal(ctx.bseNondelete35CAtomic_(g,req).status,'LOCK_BUSY');assert.equal(g.reads,0)});
+test('exception after partial intent is WRITE_OUTCOME_UNKNOWN',()=>{const f=fixture();f.tabs.TEST_ONLY_NONDELETE_INTENT.appendRow=()=>{throw Error('SIMULATED_CRASH')};assert.equal(ctx.bseNondelete35CAtomic_(f,req).status,'WRITE_OUTCOME_UNKNOWN');assert.equal(f.release,1)});
