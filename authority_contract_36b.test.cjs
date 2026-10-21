@@ -1,0 +1,11 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),vm=require('vm'),fs=require('fs');
+const ctx={};vm.createContext(ctx);vm.runInContext(fs.readFileSync(__dirname+'/AuthorityContract36B.js','utf8'),ctx);
+const r={environment:'TEST_ONLY',workbook_id:'1vwmO6nE_hVfFgT0zkaNPzZklminYtZT24jrGL-ODBoY',event_id:'TEST_ONLY_36_A',approval_id:'APPROVAL_36A',nonce:'nonce_01234567890_ABC',approval_hash:'a'.repeat(64),ledger_hash:'b'.repeat(64),revision:1,issued_ms:1000,expires_ms:2000,status:'PENDING'};
+const actor={actor_id:'TEST_ONLY_OWNER_36B',verified_by:'TRUSTED_AUTHORITY'};
+test('valid synthetic contract never grants write',()=>{const x=ctx.bseAuthority36BValidate_(r,actor,1500);assert.equal(x.status,'CONTRACT_VALID_HOLD');assert.equal(x.can_issue,false)});
+test('client forged actor rejected',()=>assert.equal(ctx.bseAuthority36BValidate_(r,{actor_id:actor.actor_id},1500).status,'ACTOR_UNVERIFIED'));
+test('stale and overlong expiry rejected',()=>{assert.equal(ctx.bseAuthority36BValidate_(r,actor,2100).status,'REVISION_OR_FRESHNESS');assert.equal(ctx.bseAuthority36BValidate_({...r,expires_ms:3601001},actor,1500).status,'REVISION_OR_FRESHNESS')});
+test('invalid nonce/hash denied',()=>assert.equal(ctx.bseAuthority36BValidate_({...r,nonce:'bad'},actor,1500).status,'IDENTITY_INVALID'));
+test('valid monotonic lifecycle still HOLD',()=>assert.equal(ctx.bseAuthority36BTransition_(r,{...r,revision:2,status:'APPROVED'}).status,'VALID_TRANSITION_HOLD'));
+test('replay revision and terminal state denied',()=>{assert.equal(ctx.bseAuthority36BTransition_(r,{...r,status:'APPROVED'}).status,'REVISION_OR_IDENTITY_CONFLICT');assert.equal(ctx.bseAuthority36BTransition_({...r,status:'CONSUMED'},{...r,status:'APPROVED',revision:2}).status,'INVALID_TRANSITION')});
