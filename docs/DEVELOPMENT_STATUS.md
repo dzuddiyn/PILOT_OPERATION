@@ -1,5 +1,8 @@
 # OpsMate BSE site B v1.0 Final Handover
 
+## 36P UI BUILD SYNTHETIC (2026-10-21; LOCAL PASS)
+- TEST_ONLY HTMLService-style approval view, source-bound Node synthetic nonce/challenge engine, in-memory decision/audit and fail-closed safety suite complete. Targeted 23/23; full Node regression 258/258 PASS. Real Google identity UI bridge, independent audit anchor and cross-process persistence remain UNVERIFIED; script HEAD/deployment and all Sheets writes NOT RUN. See `docs/GI_FIELD_UX_NONDELETE_36P_UI_BUILD_SYNTHETIC.md`.
+
 ## 36P AUTHORITY MODE LOCK (2026-10-21; DESIGN LOCK ONLY)
 - Google authenticated owner approval UI is now the LOCKED primary consent route for TEST_ONLY; signed Ed25519 remains optional. Contract tests 7/7 and full regression 235/235 PASS. No real issuer, deployment, Script HEAD push or live write; independent audit anchor/actual owner action not yet proven. `docs/GI_FIELD_UX_NONDELETE_36P_AUTHORITY_MODE_LOCK.md` and `authority_mode_36p.lock.json`.
 

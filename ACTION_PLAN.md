@@ -1,5 +1,8 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## GI-FIELD-UX-NONDELETE-36P-UI-BUILD-SYNTHETIC (2026-10-21; LOCAL PASS / NO LIVE AUTHORITY)
+- Google approval UI template and isolated Node synthetic challenge/decision engine implemented with TEST_ONLY-only owner/nonce/expiry/replay/audit-quarantine guardrails. UI-to-backend mock E2E plus negative suite **23/23 PASS**; full regression **258/258 PASS**. No Apps Script endpoints/Script HEAD, deployment or Sheets approval writes. Next: READ-ONLY independent approval-authority review. Evidence `docs/GI_FIELD_UX_NONDELETE_36P_UI_BUILD_SYNTHETIC.md`.
+
 ## GI-FIELD-UX-NONDELETE-36P-AUTHORITY-MODE-LOCK (2026-10-21; LOCKED DESIGN / NO LIVE ISSUER)
 - Owner approved Google authenticated approval UI as primary route; Ed25519 optional only. Owner-only Apps Script HTMLService Web App must execute as accessing user and verify session; explicit transaction-specific consent, nonce TTL <=10min, exact hashes, lock, independent audit anchoring and replay defense mandated. Machine contract and 7 tests PASS; full regression 235/235 PASS. No deployment, new HEAD, OAuth, approval issuance or live-write. Evidence: `docs/GI_FIELD_UX_NONDELETE_36P_AUTHORITY_MODE_LOCK.md`. Next: synthetic UI implementation and tests.
 
