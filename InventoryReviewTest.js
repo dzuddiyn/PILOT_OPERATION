@@ -291,7 +291,7 @@ function bseInventoryParseMessage_(text, receivedAt) {
     if(specs.length){
       const distinct=new Set(specs.map(x=>x.item_name));
       if(distinct.size!==specs.length)return {validation:'NEED_INFO',production_write:false,candidates:[{target:'Inventory_Event_Log',validation:'NEED_INFO',missing:['duplicate_fertilizer_item'],fields:Object.assign({},base,{record_type:'INVENTORY_IN',item_name:'',quantity:undefined,unit:undefined})}]};
-      const candidates=specs.map(x=>({target:'Inventory_Event_Log',validation:dateInfo.valid?'PASS':'NEED_INFO',missing:dateInfo.valid?[]:['event_date'],fields:Object.assign({},base,{record_type:'INVENTORY_IN',event_type:'INVENTORY_IN',movement_type:'IN',item_name:x.item_name,quantity:x.quantity,unit:x.unit,destination:''})}));
+      const candidates=specs.map(x=>({target:'Inventory_Event_Log',validation:dateInfo.valid?'PASS':'NEED_INFO',missing:dateInfo.valid?[]:['event_date'],fields:Object.assign({},base,{record_type:'INVENTORY_IN',event_type:'INVENTORY_IN',movement_type:'IN',item_name:x.item_name,quantity:x.quantity,unit:x.unit,destination:'',multi_item_fertilizer:true})}));
       return {validation:dateInfo.valid?'PASS':'NEED_INFO',production_write:false,candidates:candidates};
     }
   }
@@ -458,7 +458,7 @@ function bseInventoryValidateResult_(result, receivedAt, reference) {
   if (result && result.production_write !== false) return { validation: 'FAIL', missing: [], reason: 'production_write mesti false' };
   if (candidates.length !== 1 || !['Inventory_Event_Log', 'Input_Usage_Log', 'Claim_Request_Log', 'Asset_Proposal_Log'].includes(String(candidates[0] && candidates[0].target || ''))) return null;
   const candidate = candidates[0], proposal = bseInventoryProposalFromResult_(result);
-  if (!String(proposal.source_key || '').trim()) proposal.source_key = bseInventorySourceKey_(reference || '', proposal.domain);
+  if (!String(proposal.source_key || '').trim()) proposal.source_key = bseInventoryMultiItemSourceKey_(reference || '', proposal.domain, proposal);
   if (['INVENTORY_IN', 'INVENTORY_OUT', 'INVENTORY_STOCK_COUNT', 'INVENTORY_ADJUSTMENT'].includes(proposal.domain) && !String(proposal.event_date || '').trim()) proposal.event_date = bseInventoryMalaysiaDate_(receivedAt);
   const checked = bseInventoryValidateProposal_(proposal), missing = Array.from(new Set(checked.missing || [])).filter(field => /^[a-z_\/]+$/.test(String(field)));
   const fields = candidate.fields || (candidate.fields = {});
@@ -632,6 +632,15 @@ function processBseTelegramInventoryClarificationReplies() {
   } finally {lock.releaseLock();}
 }
 
+function bseInventoryMultiItemSourceKey_(reference,domain,fields){
+  const f=fields||{},item=String(f.item_name||'').trim();
+  const base=bseInventorySourceKey_(reference,domain);
+  if(domain!=='INVENTORY_IN'||f.multi_item_fertilizer!==true)return base;
+  // Only two explicitly recognized fertilizer products. No ordinal from unstable parser order.
+  if(item==='Fruitka')return base+'|ITEM_F';
+  if(item==='Benegro N')return base+'|ITEM_N';
+  throw new Error('UNVERIFIED_MULTI_ITEM_FERTILIZER');
+}
 function bseInventorySourceKey_(reference, domain) {
   return String(reference || '').trim() + '|' + String(domain || '').trim();
 }
@@ -683,7 +692,7 @@ function bseInventoryReviewCore_(book, reviewContext) {
     proposal.responsible_source='REPORTER_DEFAULT';
     proposal.responsible_telegram_user_id=reporterId;
   } else if (!String(proposal.responsible_source||'').trim()) proposal.responsible_source='DECLARED';
-  if (!String(proposal.source_key || '').trim() && proposal.domain) proposal.source_key = bseInventorySourceKey_(context.reference, proposal.domain);
+  if (!String(proposal.source_key || '').trim() && proposal.domain) proposal.source_key = bseInventoryMultiItemSourceKey_(context.reference, proposal.domain, proposal);
   if (['INVENTORY_IN', 'INVENTORY_OUT', 'INVENTORY_STOCK_COUNT', 'INVENTORY_ADJUSTMENT'].includes(proposal.domain) && !String(proposal.event_date || '').trim()) proposal.event_date = bseInventoryMalaysiaDate_(context.received_at);
   const validation = bseInventoryValidateProposal_(proposal);
   if (!validation.ok) return { validation: 'NEED_INFO', decision: '', missing: Array.from(new Set(validation.missing || [])).filter(field => /^[a-z_\/]+$/.test(String(field))), reason: 'Medan wajib belum lengkap.', production_write: false };
