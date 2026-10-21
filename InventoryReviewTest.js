@@ -292,7 +292,7 @@ function bseInventoryParseMessage_(text, receivedAt) {
       if(!value)return;
       if(/^(?:tarikh\s*:\s*)?(?:\d{1,2}[\/-]\d{1,2}[\/-]\d{4}|\d{4}-\d{2}-\d{2})$/i.test(value))return;
       if(/^(?:Penanggungjawab|Bertanggungjawab|Responsible)\s*:\s*\S.*$/i.test(value))return;
-      const match=value.match(/^(\d+(?:[.,]\d+)?)\s*set\s+baja\s+([FN])$/i);
+      const match=value.match(/^(\d+(?:[.,]\d+)?)\s*set\s+(?:baja\s+)?([FN])$/i);
       if(!match){unverified=true;return;}
       const checked=bseInventoryValidateQuantity_(Number(match[1].replace(',','.')),'set');
       if(!checked.ok){unverified=true;return;}
@@ -391,7 +391,7 @@ function bseInventoryParseMessage_(text, receivedAt) {
       const unknownProduct=source.split(/\r?\n/).some(line=>{
         if(/^\s*baja\s+out\b/i.test(line))return false;
         const m=line.match(/\bbaja\s+([^\s]+)/i);
-        return !!m&&!/^[FN]$/i.test(m[1]);
+        return !!m&&!/^(?:in|out|[FN])$/i.test(m[1]);
       });
       const invalidQuantity=/(?:^|\s)(?:0+(?:[.,]0+)?|-\d+(?:[.,]\d+)?)\s*(?:kg|g|L|ml|beg|botol|unit|pcs|pek|kotak|set|tong)\b/i.test(source);
       const unscopedMultiPlotQuantity=plots.length>1&&!!qty;

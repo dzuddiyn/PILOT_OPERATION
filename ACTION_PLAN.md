@@ -1,5 +1,8 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## GI-FIELD-UX-NATIVE-REGRESSION-RECOVERY-05A (2026-10-22; LOCAL PASS, LIVE REGRESSION FAIL)
+- Owner-approved Gate 05 synced merged PR #157 to PILOT_OPERATION Script HEAD with 80/80 independent source parity; nine helper scripts and manifest preserved. Actual native runBseI011FullRegression **46/48**, D-038 and D-047 FAIL, so LIVE PASS NOT achieved. Isolated two-line grammar/guard recovery on new branch with Baja **24/24**, focused **45/45**, full Node **124/124** PASS (local only). No further Script HEAD push, version, deployment or transaction; merge permission pending. Evidence: `docs/GI_FIELD_UX_NATIVE_REGRESSION_RECOVERY_05A_20261022.md`.
+
 ## GI-FIELD-UX-FIX-03A (2026-10-21; LOCAL PASS / NOT MERGED)
 - Draft PR #157 isolated Baja/Banci repair: reject silently dropped invalid Baja In lines and Baja Out cross-product/unscoped quantities; preserve valid separate-plot fertilizer shorthand. TDD RED->GREEN, Baja 20/20, focused 41/41, full Node 120/120 PASS. No merge, Script HEAD, Telegram or Sheets write. Evidence `docs/GI_FIELD_UX_FIX_03A_20261021.md`. Next real gate: owner-authorized MERGE-04 after remote verification.
 

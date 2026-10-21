@@ -1,5 +1,8 @@
 # OpsMate BSE site B v1.0 Final Handover
 
+## GI-FIELD-UX-NATIVE-REGRESSION-RECOVERY-05A (2026-10-22; NOT LIVE PASS)
+- Canonical PR #157 MERGED (`ad27a922...`) and PILOT Script HEAD synced with independent 80/80 parity, but Apps Script Editor native regression **46/48 FAIL** for D-038 and D-047. New branch minimal recovery has local focused 45/45 and full Node 124/124 PASS; no new merge or Script HEAD update. Separate owner merge and rollout gates required. See `docs/GI_FIELD_UX_NATIVE_REGRESSION_RECOVERY_05A_20261022.md`.
+
 ## GI-FIELD-UX-FIX-03A (2026-10-21; LOCAL PASS / LIVE UNVERIFIED)
 - Focused Banci/Baja repair on isolated draft PR #157, based on real failing negative probes; no 36P/36Q issuer scope. Baja tests 20/20; combined focused 41/41; full local regression 120/120 PASS. Runtime Banci/Baja field proof NOT RUN; approval or official BSE writes NONE. Evidence `docs/GI_FIELD_UX_FIX_03A_20261021.md`.
 
