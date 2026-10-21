@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs'),path=require('node:path');
 const src=fs.readFileSync(path.join(__dirname,'InventoryReviewTest.js'),'utf8');
 let env='PILOT_OPERATION';
-const ctx={bseRuntimeEnvironmentName_:()=>env,bseCanonicalPlotTokens_:t=>({ok:true,plots:[t]}),bseInventoryMalaysiaDate_:()=> '2026-10-21'};
+const ctx={bseRuntimeEnvironmentName_:()=>env,bseCanonicalPlotTokens_:t=>({ok:true,plots:[t]}),Utilities:{formatDate:()=> '2026-10-21'},bseInventoryMalaysiaDate_:()=> '2026-10-21'};
 vm.createContext(ctx);vm.runInContext(src,ctx);
 const parse=(msg)=>ctx.bseInventoryParseMessage_(msg,'2026-10-21T00:00:00Z');
 test('multiple fertilizer receipts preserve separate quantities and explicit date',()=>{
@@ -104,4 +104,32 @@ test('Baja Out shorthand quantity tagged N cannot be assigned to Baja F',()=>{
 test('Baja Out single plot with matching tagged F quantity remains valid',()=>{
  const r=parse('Baja Out\n20/10/2026\nM4P1\nBaja F\n3 set F');
  assert.equal(r.validation,'PASS');assert.equal(r.candidates[0].fields.item_name,'Fruitka');assert.equal(r.candidates[0].fields.quantity,3);
+});
+
+test('native D-038 legacy compact Baja In 5 Set F remains PASS',()=>{
+ const r=parse('Baja In 5 Set F');
+ assert.equal(r.validation,'PASS');
+ assert.equal(r.candidates.length,1);
+ assert.equal(r.candidates[0].fields.item_name,'Fruitka');
+ assert.equal(r.candidates[0].fields.quantity,5);
+ assert.equal(r.candidates[0].fields.unit,'set');
+ assert.equal(r.production_write,false);
+});
+test('native D-038 date-leading Baja Out AB retains exact item and quantity',()=>{
+ const r=parse('02/01/2026 Baja Out 3 Set Baja AB');
+ assert.equal(r.validation,'PASS');
+ assert.equal(r.candidates.length,1);
+ assert.equal(r.candidates[0].fields.item_name,'Baja AB');
+ assert.equal(r.candidates[0].fields.quantity,3);
+ assert.equal(r.candidates[0].fields.event_date,'2026-01-02');
+});
+test('inline compact F/N format must not re-enable unknown-item partial acceptance',()=>{
+ const r=parse('Baja In 2 Set F\n3 Set X');
+ assert.equal(r.validation,'NEED_INFO');
+ assert.equal(r.candidates.some(c=>c.validation==='PASS'),false);
+});
+test('date-leading Baja Out with conflicting F/N must remain NEED_INFO',()=>{
+ const r=parse('02/01/2026 Baja Out\nM4P1 & M4P2\nBaja F\n3 set Baja N');
+ assert.equal(r.validation,'NEED_INFO');
+ assert.equal(r.candidates.some(c=>c.validation==='PASS'),false);
 });
