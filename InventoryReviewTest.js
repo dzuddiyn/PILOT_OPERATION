@@ -281,6 +281,31 @@ function bseInventoryParseMessage_(text, receivedAt) {
   const qty=bseInventoryExtractQuantity_(source), dateInfo=bseInventoryExtractEventDate_(source,receivedAt), responsible=bseInventoryDeclaredResponsible_(source);
   const base={project_id:'BSE_SB',system_year:2026,event_date:dateInfo.value,event_date_explicit:dateInfo.explicit,event_date_valid:dateInfo.valid,crop:'',item_name:item,quantity:qty&&qty.quantity,unit:qty&&qty.unit,original_note:source,verification_status:'PROVISIONAL',responsible_name:responsible,responsible_source:responsible?'DECLARED':'',router_confidence:'HIGH'};
 
+  // Scoped PILOT_OPERATION multi-item fertilizer receipts: never infer a product.
+  if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&explicitIn&&!explicitOut&&/\bbaja\s+in\b/i.test(source)){
+    // Validate ALL supplied lines before emitting any approval-ready candidate.
+    // A valid line must not hide an unknown product, zero quantity or wrong unit.
+    const lines=source.split(/\r?\n/).map(line=>line.trim()).filter(Boolean),specs=[];
+    let unverified=false;
+    lines.forEach((line,index)=>{
+      const value=index===0?line.replace(/^baja\s+in\b\s*:?\s*/i,'').trim():line;
+      if(!value)return;
+      if(/^(?:tarikh\s*:\s*)?(?:\d{1,2}[\/-]\d{1,2}[\/-]\d{4}|\d{4}-\d{2}-\d{2})$/i.test(value))return;
+      if(/^(?:Penanggungjawab|Bertanggungjawab|Responsible)\s*:\s*\S.*$/i.test(value))return;
+      const match=value.match(/^(\d+(?:[.,]\d+)?)\s*set\s+baja\s+([FN])$/i);
+      if(!match){unverified=true;return;}
+      const checked=bseInventoryValidateQuantity_(Number(match[1].replace(',','.')),'set');
+      if(!checked.ok){unverified=true;return;}
+      specs.push({item_name:match[2].toUpperCase()==='F'?'Fruitka':'Benegro N',quantity:checked.quantity,unit:'set'});
+    });
+    if(unverified||!specs.length)return {validation:'NEED_INFO',production_write:false,candidates:[{target:'Inventory_Event_Log',validation:'NEED_INFO',missing:['unverified_fertilizer_lines'],fields:Object.assign({},base,{record_type:'INVENTORY_IN',item_name:'',quantity:undefined,unit:undefined})}]};
+    if(specs.length){
+      const distinct=new Set(specs.map(x=>x.item_name));
+      if(distinct.size!==specs.length)return {validation:'NEED_INFO',production_write:false,candidates:[{target:'Inventory_Event_Log',validation:'NEED_INFO',missing:['duplicate_fertilizer_item'],fields:Object.assign({},base,{record_type:'INVENTORY_IN',item_name:'',quantity:undefined,unit:undefined})}]};
+      const candidates=specs.map(x=>({target:'Inventory_Event_Log',validation:dateInfo.valid?'PASS':'NEED_INFO',missing:dateInfo.valid?[]:['event_date'],fields:Object.assign({},base,{record_type:'INVENTORY_IN',event_type:'INVENTORY_IN',movement_type:'IN',item_name:x.item_name,quantity:x.quantity,unit:x.unit,destination:'',multi_item_fertilizer:true})}));
+      return {validation:dateInfo.valid?'PASS':'NEED_INFO',production_write:false,candidates:candidates};
+    }
+  }
   if(ambiguousAsset)return {validation:'NEED_INFO',production_write:false,inventory_ambiguity:{item_name:item||source,source_key:'',options:classification.options},candidates:[{target:'Inventory_Classification_Log',validation:'NEED_INFO',missing:['classification'],fields:Object.assign({},base,{record_type:'INVENTORY_CLASSIFICATION'})}]};
 
   if(claim){
@@ -354,7 +379,34 @@ function bseInventoryParseMessage_(text, receivedAt) {
 
   if(explicitIn||explicitOut){
     const domain=explicitOut?'INVENTORY_OUT':'INVENTORY_IN', movement=explicitOut?'OUT':'IN';
+    // PILOT Baja Out: never take the global quantity from an unrelated
+    // fertilizer line, or multiply an unscoped quantity over several plots.
+    if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&explicitOut&&/\bbaja\s+out\b/i.test(source)){
+      const productLines=source.split(/\r?\n/).filter(line=>/\bbaja\s+([FN])\b/i.test(line));
+      const namedProducts=productLines.flatMap(line=>[...line.matchAll(/\bbaja\s+([FN])\b/ig)].map(m=>m[1].toUpperCase()));
+      const individuallyScoped=productLines.length===namedProducts.length&&productLines.every(line=>bseInventoryPlotIds_(line).length>0);
+      const taggedQuantityProducts=[...source.matchAll(/\b\d+(?:[.,]\d+)?\s*(?:kg|g|L|ml|beg|botol|unit|pcs|pek|kotak|set|tong)\s+([FN])\b/ig)].map(m=>m[1].toUpperCase());
+      const conflictingProducts=(new Set(namedProducts).size>1&&!individuallyScoped)||
+        taggedQuantityProducts.some(label=>namedProducts.length>0&&!namedProducts.includes(label));
+      const unknownProduct=source.split(/\r?\n/).some(line=>{
+        if(/^\s*baja\s+out\b/i.test(line))return false;
+        const m=line.match(/\bbaja\s+([^\s]+)/i);
+        return !!m&&!/^[FN]$/i.test(m[1]);
+      });
+      const invalidQuantity=/(?:^|\s)(?:0+(?:[.,]0+)?|-\d+(?:[.,]\d+)?)\s*(?:kg|g|L|ml|beg|botol|unit|pcs|pek|kotak|set|tong)\b/i.test(source);
+      const unscopedMultiPlotQuantity=plots.length>1&&!!qty;
+      if(conflictingProducts||unknownProduct||invalidQuantity||unscopedMultiPlotQuantity){
+        const destinations=plots.length?plots:[''];
+        return {validation:'NEED_INFO',production_write:false,candidates:destinations.map(destination=>({
+          target:'Inventory_Event_Log',validation:'NEED_INFO',
+          missing:['item_name','quantity','unit'],
+          fields:Object.assign({},base,{record_type:'INVENTORY_OUT',event_type:'INVENTORY_OUT',
+            movement_type:'OUT',destination,item_name:'',quantity:undefined,unit:undefined})
+        }))};
+      }
+    }
     const destinations=explicitOut&&plots.length?plots:[''];
+    const scopedOneSet=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&explicitOut&&plots.length>0&&!qty&&!!item&&!/^(?:baja\\s*out|baja)$/i.test(String(item).trim());
     // Scope fertilizer shorthand to its own source line, never the entire report.
     // A mixed F/N report must not inherit the first product for every plot.
     const lineItems={}; let mixedShorthand=false;
@@ -362,18 +414,21 @@ function bseInventoryParseMessage_(text, receivedAt) {
       source.split(/\r?\n/).forEach(line=>{
         const match=line.match(/(?:^|\s)(F|N)(?=\s|$)/i);
         if(!match)return;
+        const linePlots=bseInventoryPlotIds_(line);
+        if(!linePlots.length)return;
         mixedShorthand=true;
         const lineItem=match[1].toUpperCase()==='F'?'Fruitka':'Benegro N';
-        bseInventoryPlotIds_(line).forEach(plot=>{
+        linePlots.forEach(plot=>{
           if(lineItems[plot]&&lineItems[plot]!==lineItem)lineItems[plot]='';
           else if(!Object.prototype.hasOwnProperty.call(lineItems,plot))lineItems[plot]=lineItem;
         });
       });
     }
     const candidates=destinations.map(destination=>{
-      const scopedItem=mixedShorthand?(lineItems[destination]||''):item;
+      const scopedItem=mixedShorthand?(lineItems[destination]||''):(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&explicitOut&&/^(?:baja\s*out|baja)$/i.test(String(item||'').trim())?'':item);
       const fields=Object.assign({},base,{record_type:domain,event_type:domain,movement_type:movement,destination:destination,item_name:scopedItem});
-      const missing=[]; if(!fields.item_name)missing.push('item_name'); if(!qty)missing.push('quantity','unit'); if(!fields.event_date||fields.event_date_valid===false)missing.push('event_date');
+      if(scopedOneSet){fields.quantity=1;fields.unit='set';}
+      const missing=[]; if(!fields.item_name)missing.push('item_name'); if(!qty&&!scopedOneSet)missing.push('quantity','unit'); if(!fields.event_date||fields.event_date_valid===false)missing.push('event_date');
       return {target:'Inventory_Event_Log',validation:missing.length?'NEED_INFO':'PASS',missing:Array.from(new Set(missing)),fields:fields};
     });
     return {validation:candidates.every(c=>c.validation==='PASS')?'PASS':'NEED_INFO',production_write:false,candidates:candidates};
@@ -440,7 +495,7 @@ function bseInventoryValidateResult_(result, receivedAt, reference) {
   if (result && result.production_write !== false) return { validation: 'FAIL', missing: [], reason: 'production_write mesti false' };
   if (candidates.length !== 1 || !['Inventory_Event_Log', 'Input_Usage_Log', 'Claim_Request_Log', 'Asset_Proposal_Log'].includes(String(candidates[0] && candidates[0].target || ''))) return null;
   const candidate = candidates[0], proposal = bseInventoryProposalFromResult_(result);
-  if (!String(proposal.source_key || '').trim()) proposal.source_key = bseInventorySourceKey_(reference || '', proposal.domain);
+  if (!String(proposal.source_key || '').trim()) proposal.source_key = bseInventoryMultiItemSourceKey_(reference || '', proposal.domain, proposal);
   if (['INVENTORY_IN', 'INVENTORY_OUT', 'INVENTORY_STOCK_COUNT', 'INVENTORY_ADJUSTMENT'].includes(proposal.domain) && !String(proposal.event_date || '').trim()) proposal.event_date = bseInventoryMalaysiaDate_(receivedAt);
   const checked = bseInventoryValidateProposal_(proposal), missing = Array.from(new Set(checked.missing || [])).filter(field => /^[a-z_\/]+$/.test(String(field)));
   const fields = candidate.fields || (candidate.fields = {});
@@ -614,6 +669,15 @@ function processBseTelegramInventoryClarificationReplies() {
   } finally {lock.releaseLock();}
 }
 
+function bseInventoryMultiItemSourceKey_(reference,domain,fields){
+  const f=fields||{},item=String(f.item_name||'').trim();
+  const base=bseInventorySourceKey_(reference,domain);
+  if(domain!=='INVENTORY_IN'||f.multi_item_fertilizer!==true)return base;
+  // Only two explicitly recognized fertilizer products. No ordinal from unstable parser order.
+  if(item==='Fruitka')return base+'|ITEM_F';
+  if(item==='Benegro N')return base+'|ITEM_N';
+  throw new Error('UNVERIFIED_MULTI_ITEM_FERTILIZER');
+}
 function bseInventorySourceKey_(reference, domain) {
   return String(reference || '').trim() + '|' + String(domain || '').trim();
 }
@@ -665,7 +729,7 @@ function bseInventoryReviewCore_(book, reviewContext) {
     proposal.responsible_source='REPORTER_DEFAULT';
     proposal.responsible_telegram_user_id=reporterId;
   } else if (!String(proposal.responsible_source||'').trim()) proposal.responsible_source='DECLARED';
-  if (!String(proposal.source_key || '').trim() && proposal.domain) proposal.source_key = bseInventorySourceKey_(context.reference, proposal.domain);
+  if (!String(proposal.source_key || '').trim() && proposal.domain) proposal.source_key = bseInventoryMultiItemSourceKey_(context.reference, proposal.domain, proposal);
   if (['INVENTORY_IN', 'INVENTORY_OUT', 'INVENTORY_STOCK_COUNT', 'INVENTORY_ADJUSTMENT'].includes(proposal.domain) && !String(proposal.event_date || '').trim()) proposal.event_date = bseInventoryMalaysiaDate_(context.received_at);
   const validation = bseInventoryValidateProposal_(proposal);
   if (!validation.ok) return { validation: 'NEED_INFO', decision: '', missing: Array.from(new Set(validation.missing || [])).filter(field => /^[a-z_\/]+$/.test(String(field))), reason: 'Medan wajib belum lengkap.', production_write: false };
