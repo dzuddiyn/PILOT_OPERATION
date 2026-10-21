@@ -1,10 +1,12 @@
-﻿/** @OnlyCurrentDoc */
+/** @OnlyCurrentDoc */
 /* TEST_ONLY read-only entrypoint. No installable trigger, Telegram or writes. */
 function bseNondelete32ReadOnlyProof(){
-  return bseNondelete32Invoke_({
+  const outcome=bseNondelete32Invoke_({
     spreadsheetApp:SpreadsheetApp,
     lockService:LockService
   });
+  if(typeof Logger!=="undefined") Logger.log("TEST_ONLY_34B_RESULT "+JSON.stringify(outcome));
+  return outcome;
 }
 function bseNondelete32Invoke_(deps){
   if(!deps||!deps.spreadsheetApp||!deps.lockService)
@@ -17,4 +19,6 @@ function bseNondelete32Invoke_(deps){
     workbook_id:BSE_ND30_BOOK_ID,
     fixture_id:'TEST_ONLY_30_ENTRYPOINT_32'
   });
+  if(typeof Logger!=="undefined") Logger.log("TEST_ONLY_34B_RESULT "+JSON.stringify(outcome));
+  return outcome;
 }
