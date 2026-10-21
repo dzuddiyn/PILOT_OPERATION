@@ -1,5 +1,8 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## GI-FIELD-UX-NONDELETE-36P-AUTHORITY-MODE-LOCK (2026-10-21; LOCKED DESIGN / NO LIVE ISSUER)
+- Owner approved Google authenticated approval UI as primary route; Ed25519 optional only. Owner-only Apps Script HTMLService Web App must execute as accessing user and verify session; explicit transaction-specific consent, nonce TTL <=10min, exact hashes, lock, independent audit anchoring and replay defense mandated. Machine contract and 7 tests PASS; full regression 235/235 PASS. No deployment, new HEAD, OAuth, approval issuance or live-write. Evidence: `docs/GI_FIELD_UX_NONDELETE_36P_AUTHORITY_MODE_LOCK.md`. Next: synthetic UI implementation and tests.
+
 ## GI-FIELD-UX-NONDELETE-36P (2026-10-21; LOCAL CRYPTO PASS / LIVE ISSUER HOLD)
 - Candidate Ed25519 signed owner-consent verifier for TEST_ONLY BAJA/CENSUS implemented on PR #156; owner trust anchor NOT provisioned; actual issuer and independent audit NOT installed. Targeted 17/17 PASS; Node regression 228/228 PASS. Approval/audit tabs header-only. Live write, Script HEAD push for 36P, merge and deployment HOLD. Evidence: `docs/GI_FIELD_UX_NONDELETE_TRUSTED_APPROVAL_ISSUER_36P.md`.
 

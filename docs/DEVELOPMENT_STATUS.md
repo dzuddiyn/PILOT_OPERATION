@@ -1,5 +1,8 @@
 # OpsMate BSE site B v1.0 Final Handover
 
+## 36P AUTHORITY MODE LOCK (2026-10-21; DESIGN LOCK ONLY)
+- Google authenticated owner approval UI is now the LOCKED primary consent route for TEST_ONLY; signed Ed25519 remains optional. Contract tests 7/7 and full regression 235/235 PASS. No real issuer, deployment, Script HEAD push or live write; independent audit anchor/actual owner action not yet proven. `docs/GI_FIELD_UX_NONDELETE_36P_AUTHORITY_MODE_LOCK.md` and `authority_mode_36p.lock.json`.
+
 ## GI-FIELD-UX-NONDELETE-36P (2026-10-21; LOCAL CRYPTO PASS / LIVE ISSUER HOLD)
 - Actual Node Ed25519 signature verification tests pass 17/17, full regression 228/228, no configured owner public key or approved signer UX, no live issuer or transaction. Google Sheets approval/audit still header-only; /delete deferred. Draft PR #156. Evidence: `docs/GI_FIELD_UX_NONDELETE_TRUSTED_APPROVAL_ISSUER_36P.md`.
 

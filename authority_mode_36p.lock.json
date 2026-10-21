@@ -1,0 +1,51 @@
+{
+  "gate": "GI-FIELD-UX-NONDELETE-36P-AUTHORITY-MODE-LOCK",
+  "status": "LOCKED_DESIGN_ONLY",
+  "approved_mode": "GOOGLE_AUTHENTICATED_APPROVAL_UI",
+  "ui_type": "APPS_SCRIPT_HTML_SERVICE_WEB_APP_CANDIDATE",
+  "deployment_run_as": "USER_ACCESSING_WEB_APP",
+  "deployment_access": "OWNER_ONLY",
+  "permitted_owner": "dzuddiyn01@gmail.com",
+  "environment": "TEST_ONLY",
+  "workbook_id": "1vwmO6nE_hVfFgT0zkaNPzZklminYtZT24jrGL-ODBoY",
+  "operations": [
+    "BAJA",
+    "CENSUS"
+  ],
+  "forbidden_operations": [
+    "DELETE"
+  ],
+  "consent_requirements": {
+    "explicit_per_transaction_approve_or_reject": true,
+    "review_server_canonical_transaction": true,
+    "authoritative_identity_from_server_session": true,
+    "reject_blank_or_mismatched_active_email": true,
+    "challenge_nonce_minted_and_stored_server_side": true,
+    "nonce_valid_once": true,
+    "nonce_ttl_ms": 600000,
+    "approval_validity_ceiling_ms": 3600000,
+    "exact_operation_workbook_event_hash_binding": true,
+    "authenticated_client_action_is_not_by_itself_proof_of_physical_human_click": true,
+    "never_auto_approve": true
+  },
+  "persistence": {
+    "append_only_audit_with_independent_anchor_required": true,
+    "real_script_lock_required": true,
+    "no_client_sheet_approval_write": true,
+    "atomic_or_reconciled_transition_required": true,
+    "unverified_or_partial_write_fails_closed": true
+  },
+  "guardrails": {
+    "script_head_push_authorized": false,
+    "web_app_deploy_authorized": false,
+    "issuance_authorized": false,
+    "live_transaction_authorized": false,
+    "production_write": false,
+    "official_bse_write": false,
+    "telegram_send": false,
+    "pr_merge_authorized": false,
+    "delete_deferred": true
+  },
+  "ed25519": "OPTIONAL_DEFENSE_IN_DEPTH_NOT_REQUIRED_FOR_GOOGLE_UI",
+  "acceptance_state": "DESIGN_LOCK_ONLY_NOT_IMPLEMENTED"
+}
