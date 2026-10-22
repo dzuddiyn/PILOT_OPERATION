@@ -6,6 +6,12 @@ function bsePilotSeedQuantityFacts_(input){
   const lines=[source.original].concat(source.clarifications||[]).flatMap(text=>String(text||'').split(/\r?\n/));
   const seedLines=lines.map(line=>String(line).trim())
     .filter(line=>/^(?:Kuantiti\s+Benih|Jumlah\s+Benih|Benih)\s*:/i.test(line));
+  if(seedLines.length===0&&typeof bsePilotSeedFreeOrderFacts_==='function'){
+    const loose=bsePilotSeedFreeOrderFacts_(input);
+    if(loose&&loose.quantityValid)return {ok:true,quantity:loose.quantity,unit:loose.unit,reason:''};
+    if(loose&&/^\d+(?:[.,]\d+)?$/.test(loose.remaining))
+      return {ok:false,quantity:null,unit:'',reason:'seed_unit'};
+  }
   if(seedLines.length!==1)return {ok:false,quantity:null,unit:'',reason:seedLines.length?'seed_quantity_conflict':'seed_quantity'};
   const match=seedLines[0].match(/^(?:Kuantiti\s+Benih|Jumlah\s+Benih|Benih)\s*:\s*(\d+(?:[.,]\d{1,3})?)\s+([A-Za-z][A-Za-z0-9/%-]{0,15})\s*$/i);
   if(!match)return {ok:false,quantity:null,unit:'',reason:/^\s*(?:Kuantiti\s+Benih|Jumlah\s+Benih|Benih)\s*:\s*\d+(?:[.,]\d+)?\s*$/i.test(seedLines[0])?'seed_unit':'seed_quantity'};
@@ -52,7 +58,8 @@ function bsePilotSeedQuantityGuard_(result,input){
 function bsePilotSowingQuantityResult_(input){
   if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')return null;
   const trimmed=bsePilotSeedQuantityStrip_(input);
-  const result=(typeof bsePilotSeedFlexibleResult_==='function'?bsePilotSeedFlexibleResult_(trimmed):null)||
+  const result=(typeof bsePilotSeedFreeOrderResult_==='function'?bsePilotSeedFreeOrderResult_(trimmed):null)||
+    (typeof bsePilotSeedFlexibleResult_==='function'?bsePilotSeedFlexibleResult_(trimmed):null)||
     bsePilotPlotFirstSowingResult_(trimmed)||
     bsePilotCompactSowingResult_(trimmed)||
     bseTelegramSeedSowingDeterministicResult_(trimmed);

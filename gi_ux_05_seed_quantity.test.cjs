@@ -23,6 +23,7 @@ for(const name of ['bsePilotCompactSowingResult_','bsePilotPlotFirstSowingResult
  'bseTelegramSeedSowingBoundaryResult_','bseTelegramSeedSowingDate_','bseTelegramSeedSowingDeterministicResult_'])
  vm.runInContext(extract(worker,name),ctx);
 vm.runInContext(fs.readFileSync(path.join(__dirname,'PilotSeedFlexibleTest.js'),'utf8'),ctx);
+vm.runInContext(fs.readFileSync(path.join(__dirname,'PilotSeedFreeOrderTest.js'),'utf8'),ctx);
 vm.runInContext(qty,ctx);
 vm.runInContext(writer,ctx);
 const parse=s=>ctx.bsePilotSowingQuantityResult_(s),input='Semai\nTimun (7055 CCB)\nM3P2\n8-Aug-26\nBenih: 200 biji';
@@ -172,5 +173,80 @@ test('final gate allows grounded plot pair, qty and unchanged raw unit',()=>{
  assert.equal(r.validation,'PASS');
  assert.equal(r.candidates.filter(c=>c.target==='Plot_Allocation_Log').length,2);
  assert.equal(r.candidates.find(c=>c.target==='Planting_Event_Log').fields.seed_unit,'biji');
+});
+test('FIELD exact report A: date first, crop/plot/quantity combined',()=>{
+ const note='Semai\n23/10/26\nTimun (7055 CCB) M1P1,2 65 tray';
+ const r=parse(note);
+ assert.equal(r.validation,'PASS',JSON.stringify(r.candidates.map(c=>c.missing)));
+ const evt=r.candidates.find(c=>c.target==='Planting_Event_Log').fields;
+ assert.equal(evt.event_date,'2026-10-23');
+ assert.equal(evt.crop,'Timun');assert.equal(evt.variety,'7055 CCB');
+ assert.equal(evt.seed_quantity,65);assert.equal(evt.seed_unit,'tray');
+ assert.equal(evt.original_note,note);
+ assert.deepEqual(JSON.parse(JSON.stringify(r.candidates.filter(c=>c.target==='Plot_Allocation_Log').map(c=>c.fields.plot_id))),['M1P1','M1P2']);
+ assert.equal(ctx.bsePilotSeedFinalizeGate_(r,note).validation,'PASS');
+ const canon=ctx.bseCropBatchProposal_(JSON.stringify(r),note).canonical.event;
+ assert.equal(canon.seed_quantity,65);assert.equal(canon.seed_unit,'tray');
+});
+test('FIELD exact report B: crop/date together; amount then plot',()=>{
+ const note='Semai\nTimun (7055 CCB) 23/10/26\n65 tray M1P1,2';
+ const r=parse(note);assert.equal(r.validation,'PASS',JSON.stringify(r.candidates.map(c=>c.missing)));
+ assert.equal(r.candidates.find(c=>c.target==='Planting_Event_Log').fields.seed_quantity,65);
+ assert.equal(r.candidates.find(c=>c.target==='Planting_Event_Log').fields.seed_unit,'tray');
+ assert.equal(r.candidates.filter(c=>c.target==='Plot_Allocation_Log').length,2);
+ assert.equal(ctx.bsePilotSeedFinalizeGate_(r,note).validation,'PASS');
+});
+test('free order accepts single-line, date/plot permutations without a Benih label',()=>{
+ const samples=[
+ 'Semai Timun (7055 CCB) 65 tray M1P12 23 Okt 26',
+ 'Semai\nM1 P1,2 65 tray Timun (7055 CCB) 23 Oktober 2026',
+ 'Semai\n65 tray M1P1,P2 2026-10-23 Timun (7055 CCB)',
+ 'Semai\nTimun (7055 CCB) M1P1 & P2 23-10-26 65 tray',
+ 'Semai\n23.10.2026 Timun (7055 CCB) 65 tray M1P12',
+ 'Semai\nM1P1, M1P2\nTimun (7055 CCB) 65 tray\n23/10/2026'
+ ];
+ for(const note of samples){
+   const r=parse(note);assert.equal(r.validation,'PASS',note+' '+JSON.stringify(r.candidates.map(c=>c.missing)));
+   const evt=r.candidates.find(c=>c.target==='Planting_Event_Log').fields;
+   assert.equal(evt.event_date,'2026-10-23',note);
+   assert.equal(evt.seed_quantity,65,note);assert.equal(evt.seed_unit,'tray',note);
+   assert.equal(r.candidates.filter(c=>c.target==='Plot_Allocation_Log').length,2,note);
+ }
+});
+test('free order missing date, plot, quantity, unit block Benar',()=>{
+ const samples=[
+ 'Semai\nTimun (7055 CCB) M1P1,2 65 tray',
+ 'Semai\n23/10/26 Timun (7055 CCB) 65 tray',
+ 'Semai\n23/10/26 Timun (7055 CCB) M1P1,2',
+ 'Semai\n23/10/26 Timun (7055 CCB) M1P1,2 65'
+ ];
+ for(const note of samples){
+   const r=parse(note);assert.equal(r.validation,'NEED_INFO',note);
+   assert.equal(ctx.bsePilotSeedFinalizeGate_(r,note).validation,'NEED_INFO',note);
+ }
+});
+test('free order rejects extra ambiguous tokens and duplicate dates/plots',()=>{
+ const bad=[
+ 'Semai\n23/10/26 Timun (7055 CCB) M1P1,2 65 tray nonsense',
+ 'Semai 23/10/26 24/10/26 Timun (7055 CCB) M1P12 65 tray',
+ 'Semai\n23/10/26 Timun (7055 CCB) M1P12 M1P1 65 tray',
+ 'Semai\n23/10/26 Timun (7055 CCB) M1P123 65 tray',
+ 'Semai\n31/02/2026 Timun (7055 CCB) M1P12 65 tray',
+ 'Semai\n23/10/26 Timun (7055 CCB) M1P12 0 tray'
+ ];
+ for(const note of bad){assert.equal(parse(note).validation,'NEED_INFO',note);}
+});
+test('bare seed quantity is NEVER inferred from parenthesized variety',()=>{
+ const note='Semai\nTimun (7055 CCB) M1P1,2 23/10/26';
+ const r=parse(note);assert.equal(r.validation,'NEED_INFO');
+ assert.equal(r.candidates.find(c=>c.target==='Planting_Event_Log').fields.seed_quantity,undefined);
+ assert(r.candidates.some(c=>c.missing.includes('seed_quantity')));
+});
+test('no extra write path and original labelled reports still accepted',()=>{
+ const note='Semai\nTimun (7055 CCB)\nM1P1,2\n23/10/26\nBenih: 200 biji';
+ const r=parse(note);assert.equal(r.validation,'PASS');
+ assert.equal(r.candidates.find(c=>c.target==='Planting_Event_Log').fields.seed_quantity,200);
+ const free=fs.readFileSync(path.join(__dirname,'PilotSeedFreeOrderTest.js'),'utf8');
+ assert(!/appendRow|insertSheet|setValues|SpreadsheetApp/.test(free));
 });
 console.log('GI_UX_05_SEED_QUANTITY '+num+'/'+num+' PASS');
