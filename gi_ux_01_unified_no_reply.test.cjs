@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const source=file=>fs.readFileSync(path.join(__dirname,file),'utf8');
 const worker=source('TelegramWorkerTest.js'),ui=source('TelegramApprovalUiTest.js');
 function functionSource(text,name){
- const start=text.indexOf('function '+name+'(');
+ const start=text.lastIndexOf('function '+name+'(');
  assert(start>=0,'Missing '+name);
  const next=text.indexOf('\n}',start);
  assert(next>=0,'No function closing brace: '+name);
@@ -15,6 +15,7 @@ const context={
  bseRuntimeEnvironmentName_:()=>env,
  bseApprovalSummary_:(ref)=>'Semakan TEST '+ref+'\nBanci Pokok | Timun M5P2\nTiada rekod production akan ditulis.',
  bseApprovalDomain_:()=>({target:'Plant_Census_Log',core:()=>{}}),
+ bseApprovalEnvelopes_:result=>[result], bseApprovalRecomputeQueueStatus_:()=>{},
  bseApprovalHash_:()=> 'HASH',
  bseTelegramTestApprovalGroupIds_:()=>[],
  bseTestOwnerForTelegramUser_:()=>({ok:true,owner_id:'owner',telegram_user_id:'200',private_chat_id:'200'}),
