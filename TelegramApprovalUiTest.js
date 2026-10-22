@@ -150,6 +150,7 @@ function bseApprovalSummary_(reference,result){
     const batch=candidates.find(c=>c&&c.target==='Crop_Batch_Log'),f=batch&&batch.fields||{},plots=candidates.filter(c=>c&&c.target==='Plot_Allocation_Log').map(c=>String(c.fields&&c.fields.plot_id||'')).filter(Boolean),statuses=Array.from(new Set(candidates.filter(c=>c&&c.target==='Plot_Allocation_Log').map(c=>String(c.fields&&c.fields.allocation_status||'')).filter(Boolean)));
     const lines=['Semakan TEST '+reference,'Tarikh semai: '+bseApprovalDisplayDate_(f.event_date),'Tanaman: '+String(f.crop||'')];
     if(String(f.variety||'').trim())lines.push('Varieti: '+String(f.variety));
+    if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&typeof bsePilotSeedQuantityCardLine_==='function')lines.push(bsePilotSeedQuantityCardLine_(result));
     if(plots.length)lines.push('Plot: '+plots.join(', '));
     if(statuses.length)lines.push('Status allocation: '+statuses.join(', '));
     lines.push('Tiada rekod production akan ditulis.');return lines.join('\n');

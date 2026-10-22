@@ -540,7 +540,7 @@ function processBseTelegramTestQueue() {
       const maintenanceResult=!ecResult&&!inventoryResult&&!leaveResult&&typeof bseMaintenanceParseMessage_==='function'?bseMaintenanceParseMessage_(job.input,job.receivedAt):null;
       // One seed-sowing message is one atomic Crop Batch. Multiple seed batches must
       // be split by the reporter and must never fall through as Treatment traffic.
-      const seedSowingResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult?(bsePilotPlotFirstSowingResult_(job.input)||bsePilotCompactSowingResult_(job.input)||bseTelegramSeedSowingDeterministicResult_(job.input)):null;
+      const seedSowingResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult?(typeof bsePilotSowingQuantityResult_==='function'?bsePilotSowingQuantityResult_(job.input):null)||bsePilotPlotFirstSowingResult_(job.input)||bsePilotCompactSowingResult_(job.input)||bseTelegramSeedSowingDeterministicResult_(job.input):null;
       const transplantResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult?bseTelegramTransplantDeterministicResult_(book,job.input):null;
       // CYCLE_END must take precedence over generic AI/Treatment; it never infers plot release.
       const cycleEndResult=!ecResult&&!inventoryResult&&!leaveResult&&!maintenanceResult&&!seedSowingResult&&!transplantResult?bsePilotCycleEndResult_(job.input):null;
@@ -627,7 +627,8 @@ function processBseTelegramTestQueue() {
 function bseTelegramWorkerFinalizeResult_(book,rawResult,job){
   const guarded=bseUnifiedGuard_(rawResult,{received_at:job.receivedAt,queue_reference:'BSE-TG-'+job.id,root_reference:'BSE-TG-'+(job.rootId||job.id),source_input:job.input});
   if(guarded&&Array.isArray(guarded.candidates))guarded.candidates.forEach(c=>{if(c&&c.fields)c.fields.original_note=job.provenance;});
-  const result=bsePilotCycleEndQueueGuard_(book,bseTreatmentQueueGuard_(book,bseCensusQueueGuard_(book,bseTransplantQueueGuard_(book,guarded))));
+  const checked=bsePilotCycleEndQueueGuard_(book,bseTreatmentQueueGuard_(book,bseCensusQueueGuard_(book,bseTransplantQueueGuard_(book,guarded))));
+  const result=typeof bsePilotSeedFinalizeGate_==='function'?bsePilotSeedFinalizeGate_(checked,job.input):checked;
   // Observed exact-date/plot Transplant already in PILOT: informational terminal
   // response only. Never mutate prior records or issue approval cards.
   if(book&&result&&result.validation==='NEED_INFO'&&result.candidates&&result.candidates.length===1&&
