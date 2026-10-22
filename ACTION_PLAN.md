@@ -1,5 +1,8 @@
 # ACTION PLAN — OpsMate BSE Site B Recovery
 
+## GI-FIELD-UX-NATIVE-REGRESSION-RECOVERY-05B / EVIDENCE-05C (2026-10-22; SCRIPT HEAD VERIFIED, NATIVE PASS)
+- Owner-approved PR #158 MERGED to canonical main cdaec25b3b0f102a45844dc57a2205bbd36cfb84. Owner-authorized PILOT_OPERATION Script HEAD push followed by independent fresh pull: **80/80 exact match** (70 canonical JS + 9 existing Gate F helpers + manifest; unchanged Script binding). Real Apps Script Editor runBseI011FullRegression **48/48 PASS, 0 FAIL, production_write:false**, independently confirmed by Executions UI at **08:09:05 MYT, Selesai, 11.989 s**. Fresh merged-main Node **125/125 PASS**; staged syntax **79/79 PASS**. No Apps Script version/deployment update, recovery-initiated Telegram/Sheets/official-BSE write or formal handover. Separate bseTelegramTick failure at 08:01 MYT remains outside scope/OPEN. Historical 05A failed state is retained below. Evidence: docs/GI_FIELD_UX_NATIVE_REGRESSION_RECOVERY_05B_20261022.md.
+
 ## GI-FIELD-UX-NATIVE-REGRESSION-RECOVERY-05A (2026-10-22; LOCAL PASS, LIVE REGRESSION FAIL)
 - Owner-approved Gate 05 synced merged PR #157 to PILOT_OPERATION Script HEAD with 80/80 independent source parity; nine helper scripts and manifest preserved. Actual native runBseI011FullRegression **46/48**, D-038 and D-047 FAIL, so LIVE PASS NOT achieved. Isolated two-line grammar/guard recovery on new branch with Baja **24/24**, focused **45/45**, full Node **124/124** PASS (local only). No further Script HEAD push, version, deployment or transaction; merge permission pending. Evidence: `docs/GI_FIELD_UX_NATIVE_REGRESSION_RECOVERY_05A_20261022.md`.
 

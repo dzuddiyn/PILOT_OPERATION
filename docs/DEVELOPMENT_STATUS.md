@@ -1,5 +1,8 @@
 # OpsMate BSE site B v1.0 Final Handover
 
+## GI-FIELD-UX-NATIVE-REGRESSION-RECOVERY-05B / EVIDENCE-05C (2026-10-22; SCRIPT HEAD VERIFIED, NATIVE PASS)
+- Recovery 05B completed on 22 Oct 2026: PR #158 merged to main cdaec25b3b0f102a45844dc57a2205bbd36cfb84; controlled PILOT_OPERATION Script HEAD updated and independently verified **80/80** (all 9 Gate F helpers, manifest and binding preserved). Actual native Apps Script runBseI011FullRegression **48/48 PASS**, confirmed by independent Executions UI (08:09:05 MYT, Selesai); local Node **125/125 PASS**, syntax **79/79 PASS**. No new version/deployment or recovery-initiated operational writes; worker reliability, field UX and formal handover NOT VERIFIED. Separate 08:01 bseTelegramTick failure remains OPEN/out-of-scope. Evidence: docs/GI_FIELD_UX_NATIVE_REGRESSION_RECOVERY_05B_20261022.md.
+
 ## GI-FIELD-UX-NATIVE-REGRESSION-RECOVERY-05A (2026-10-22; NOT LIVE PASS)
 - Canonical PR #157 MERGED (`ad27a922...`) and PILOT Script HEAD synced with independent 80/80 parity, but Apps Script Editor native regression **46/48 FAIL** for D-038 and D-047. New branch minimal recovery has local focused 45/45 and full Node 124/124 PASS; no new merge or Script HEAD update. Separate owner merge and rollout gates required. See `docs/GI_FIELD_UX_NATIVE_REGRESSION_RECOVERY_05A_20261022.md`.
 
