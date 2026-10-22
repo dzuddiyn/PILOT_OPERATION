@@ -17,7 +17,7 @@ let count=0;function test(label,fn){fn();count++;console.log('PASS '+label);}
 const sum=ctx.bseTelegramConfirmedPersistedSummary_(book(sow),ref,'Crop_Batch_Log',{source_key:key});
 test('snapshot sowing receipt contains date, crop and both plots',()=>{for(const x of ['REKOD SEMAIAN DISIMPAN','05/10/2026','Cucumber 6656 (282 CP)','M5P3, M5P4','2 plot'])assert(sum.includes(x),x);});
 test('no internal identifiers or English column dumps',()=>{for(const x of ['BSE-SB-CB-20261005-001','PLOT ALLOCATION','PLANTING EVENT','batch_id','plot id','verification status','PROVISIONAL'])assert(!sum.includes(x),x);});
-test('provisional review is not claimed verified',()=>assert(sum.includes('Sementara (belum diverifikasi)')));
+test('provisional review stays internal; receipt states reporter confirmation only',()=>{assert(sum.includes('Pengesahan: Disahkan pelapor'));assert(!sum.includes('Status verifikasi: Disahkan dalam pilot'));assert.equal(sow.TEST_CROP_BATCH.rows[0][5],'PROVISIONAL');});
 test('missing one of three tables fails closed',()=>{const x={...sow};delete x.TEST_PLANTING_EVENT;assert.equal(ctx.bseTelegramConfirmedPersistedSummary_(book(x),ref,'Crop_Batch_Log',{source_key:key}),'');});
 test('duplicate plot rows fail closed',()=>{const x={...sow,TEST_PLOT_ALLOCATION:{...sow.TEST_PLOT_ALLOCATION,rows:[[key,'M5P3','PLANNED'],[key,'M5P3','PLANNED']]}};assert.equal(ctx.bseTelegramConfirmedPersistedSummary_(book(x),ref,'Crop_Batch_Log',{source_key:key}),'');});
 test('missing plot fails closed',()=>{const x={...sow,TEST_PLOT_ALLOCATION:{...sow.TEST_PLOT_ALLOCATION,rows:[[key,'','PLANNED']]}};assert.equal(ctx.bseTelegramConfirmedPersistedSummary_(book(x),ref,'Crop_Batch_Log',{source_key:key}),'');});
