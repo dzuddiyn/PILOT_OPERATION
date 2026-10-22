@@ -560,6 +560,11 @@ function processBseTelegramTestQueue() {
       catch(error){console.log('INVENTORY_CLASSIFICATION_PENDING: '+String(error.message||''));}
       return;
     }
+    if(typeof bsePilotIncompleteEligible_==='function'&&bsePilotIncompleteEligible_(result,reviewStatus)){
+      try{bsePilotIncompleteOffer_(sheet,r,result,job.row);}
+      catch(error){console.log('INCOMPLETE_CARD_SEND_PENDING: BSE-TG-'+job.id);}
+      return;
+    }
     try {
       if(!bsePilotTransplantReviewCardOnly_(result,reviewStatus)&&!bsePilotSowingReviewCardOnly_(result,reviewStatus)&&!bsePilotTreatmentReviewCardOnly_(result,reviewStatus)&&!bsePilotOperationReviewCardOnly_(result,reviewStatus)&&!bsePilotEcReviewCardOnly_(result,reviewStatus)&&!bsePilotInventoryReviewCardOnly_(result,reviewStatus)&&!bsePilotUnifiedReviewCardOnly_(result,reviewStatus)){
       const payload={chat_id:job.chatId,text:result.transplant_already_recorded?bsePilotTransplantExistingExactText_('BSE-TG-'+job.id,result.transplant_already_recorded):claimMissingText||bseTelegramResultText_('BSE-TG-'+job.id,result,question)};
