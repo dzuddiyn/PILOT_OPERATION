@@ -419,6 +419,7 @@ function bsePilotInventoryReviewCardOnly_(result,status){
      !result||result.validation!=='PASS'||result.production_write!==false||
      !Array.isArray(result.candidates)||result.candidates.length!==1)return false;
   const c=result.candidates[0],f=c&&c.fields||{};
+  if(f.baja_group===true)return bsePilotBajaValidateResult_(result).validation==='PASS';
   return !!c&&c.target==='Inventory_Event_Log'&&c.validation==='PASS'&&
     Array.isArray(c.missing)&&c.missing.length===0&&
     ['INVENTORY_IN','INVENTORY_OUT'].includes(String(f.event_type||''))&&
@@ -534,7 +535,7 @@ function processBseTelegramTestQueue() {
       // A Betulkan answer is a full replacement report: parse only its newest text.
       // Provenance remains on job.provenance and is restored during finalization.
       const inventoryInput=bseTelegramLatestCorrectionText_(job.input)||job.input;
-      const inventoryResult=!ecResult&&typeof bseInventoryParseMessage_==='function'?bseInventoryParseMessage_(inventoryInput,job.receivedAt):null;
+      const inventoryResult=!ecResult?(typeof bsePilotBajaParse_==='function'?bsePilotBajaParse_(inventoryInput,job.receivedAt):null)||(typeof bseInventoryParseMessage_==='function'?bseInventoryParseMessage_(inventoryInput,job.receivedAt):null):null;
       const leaveResult=!ecResult&&!inventoryResult&&typeof bseLeaveParseMessage_==='function'?bseLeaveParseMessage_(job.input,job.receivedAt):null;
       const maintenanceResult=!ecResult&&!inventoryResult&&!leaveResult&&typeof bseMaintenanceParseMessage_==='function'?bseMaintenanceParseMessage_(job.input,job.receivedAt):null;
       // One seed-sowing message is one atomic Crop Batch. Multiple seed batches must
