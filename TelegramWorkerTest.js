@@ -427,6 +427,28 @@ function bsePilotInventoryReviewCardOnly_(result,status){
     String(f.unit||'').trim().length>0&&
     Number.isFinite(Number(f.quantity))&&Number(f.quantity)>0;
 }
+//
+// GI-UX-01: suppress duplicate generic preview only for safe complete
+// reports already handled by the existing approval card route.
+//
+function bsePilotUnifiedReviewCardOnly_(result,status){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||
+     status!=='NEEDS_HUMAN_REVIEW'||!result||
+     result.production_write!==false||result.validation!=='PASS'||
+     !Array.isArray(result.candidates)||result.candidates.length!==1)return false;
+  const c=result.candidates[0];
+  if(!c||c.validation!=='PASS'||!Array.isArray(c.missing)||c.missing.length)return false;
+  const supported=[
+    'Measurement_Log','Plant_Census_Log','Plant_Replacement_Event_Log',
+    'Observation_Log','Operation_Log','Maintenance_Event_Log',
+    'Leave_Record_Log','Plant_Condition_Log','Decision_Approval_Log'
+  ];
+  if(!supported.includes(String(c.target||'')))return false;
+  try{
+    const domain=bseApprovalDomain_(result);
+    return !!domain&&domain.target===c.target&&typeof domain.core==='function';
+  }catch(_){return false;}
+}
 function processBseTelegramTestQueue() {
   const book=boundTestBook_(),props=PropertiesService.getScriptProperties();
   if(typeof processBseImageProcessingQueueTest==='function'){
@@ -539,7 +561,7 @@ function processBseTelegramTestQueue() {
       return;
     }
     try {
-      if(!bsePilotTransplantReviewCardOnly_(result,reviewStatus)&&!bsePilotSowingReviewCardOnly_(result,reviewStatus)&&!bsePilotTreatmentReviewCardOnly_(result,reviewStatus)&&!bsePilotOperationReviewCardOnly_(result,reviewStatus)&&!bsePilotEcReviewCardOnly_(result,reviewStatus)&&!bsePilotInventoryReviewCardOnly_(result,reviewStatus)){
+      if(!bsePilotTransplantReviewCardOnly_(result,reviewStatus)&&!bsePilotSowingReviewCardOnly_(result,reviewStatus)&&!bsePilotTreatmentReviewCardOnly_(result,reviewStatus)&&!bsePilotOperationReviewCardOnly_(result,reviewStatus)&&!bsePilotEcReviewCardOnly_(result,reviewStatus)&&!bsePilotInventoryReviewCardOnly_(result,reviewStatus)&&!bsePilotUnifiedReviewCardOnly_(result,reviewStatus)){
       const payload={chat_id:job.chatId,text:result.transplant_already_recorded?bsePilotTransplantExistingExactText_('BSE-TG-'+job.id,result.transplant_already_recorded):claimMissingText||bseTelegramResultText_('BSE-TG-'+job.id,result,question)};
       if(/^\d+$/.test(job.messageId))payload.reply_parameters={message_id:Number(job.messageId),allow_sending_without_reply:true};
       if(question||claimMissingText)payload.reply_markup={force_reply:true,input_field_placeholder:'Jawapan untuk laporan ini'};
