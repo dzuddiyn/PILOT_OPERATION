@@ -27,7 +27,7 @@ test('incomplete eligible, no complete/TEST/production mixing',()=>{
 });
 test('census card only understood fields and supported date formats',()=>{
  const text=context.bsePilotIncompleteCard_(row,census);
- for(const term of ['REKOD BANCI POKOK','BSE-TG-772257581','M6P2','Peria Besar','Mati : 143','Sakit : 654','Tarikh : ❌','DD/MM/YYYY','DD/MM/YY','YYYY-MM-DD'])assert(text.includes(term),term);
+ for(const term of ['REKOD BANCI POKOK','BSE-TG-772257581','M6P2','Peria Besar','Mati : 143','Sakit : 654','Tarikh : ❌','10/10/2026','10/10/26','2026-10-10'])assert(text.includes(term),term);
  assert(!text.includes('Benar')&&!text.includes('Simpan Draf'));
 });
 test('sends only Batal, not Telegram Reply nor ForceReply',()=>{
@@ -43,7 +43,7 @@ test('sends only Batal, not Telegram Reply nor ForceReply',()=>{
  assert.equal(values[0][15],'900');
 });
 const cb=(user=1234,chat='-100333',message_id=900,data='C2:772257581:C')=>({
- id:'callback123',data,from:{id:user},message:{message_id,chat:{id:chat,type:'supergroup'}}});
+ id:'callback123',data,from:{id:user},message:{message_id,chat:{id:chat,type:'supergroup'},text:'SEMAKAN LAPORAN BELUM LENGKAP\nRujukan : BSE-TG-772257581'}});
 const book={};
 test('forged actor, chat, callback card ID or action cannot cancel',()=>{
  for(const arg of [[999,'-100333',900,'C2:772257581:C'],[1234,'-100999',900,'C2:772257581:C'],
@@ -86,6 +86,6 @@ test('uncertain Telegram send fails closed, no duplicate retry',()=>{
 test('other report text shows only validated-looking scalar hints, not approval button',()=>{
  const v={validation:'NEED_INFO',production_write:false,candidates:[{target:'Inventory_Event_Log',missing:['quantity'],fields:{item_name:'Baja A',unit:'kg'}}]};
  const card=context.bsePilotIncompleteCard_(row,v);
- assert.match(card,/Baja A/);assert.match(card,/quantity/);assert(!/Benar|Simpan Draf/.test(card));
+ assert.match(card,/Baja A/);assert.match(card,/Kuantiti \(contoh 200\)/);assert(!/Benar|Simpan Draf/.test(card));
 });
 console.log('GI_UX_02_BATAL_ONLY '+count+'/'+count+' PASS');

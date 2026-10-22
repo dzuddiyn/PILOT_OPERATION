@@ -9,6 +9,36 @@ function bsePilotIncompleteEligible_(result,status){
 function bsePilotIncompleteClean_(value,max){
   return String(value==null?'':value).replace(/[\x00-\x1f\x7f]+/g,' ').trim().slice(0,max||140);
 }
+function bsePilotIncompleteDateExamples_(row,result){
+  const original=String(row&&row[4]||'');
+  const candidates=result&&result.candidates||[];
+  if(candidates.some(c=>c&&c.target==='Plant_Census_Log'))
+    return '10/10/2026, 10/10/26, 2026-10-10';
+  if(/\bKERJA\s+SEMAIAN\s+BENIH\b/i.test(original))
+    return '10/10/2026';
+  if(/^\s*(?:-\s*)?Semai(?:an)?\b/i.test(original))
+    return '10/10, 10/10/2026, 10/10/26, 10 Ogos 2026, 10-Aug-26';
+  if(candidates.some(c=>c&&c.fields&&c.fields.event_type==='SEED_SOWING'))
+    return '10/10/2026, 10/10/26, 10 Ogos 2026, 10-Aug-26';
+  return '10/10/2026';
+}
+function bsePilotIncompleteMissingLabel_(field,row,result){
+  const key=String(field||'');
+  const names={
+    plot_id:'Plot (contoh M1P1)',
+    crop:'Tanaman (contoh Peria Besar)',
+    variety:'Varieti (contoh 936 Hua Li)',
+    event_date:'Tarikh (contoh '+bsePilotIncompleteDateExamples_(row,result)+')',
+    batch_match:'Padanan batch (nyatakan batch tanaman berkaitan)',
+    seed_quantity:'Kuantiti benih (contoh 200 biji)',
+    quantity:'Kuantiti (contoh 200)',
+    unit:'Unit (contoh kg)',
+    item_name:'Bahan (contoh Baja A)',
+    session:'Sesi (contoh Pagi)',
+    report_format:'Susunan laporan (semak contoh format)'
+  };
+  return names[key]||bsePilotIncompleteClean_(key.replace(/_/g,' '),70);
+}
 function bsePilotIncompleteCard_(row,result){
   const fields=(result.candidates||[]).map(c=>c&&c.fields||{});
   const one=result.candidates.length===1?result.candidates[0]:null;
@@ -20,8 +50,7 @@ function bsePilotIncompleteCard_(row,result){
     if(entry.plot_id)lines.push('Modul : '+bsePilotIncompleteClean_(entry.plot_id,50));
     if(f.crop)lines.push('Tanaman : '+bsePilotIncompleteClean_(f.crop,100));
     if(one.missing&&one.missing.includes('event_date')){
-      lines.push('Tarikh : ❌ Tidak dapat dikenal pasti',
-        'Format: DD/MM/YYYY, DD/MM/YY atau YYYY-MM-DD');
+      lines.push('Tarikh : ❌ Tidak dapat dikenal pasti');
     }else if(f.event_date){
       lines.push('Tarikh : '+bsePilotIncompleteClean_(f.event_date,30));
     }
@@ -38,7 +67,7 @@ function bsePilotIncompleteCard_(row,result){
     }));
   }
   const missing=[...new Set((result.candidates||[]).flatMap(c=>Array.isArray(c.missing)?c.missing:[])
-    .map(x=>bsePilotIncompleteClean_(x,45)).filter(Boolean))].slice(0,10);
+    .map(x=>bsePilotIncompleteMissingLabel_(x,row,result)).filter(Boolean))].slice(0,10);
   lines.push('','❌ Belum lengkap: '+(missing.length?missing.join(', '):'Maklumat perlu disemak'),
     'Tiada rekod operasi disimpan. Betulkan dan hantar laporan baharu.');
   return lines.join('\n').slice(0,2700);
@@ -57,6 +86,26 @@ function bsePilotIncompleteOffer_(sheet,row,result,index){
   sheet.getRange(index,7).setValue('INCOMPLETE_CANCEL_ONLY');SpreadsheetApp.flush();
   return {offered:true,production_write:false,official_bse_write:false};
 }
+function bsePilotIncompleteCloseCard_(row,callback,result,updateId){
+  // Preserve the entire visible card, with its original facts and hints, as user reference.
+  const original=String(callback&&callback.message&&callback.message.text||'');
+  if(!original.trim())throw Error('INCOMPLETE_CANCEL_ORIGINAL_CARD_TEXT_UNAVAILABLE');
+  const text=/^\u274c Dibatalkan(?:\r?\n|$)/.test(original)?original:'\u274c Dibatalkan\n'+original;
+  if(text.length>4096)throw Error('INCOMPLETE_CANCEL_CARD_TOO_LONG');
+  try{
+    const edited=bseTelegramApi_('editMessageText',{
+      chat_id:String(callback.message.chat.id),
+      message_id:Number(callback.message.message_id),
+      text:text,
+      reply_markup:{inline_keyboard:[]}
+    });
+    if(edited===false||edited===null)return false;
+    return true;
+  }catch(error){
+    if(/message is not modified/i.test(String(error&&error.message||'')))return true;
+    throw error;
+  }
+}
 function bsePilotIncompleteCallback_(book,callback){
   if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')throw Error('NOT_PILOT');
   const match=String(callback&&callback.data||'').match(/^C2:(\d{8,16}):C$/);
@@ -70,19 +119,37 @@ function bsePilotIncompleteCallback_(book,callback){
   const rows=queue.getLastRow()>1?queue.getRange(2,1,queue.getLastRow()-1,BSE_TG_QUEUE_HEADERS.length).getValues():[];
   const found=rows.map((r,i)=>({r,i})).filter(x=>String(x.r[0])===match[1]);
   if(found.length!==1)return {authorized:false,reason:'AMBIGUOUS'};
-  const item=found[0],r=item.r;
-  if(String(r[1])!==chat||String(r[2])!==user||String(r[15])!==messageId)
+  const item=found[0],row=item.r;
+  if(String(row[1])!==chat||String(row[2])!==user||String(row[15])!==messageId)
     return {authorized:false,reason:'WRONG_SOURCE'};
-  if(String(r[6])==='INCOMPLETE_CANCELLED')
-    return {duplicate:true,status:'INCOMPLETE_CANCELLED',production_write:false};
-  if(String(r[6])!=='INCOMPLETE_CANCEL_ONLY')
-    return {blocked:true,status:String(r[6]),production_write:false};
-  let result;try{result=JSON.parse(String(r[9]||''));}catch(_){return {blocked:true,reason:'BAD_JSON'};}
-  if(!bsePilotIncompleteEligible_(result,'WAITING_INFO'))return {blocked:true,reason:'NOT_INCOMPLETE'};
-  queue.getRange(item.i+2,7).setValue('INCOMPLETE_CANCELLED');SpreadsheetApp.flush();
-  if(callback.id)try{bseTelegramApi_('answerCallbackQuery',{
-    callback_query_id:String(callback.id),text:'Laporan dibatalkan. Hantar semula setelah dibetulkan.'
-  });}catch(_){/* Status already terminal; never repeat action to repair Telegram ack. */}
-  return {cancelled:true,reference:'BSE-TG-'+match[1],production_write:false,
-    official_bse_write:false};
+  const prior=String(row[6]||'');
+  if(!['INCOMPLETE_CANCEL_ONLY','INCOMPLETE_CANCEL_ACK_PENDING','INCOMPLETE_CANCELLED'].includes(prior))
+    return {blocked:true,status:prior,production_write:false};
+  let result;try{result=JSON.parse(String(row[9]||''));}
+  catch(_){return {blocked:true,reason:'BAD_JSON'};}
+  if(!bsePilotIncompleteEligible_(result,'WAITING_INFO'))
+    return {blocked:true,reason:'NOT_INCOMPLETE'};
+  if(prior==='INCOMPLETE_CANCEL_ONLY'){
+    // Technical reservation prevents any re-entry or domain progression.
+    queue.getRange(item.i+2,7).setValue('INCOMPLETE_CANCEL_ACK_PENDING');
+    SpreadsheetApp.flush();
+  }
+  // This edit RETAINS the old report card text, and removes only its inline button.
+  // For a previously cancelled legacy card, a second tap repairs the visible feedback.
+  const edited=bsePilotIncompleteCloseCard_(row,callback,result,match[1]);
+  if(!edited)throw Error('INCOMPLETE_CANCEL_CARD_EDIT_PENDING');
+  if(prior!=='INCOMPLETE_CANCELLED'){
+    queue.getRange(item.i+2,7).setValue('INCOMPLETE_CANCELLED');
+    SpreadsheetApp.flush();
+  }
+  if(callback.id)try{
+    bseTelegramApi_('answerCallbackQuery',{
+      callback_query_id:String(callback.id),
+      text:'Dibatalkan. Hantar semula laporan yang dibetulkan.'
+    });
+  }catch(_){/* Card is already visibly updated, do not repeat the mutation. */}
+  return {cancelled:prior!=='INCOMPLETE_CANCELLED',
+    duplicate:prior==='INCOMPLETE_CANCELLED',
+    reference:'BSE-TG-'+match[1],
+    production_write:false,official_bse_write:false};
 }
