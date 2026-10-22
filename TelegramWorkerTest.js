@@ -625,7 +625,27 @@ function processBseTelegramTestQueue() {
 
 // Pure result path used by the worker before candidate_json is persisted.
 function bseTelegramWorkerFinalizeResult_(book,rawResult,job){
-  const guarded=bseUnifiedGuard_(rawResult,{received_at:job.receivedAt,queue_reference:'BSE-TG-'+job.id,root_reference:'BSE-TG-'+(job.rootId||job.id),source_input:job.input});
+  let guarded=bseUnifiedGuard_(rawResult,{received_at:job.receivedAt,queue_reference:'BSE-TG-'+job.id,root_reference:'BSE-TG-'+(job.rootId||job.id),source_input:job.input});
+  // GI-UX-05 FIELD-724: Never persist a legacy one-plot/no-seed candidate
+  // when this direct PILOT sowing has explicit source facts. Deterministic
+  // source facts take precedence over a stale/generated sowing envelope.
+  const directSowing=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&
+    typeof bsePilotSowingQuantityResult_==='function'&&
+    /^\s*Semai(?:an)?(?:\s|:|$)/i.test(String(job.original||job.input||''))&&
+    guarded&&Array.isArray(guarded.candidates)&&
+    guarded.candidates.some(c=>c&&c.target==='Crop_Batch_Log');
+  if(directSowing){
+    const verified=bsePilotSowingQuantityResult_(job.input);
+    if(verified)guarded=verified;
+    else {
+      guarded.validation='NEED_INFO';
+      guarded.candidates.forEach(c=>{
+        if(!c)return;
+        c.validation='NEED_INFO';
+        c.missing=Array.from(new Set((c.missing||[]).concat(['report_format'])));
+      });
+    }
+  }
   if(guarded&&Array.isArray(guarded.candidates))guarded.candidates.forEach(c=>{if(c&&c.fields)c.fields.original_note=job.provenance;});
   const checked=bsePilotCycleEndQueueGuard_(book,bseTreatmentQueueGuard_(book,bseCensusQueueGuard_(book,bseTransplantQueueGuard_(book,guarded))));
   const result=typeof bsePilotSeedFinalizeGate_==='function'?bsePilotSeedFinalizeGate_(checked,job.input):checked;

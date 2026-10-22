@@ -93,4 +93,22 @@ test('pilot-only scope, non-PILOT still follows previous message flow',()=>{
  assert.deepEqual(calls.map(x=>x.kind),['edit','reporter_receipt','owner_notice']);
  env='PILOT_OPERATION';
 });
+test('FIELD 724 Benar on stale missing-quantity card gets alert and zero domain writes',()=>{
+ const originalNote='Semai 23 Okt 26\nTimun (7055 CCB)\n200 g M3P12';
+ calls.length=0;
+ queue[4]=originalNote;
+ testCtx.bseCropBatchProposal_=()=>({canonical:{}});
+ testCtx.bsePilotSowingApprovedPayloadGuard_=()=>{throw Error('SEMAIAN_STORED_CANDIDATE_DIFFERS_FROM_SOURCE');};
+ testCtx.bseTelegramApi_=(method,payload)=>{calls.push({kind:'callback',method,payload});};
+ const result=testCtx.bseTelegramReporterConfirmationCore_(book,{actor_name:'dzuddiyn',actor_id:'1234'},
+    {token:'TOKEN-1',kind:'A',callback:{id:'callback-test',message:{chat:{id:-1234},message_id:901}}});
+ assert.equal(result.blocked,true);
+ assert.equal(result.production_write,false);
+ assert.deepEqual(calls.map(x=>x.kind),['callback']);
+ assert.equal(calls[0].method,'answerCallbackQuery');
+ assert.equal(calls[0].payload.show_alert,true);
+ assert.match(calls[0].payload.text,/Batal/);
+ delete testCtx.bsePilotSowingApprovedPayloadGuard_;
+ queue[4]='';
+});
 console.log('GI_UX_05_RECEIPT '+passed+'/'+passed+' PASS');

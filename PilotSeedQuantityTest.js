@@ -98,6 +98,15 @@ function bsePilotSeedFinalizeGate_(result,input){
   // quantity is independently checked again at the final human approval boundary.
   return bsePilotSeedQuantityGuard_(result,input);
 }
+function bsePilotSowingApprovedPayloadGuard_(originalNote,proposal){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||!/^\s*Semai(?:an)?(?:\s|:|$)/i.test(String(originalNote||'')))return true;
+  const expected=bsePilotSowingQuantityResult_(originalNote);
+  if(!expected||expected.validation!=='PASS')throw Error('SEMAIAN_SOURCE_REQUIRED_FIELDS_MISSING');
+  const sourceProposal=bseCropBatchProposal_(JSON.stringify(expected),originalNote);
+  if(bseCropBatchStableJson_(sourceProposal.canonical)!==bseCropBatchStableJson_(proposal.canonical))
+    throw Error('SEMAIAN_STORED_CANDIDATE_DIFFERS_FROM_SOURCE');
+  return true;
+}
 function bsePilotSeedQuantityCardLine_(result){
   const e=result&&result.candidates&&result.candidates.find(c=>c&&c.target==='Planting_Event_Log');
   const f=e&&e.fields||{};
