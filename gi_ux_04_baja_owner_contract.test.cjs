@@ -2,6 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm'),path=require('path'),crypto=require('crypto');
 const inv=fs.readFileSync(path.join(__dirname,'InventoryReviewTest.js'),'utf8');
 const parser=fs.readFileSync(path.join(__dirname,'PilotBajaTest.js'),'utf8');
+const flex=fs.readFileSync(path.join(__dirname,'PilotBajaFlexibleTest.js'),'utf8');
 const writer=fs.readFileSync(path.join(__dirname,'PilotBajaReviewTest.js'),'utf8');
 const ui=fs.readFileSync(path.join(__dirname,'TelegramApprovalUiTest.js'),'utf8');
 const worker=fs.readFileSync(path.join(__dirname,'TelegramWorkerTest.js'),'utf8');
@@ -12,7 +13,7 @@ const ctx={console,Date,Number,Set,JSON,
  bseReviewContextValidate_:c=>c,
  Utilities:{getUuid:()=> 'test-review-id'},SpreadsheetApp:{flush(){}}
 };
-vm.createContext(ctx);vm.runInContext(inv,ctx);vm.runInContext(parser,ctx);vm.runInContext(writer,ctx);
+vm.createContext(ctx);vm.runInContext(inv,ctx);vm.runInContext(parser,ctx);vm.runInContext(flex,ctx);vm.runInContext(writer,ctx);
 vm.runInContext(fs.readFileSync(path.join(__dirname,'PilotIncompleteBatalTest.js'),'utf8'),ctx);
 ctx.bseInventoryPayloadHash_=p=>crypto.createHash('sha256').update(JSON.stringify(p)).digest('hex');
 let n=0;const t=(title,fn)=>{fn();n++;console.log('PASS '+title)};
