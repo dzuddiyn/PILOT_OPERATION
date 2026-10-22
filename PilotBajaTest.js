@@ -28,7 +28,7 @@ function bsePilotBajaItem_(line,incoming){
  if(!check.ok)return null;
  return {item_name:'Baja',baja_type:type,quantity:check.quantity,unit:check.unit};
 }
-function bsePilotBajaParse_(text,receivedAt){
+function bsePilotBajaParseCanonical_(text,receivedAt){
  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')return null;
  const source=String(text||'').trim(),lines=source.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
  const first=lines[0]&&lines[0].match(/^baja\s+(masuk|keluar)\s*:?\s*$/i);
