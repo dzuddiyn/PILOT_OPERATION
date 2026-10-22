@@ -28,7 +28,7 @@ function bsePilotIncompleteCard_(row,result){
     if(Number.isInteger(entry.reported_dead_count))lines.push('Mati : '+entry.reported_dead_count);
     if(Number.isInteger(entry.reported_sick_count))lines.push('Sakit : '+entry.reported_sick_count);
   }else{
-    if(one)lines.push('Jenis : '+bsePilotIncompleteClean_(one.target.replace(/_/g,' '),65));
+    if(one)lines.push('Jenis : '+bsePilotIncompleteClean_(String(one.target||'Laporan').replace(/_/g,' '),65));
     const allowed={crop:'Tanaman',variety:'Varieti',plot_id:'Plot',event_date:'Tarikh',
       session:'Sesi',item_name:'Bahan',quantity:'Kuantiti',unit:'Unit',operation_type:'Operasi'};
     const seen=new Set();
