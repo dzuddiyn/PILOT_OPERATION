@@ -2,7 +2,7 @@
 // TEST-only human review for one atomic Crop Batch seed-sowing proposal.
 
 const BSE_CROP_BATCH_HEADERS=['source_key','queue_update_id','batch_id','event_date','crop','variety','batch_action','batch_status','verification_status','original_note','approved_at','reviewer','payload_hash'];
-const BSE_PLANTING_EVENT_HEADERS=['source_key','queue_update_id','batch_id','planting_event_id','event_date','event_type','crop','variety','event_status','verification_status','original_note','approved_at','reviewer','payload_hash'];
+const BSE_PLANTING_EVENT_HEADERS=['source_key','queue_update_id','batch_id','planting_event_id','event_date','event_type','crop','variety','event_status','verification_status','original_note','approved_at','reviewer','payload_hash','seed_quantity','seed_unit'];
 const BSE_PLOT_ALLOCATION_HEADERS=['source_key','queue_update_id','batch_id','allocation_id','event_date','plot_id','allocation_status','verification_status','original_note','approved_at','reviewer','payload_hash'];
 const BSE_CROP_BATCH_REVIEW_HEADERS=['review_id','source_key','queue_update_id','target','payload_hash','decision','reviewer','review_note','reviewed_at','queue_status_before','candidate_json','batch_id'];
 
@@ -82,7 +82,7 @@ function bseCropBatchReviewCore_(book,reviewContext){
     const allocationOut=allocationSheet||bseCropBatchSheet_(book,'TEST_PLOT_ALLOCATION',BSE_PLOT_ALLOCATION_HEADERS);
     const batch=proposal.batch.fields,event=proposal.event.fields;
     bseCropBatchAppend_(batchOut,[sourceKey,updateId,batchId,batch.event_date,batch.crop,batch.variety,batch.batch_action,batch.batch_status,batch.verification_status,root.provenance,stamp,reviewer,payloadHash]);
-    bseCropBatchAppend_(eventOut,[sourceKey,updateId,batchId,Utilities.getUuid(),event.event_date,event.event_type,event.crop,event.variety,event.event_status,event.verification_status,root.provenance,stamp,reviewer,payloadHash]);
+    bseCropBatchAppend_(eventOut,[sourceKey,updateId,batchId,Utilities.getUuid(),event.event_date,event.event_type,event.crop,event.variety,event.event_status,event.verification_status,root.provenance,stamp,reviewer,payloadHash,event.seed_quantity==null?'':event.seed_quantity,event.seed_unit||'']);
     proposal.allocations.forEach((allocation,index)=>{
       const fields=allocation.fields;
       bseCropBatchAppend_(allocationOut,[sourceKey,updateId,batchId,batchId+'-PA-'+String(index+1).padStart(3,'0'),fields.event_date,fields.plot_id,fields.allocation_status,fields.verification_status,root.provenance,stamp,reviewer,payloadHash]);
@@ -134,7 +134,7 @@ function bseCropBatchProposal_(encoded,original){
   if(batches.length!==1||events.length!==1||!allocations.length)throw new Error('Proposal mesti mempunyai satu batch-start, satu planting event, dan allocation.');
   const common=(candidate,recordType,required)=>{
     const f=candidate.fields;
-    const allowedFields=['project_id','system_year','record_type','verification_status','original_note'].concat(required);
+    const allowedFields=['project_id','system_year','record_type','verification_status','original_note'].concat(required,recordType==='PLANTING_EVENT'?['seed_quantity','seed_unit']:[]);
     if(Object.keys(candidate).some(key=>!['target','validation','missing','fields'].includes(key))||candidate.validation!=='PASS'||!Array.isArray(candidate.missing)||candidate.missing.length||!f||typeof f!=='object'||Array.isArray(f)||Object.keys(f).some(key=>!allowedFields.includes(key))||f.record_type!==recordType||f.project_id!=='BSE_SB'||f.system_year!==2026||f.verification_status!=='PROVISIONAL'||f.original_note!==original)throw new Error('Calon Crop Batch gagal semakan kontrak TEST.');
     required.forEach(key=>{if(typeof f[key]!=='string'||!f[key].trim())throw new Error('Medan wajib Crop Batch tidak lengkap: '+key);});
     if(!bseCropBatchDate_(f.event_date))throw new Error('Tarikh Crop Batch tidak sah.');
@@ -143,6 +143,11 @@ function bseCropBatchProposal_(encoded,original){
   const batch=batches[0],event=events[0];
   const batchFields=common(batch,'CROP_BATCH',['event_date','batch_action','crop','variety','batch_status']);
   const eventFields=common(event,'PLANTING_EVENT',['event_date','event_type','crop','variety','event_status']);
+  if(Object.prototype.hasOwnProperty.call(eventFields,'seed_quantity')||Object.prototype.hasOwnProperty.call(eventFields,'seed_unit')){
+    if(!Number.isFinite(eventFields.seed_quantity)||eventFields.seed_quantity<=0||eventFields.seed_quantity>1000000000||
+       typeof eventFields.seed_unit!=='string'||!/^[A-Za-z][A-Za-z0-9/%-]{0,15}$/.test(eventFields.seed_unit))
+      throw new Error('Kuantiti dan unit benih mesti sah, positif dan dikekalkan asal.');
+  }
   if(batchFields.batch_action!=='BATCH_START'||batchFields.batch_status!=='PROPOSED'||eventFields.event_type!=='SEED_SOWING'||eventFields.event_status!=='PROPOSED'||batchFields.event_date!==eventFields.event_date||batchFields.crop!==eventFields.crop||batchFields.variety!==eventFields.variety)throw new Error('Batch-start dan planting event tidak sepadan.');
   const normalized=allocations.map(allocation=>{
     const f=common(allocation,'PLOT_ALLOCATION',['event_date','plot_id','allocation_status']);
@@ -156,7 +161,9 @@ function bseCropBatchProposal_(encoded,original){
 }
 
 function bseCropBatchCanonicalFields_(fields){
-  return {project_id:fields.project_id,system_year:fields.system_year,event_date:fields.event_date,record_type:fields.record_type,verification_status:fields.verification_status,original_note:fields.original_note,batch_action:fields.batch_action||'',crop:fields.crop||'',variety:fields.variety||'',batch_status:fields.batch_status||'',event_type:fields.event_type||'',event_status:fields.event_status||'',plot_id:fields.plot_id||'',allocation_status:fields.allocation_status||''};
+  const canonical={project_id:fields.project_id,system_year:fields.system_year,event_date:fields.event_date,record_type:fields.record_type,verification_status:fields.verification_status,original_note:fields.original_note,batch_action:fields.batch_action||'',crop:fields.crop||'',variety:fields.variety||'',batch_status:fields.batch_status||'',event_type:fields.event_type||'',event_status:fields.event_status||'',plot_id:fields.plot_id||'',allocation_status:fields.allocation_status||''};
+  if(Object.prototype.hasOwnProperty.call(fields,'seed_quantity')){canonical.seed_quantity=fields.seed_quantity;canonical.seed_unit=fields.seed_unit;}
+  return canonical;
 }
 
 function bseCropBatchPlotCompare_(left,right){
@@ -205,6 +212,14 @@ function bseCropBatchSheet_(book,name,headers){
   if(!sheet.getLastRow()){
     if(sheet.getMaxColumns()<headers.length)sheet.insertColumnsAfter(sheet.getMaxColumns(),headers.length-sheet.getMaxColumns());
     sheet.getRange(1,1,1,headers.length).setValues([headers]).setFontWeight('bold');sheet.setFrozenRows(1);
+  }
+  // Additive TEST-only seed fields: keep original 14 event columns/old rows in place.
+  if(name==='TEST_PLANTING_EVENT'&&headers.length===16&&sheet.getLastRow()>0){
+    if(sheet.getMaxColumns()<16)sheet.insertColumnsAfter(sheet.getMaxColumns(),16-sheet.getMaxColumns());
+    const actual=sheet.getRange(1,1,1,16).getValues()[0];
+    if(actual.slice(0,14).join('|')===headers.slice(0,14).join('|')&&
+       actual.slice(14).every(v=>v===''||v==null))
+      sheet.getRange(1,15,1,2).setValues([headers.slice(14)]);
   }
   if(sheet.getRange(1,1,1,headers.length).getValues()[0].join('|')!==headers.join('|'))throw new Error('Header '+name+' tidak sepadan.');
   return sheet;

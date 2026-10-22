@@ -558,6 +558,14 @@ function bseSeedSowingModulePlots_(input) {
   const match=text.match(/(?:^|\n)\s*(?:\d+\.\s*)?Modul\s*:\s*([^\r\n]*)/i);
   if(!match)return {ok:false,plots:[],reason:'MODUL_LINE_MISSING'};
   const value=match[1].trim();
+  if(typeof bseRuntimeEnvironmentName_==='function'&&bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&
+     typeof bsePilotSeedFlexiblePlots_==='function'){
+    const flex=bsePilotSeedFlexiblePlots_(value);
+    if(flex.ok)return {ok:true,plots:flex.plots.slice().sort((a,b)=>{
+      const x=a.match(/^M(\d+)P(\d+)$/),y=b.match(/^M(\d+)P(\d+)$/);
+      return Number(x[1])-Number(y[1])||Number(x[2])-Number(y[2]);
+    }),reason:''};
+  }
   let module,plotNumbers=[];
   const compact=value.match(/^M([1-9]\d*)P([1-9]\d*)$/i);
   if(compact){
