@@ -495,6 +495,33 @@ function processBseTelegramTestQueue() {
     return;
   }
 
+  // PILOT-only: acknowledge an unrecognized, short plain-text message without AI guessing.
+  if(!job.replyOnly&&typeof bsePilotUnrecognizedPlainText_==='function'&&bsePilotUnrecognizedPlainText_(job.original||job.input)){
+    if(!lock.tryLock(1000))throw Error('Unrecognized queue lock busy');
+    try{
+      const sheet=bseTelegramQueue_(book),r=sheet.getRange(job.row,1,1,BSE_TG_QUEUE_HEADERS.length).getValues()[0];
+      if(String(r[0])!==job.id||String(r[6])!=='PROCESSING')return;
+      sheet.getRange(job.row,7).setValue('UNRECOGNIZED_REPLY_PENDING');
+      SpreadsheetApp.flush();
+    }finally{lock.releaseLock();}
+    try{
+      const payload={chat_id:job.chatId,text:bsePilotUnrecognizedMessage_('BSE-TG-'+job.id)};
+      if(/^\d+$/.test(job.messageId))payload.reply_parameters={message_id:Number(job.messageId),allow_sending_without_reply:true};
+      const sent=bseTelegramApi_('sendMessage',payload);
+      if(!sent||!/^\d+$/.test(String(sent.message_id||'')))throw Error('UNRECOGNIZED_SEND_UNCERTAIN');
+    }catch(error){
+      console.log('UNRECOGNIZED_REPLY_PENDING: BSE-TG-'+job.id);
+      return; // Uncertain delivery: do not auto-replay and create duplicate messages.
+    }
+    if(!lock.tryLock(1000)){console.log('UNRECOGNIZED_REPLY_RECONCILE_PENDING');return;}
+    try{
+      const sheet=bseTelegramQueue_(book),r=sheet.getRange(job.row,1,1,BSE_TG_QUEUE_HEADERS.length).getValues()[0];
+      if(String(r[0])===job.id&&r[6]==='UNRECOGNIZED_REPLY_PENDING'){
+        sheet.getRange(job.row,7).setValue('UNRECOGNIZED_MESSAGE');SpreadsheetApp.flush();
+      }
+    }finally{lock.releaseLock();}
+    return;
+  }
   // No lock is held while Gemini runs, so the receiver can still save new messages.
   let result, inventoryCheck=null;
   if(!job.replyOnly) {
