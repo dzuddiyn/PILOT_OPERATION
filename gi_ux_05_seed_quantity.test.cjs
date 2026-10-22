@@ -249,4 +249,64 @@ test('no extra write path and original labelled reports still accepted',()=>{
  const free=fs.readFileSync(path.join(__dirname,'PilotSeedFreeOrderTest.js'),'utf8');
  assert(!/appendRow|insertSheet|setValues|SpreadsheetApp/.test(free));
 });
+test('FIELD 724 exact format matches owner report as parsed source',()=>{
+ const note='Semai 23 Okt 26\nTimun (7055 CCB)\n200 g M3P12';
+ const facts=ctx.bsePilotSeedFreeOrderFacts_(note);
+ console.log('FIELD_724_FACTS='+JSON.stringify(facts));
+ const r=parse(note);
+ console.log('FIELD_724_PARSED='+JSON.stringify(r));
+ assert.equal(r.validation,'PASS','Field 724 source must fully parse');
+ assert.equal(r.candidates.find(c=>c.target==='Planting_Event_Log').fields.seed_quantity,200);
+ assert.equal(r.candidates.find(c=>c.target==='Planting_Event_Log').fields.seed_unit,'g');
+ assert.deepEqual(JSON.parse(JSON.stringify(r.candidates.filter(c=>c.target==='Plot_Allocation_Log').map(c=>c.fields.plot_id))),['M3P1','M3P2']);
+ assert.equal(ctx.bsePilotSeedFinalizeGate_(r,note).validation,'PASS');
+});
+test('FIELD 724 legacy candidate cannot bypass final worker deterministic source',()=>{
+ const note='Semai 23 Okt 26\nTimun (7055 CCB)\n200 g M3P12';
+ const original=JSON.parse(JSON.stringify(parse(note)));
+ original.candidates.find(c=>c.target==='Planting_Event_Log').fields.seed_quantity=undefined;
+ original.candidates.find(c=>c.target==='Planting_Event_Log').fields.seed_unit=undefined;
+ original.candidates=original.candidates.filter(c=>c.target!=='Plot_Allocation_Log').concat([
+   {...original.candidates.find(c=>c.target==='Plot_Allocation_Log'),fields:{...original.candidates.find(c=>c.target==='Plot_Allocation_Log').fields,plot_id:'M3P12'}}
+ ]);
+ assert.equal(original.validation,'PASS');
+ assert.equal(original.candidates.find(c=>c.target==='Planting_Event_Log').fields.seed_quantity,undefined);
+ assert.deepEqual(JSON.parse(JSON.stringify(original.candidates.filter(c=>c.target==='Plot_Allocation_Log').map(c=>c.fields.plot_id))),['M3P12']);
+ ctx.bseUnifiedGuard_=(result)=>result;
+ for(const name of ['bsePilotCycleEndQueueGuard_','bseTreatmentQueueGuard_','bseCensusQueueGuard_','bseTransplantQueueGuard_'])ctx[name]=(...args)=>args[args.length-1];
+ vm.runInContext(extract(worker,'bseTelegramWorkerFinalizeResult_'),ctx);
+ const corrected=ctx.bseTelegramWorkerFinalizeResult_(null,original,{
+   id:'772257724',rootId:'772257724',receivedAt:'2026-10-22T19:04:00Z',
+   original:note,input:note,provenance:note});
+ assert.equal(corrected.validation,'PASS');
+ assert.equal(corrected.candidates.find(c=>c.target==='Planting_Event_Log').fields.seed_quantity,200);
+ assert.equal(corrected.candidates.find(c=>c.target==='Planting_Event_Log').fields.seed_unit,'g');
+ assert.deepEqual(JSON.parse(JSON.stringify(corrected.candidates.filter(c=>c.target==='Plot_Allocation_Log').map(c=>c.fields.plot_id))),['M3P1','M3P2']);
+ assert.equal(corrected.production_write,false);
+});
+test('FIELD 724 source guard rejects stale existing OPEN card candidate before write',()=>{
+ const note='Semai 23 Okt 26\nTimun (7055 CCB)\n200 g M3P12';
+ const old=JSON.parse(JSON.stringify(parse(note)));
+ delete old.candidates.find(c=>c.target==='Planting_Event_Log').fields.seed_quantity;
+ delete old.candidates.find(c=>c.target==='Planting_Event_Log').fields.seed_unit;
+ old.candidates=old.candidates.filter(c=>c.target!=='Plot_Allocation_Log').concat([
+   {...old.candidates.find(c=>c.target==='Plot_Allocation_Log'),fields:{...old.candidates.find(c=>c.target==='Plot_Allocation_Log').fields,plot_id:'M3P12'}}
+ ]);
+ const stale=ctx.bseCropBatchProposal_(JSON.stringify(old),note);
+ assert.throws(()=>ctx.bsePilotSowingApprovedPayloadGuard_(note,stale),/SEMAIAN_STORED_CANDIDATE_DIFFERS_FROM_SOURCE/);
+ const correct=ctx.bseCropBatchProposal_(JSON.stringify(parse(note)),note);
+ assert.equal(ctx.bsePilotSowingApprovedPayloadGuard_(note,correct),true);
+});
+test('missing sowing facts cannot regain Benar through stale raw PASS',()=>{
+ const note='Semai 23 Okt 26\nTimun (7055 CCB)\nM3P12';
+ const stale=JSON.parse(JSON.stringify(parse(note)));
+ delete stale.candidates.find(c=>c.target==='Planting_Event_Log').fields.seed_quantity;
+ delete stale.candidates.find(c=>c.target==='Planting_Event_Log').fields.seed_unit;
+ const blocked=ctx.bseTelegramWorkerFinalizeResult_(null,stale,{
+   id:'772257900',rootId:'772257900',receivedAt:'2026-10-22T19:05:00Z',
+   input:note,original:note,provenance:note
+ });
+ assert.equal(blocked.validation,'NEED_INFO');
+ assert(blocked.candidates.some(c=>c.missing.includes('seed_quantity')));
+});
 console.log('GI_UX_05_SEED_QUANTITY '+num+'/'+num+' PASS');

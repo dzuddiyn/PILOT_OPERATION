@@ -508,7 +508,22 @@ function bseTelegramReporterConfirmationCore_(book,context,input){
   }
 
   context.reference=String(row[0]);context.action='APPROVED';context.proposalResult=parsed;context.candidate_index=candidateIndex;
-  const domain=bseApprovalDomain_(parsed),outcome=domain.core(book,context);
+  const domain=bseApprovalDomain_(parsed);
+  if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&domain.target==='Crop_Batch_Log'&&
+     typeof bsePilotSowingApprovedPayloadGuard_==='function'){
+    try{
+      const original=String(qrows[q][4]||'');
+      const proposal=bseCropBatchProposal_(JSON.stringify(parsed),original);
+      bsePilotSowingApprovedPayloadGuard_(original,proposal);
+    }catch(_){
+      if(input.callback.id)try{
+        bseTelegramApi_('answerCallbackQuery',{callback_query_id:input.callback.id,
+          text:'Kad semaian ini tidak sepadan dengan laporan asal. Tekan Batal dan hantar laporan baharu.',show_alert:true});
+      }catch(_send){}
+      return {blocked:true,status:'SEMAIAN_SOURCE_MISMATCH',production_write:false};
+    }
+  }
+  const outcome=domain.core(book,context);
   sheet.getRange(sheetRow,12,1,8).setValues([[String(input.callback.message.chat.id),String(input.callback.message.message_id),'REPORTER_CONFIRMED','',new Date().toISOString(),String(row[2]),'REPORTER_CONFIRMED','']]);SpreadsheetApp.flush();
   const status=bseApprovalRecomputeQueueStatus_(book,String(row[0])),recordSummary=domain.target==='Transplant_Event_Log'&&bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?bseTelegramPilotConfirmedTransplant_(book,String(row[0]),outcome):domain.target==='Plant_Census_Log'?bseCensusConfirmedSummary_(book,String(row[0]),outcome):domain.target==='Plant_Replacement_Event_Log'?bsePlantReplacementConfirmedSummary_(book,String(row[0]),outcome):domain.target==='EC_Leachate_Log'?bseEcLeachateConfirmedSummary_(book,String(row[0]),outcome):domain.target==='Observation_Log'?bseObservationConfirmedSummary_(book,String(row[0]),outcome):domain.target==='Operation_Log'?bseOperationConfirmedSummary_(book,String(row[0]),outcome):domain.target==='Input_Usage_Log'?bseInputUsageConfirmedSummary_(book,String(row[0]),outcome):domain.target==='Decision_Approval_Log'?bseDecisionApprovalConfirmedSummary_(book,String(row[0]),outcome):domain.target==='Claim_Request_Log'?bseClaimConfirmedSummary_(book,String(row[0]),outcome):'';
   const bajaGroup=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&domain.target==='Inventory_Event_Log'&&parsed.candidates&&parsed.candidates[0]&&parsed.candidates[0].fields&&parsed.candidates[0].fields.baja_group===true;

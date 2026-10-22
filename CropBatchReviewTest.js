@@ -72,6 +72,8 @@ function bseCropBatchReviewCore_(book,reviewContext){
     return {source_key:sourceKey,decision:decision,duplicate:true,production_write:false};
   }
   if(status!=='NEEDS_HUMAN_REVIEW')throw new Error('Baris queue bukan NEEDS_HUMAN_REVIEW.');
+  if(decision==='APPROVED'&&typeof bsePilotSowingApprovedPayloadGuard_==='function')
+    bsePilotSowingApprovedPayloadGuard_(String(selected.row[4]||''),proposal);
   if(batches.some(row=>String(row[0])===sourceKey)||events.some(row=>String(row[0])===sourceKey)||allocations.some(row=>String(row[0])===sourceKey))throw new Error('Konflik rekod Crop Batch TEST sedia ada.');
   const reviewOut=reviewSheet||bseCropBatchSheet_(book,'TEST_CROP_BATCH_REVIEW',BSE_CROP_BATCH_REVIEW_HEADERS);
   let batchId='';
