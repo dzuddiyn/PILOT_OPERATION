@@ -111,4 +111,20 @@ test('FIELD 724 Benar on stale missing-quantity card gets alert and zero domain 
  delete testCtx.bsePilotSowingApprovedPayloadGuard_;
  queue[4]='';
 });
+test('reported Benar shows reporter confirmation, not provisional as user-facing status',()=>{
+ const receipt=testCtx.bseTelegramConfirmedPersistedSummary_(book,ref,'Crop_Batch_Log',{source_key:key});
+ assert(receipt.includes('Pengesahan: Disahkan pelapor'));
+ assert(!receipt.includes('Status semakan: Sementara (belum diverifikasi)'));
+ assert(!receipt.includes('Status verifikasi: Disahkan dalam pilot'));
+ const v=data.PILOT_CROP_BATCH.rows[0][8];
+ assert.equal(v,'PROVISIONAL','stored backend verification state must remain intact');
+});
+test('separately verified sowing preserves distinction from reporter confirmation',()=>{
+ const row=data.PILOT_CROP_BATCH.rows[0],saved=row[8];
+ row[8]='VERIFIED_TEST';
+ const receipt=testCtx.bseTelegramConfirmedPersistedSummary_(book,ref,'Crop_Batch_Log',{source_key:key});
+ assert(receipt.includes('Pengesahan: Disahkan pelapor'));
+ assert(receipt.includes('Status verifikasi: Disahkan dalam pilot'));
+ row[8]=saved;
+});
 console.log('GI_UX_05_RECEIPT '+passed+'/'+passed+' PASS');

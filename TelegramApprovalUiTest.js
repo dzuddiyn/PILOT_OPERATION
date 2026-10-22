@@ -465,7 +465,9 @@ function bseTelegramConfirmedPersistedSummary_(book,reference,domain,outcome){
    if(seedQty)lines.push('Kuantiti benih: '+seedQty+' '+seedUnit);
    lines.push('Direkodkan: 1 batch, 1 aktiviti semaian, '+plots.length+' plot');
    if(status)lines.push('Status plot: '+format('allocation_status',status));
-   if(verify)lines.push('Status semakan: '+format('verification_status',verify));
+   // Benar confirms reporter approval, not independent field verification.
+   lines.push('Pengesahan: Disahkan pelapor');
+   if(verify&&verify!=='PROVISIONAL')lines.push('Status verifikasi: '+format('verification_status',verify));
    const receipt=lines.join('\n');return receipt.length<=3900?receipt:'';
  }
  const fields=Object.keys(keys),lines=['REKOD '+labels[domain]+' DISIMPAN','Rujukan: '+reference,'Bilangan rekod: '+found.reduce((n,p)=>n+p.rows.length,0)];
