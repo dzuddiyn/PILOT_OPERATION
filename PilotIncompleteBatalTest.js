@@ -35,6 +35,11 @@ function bsePilotIncompleteMissingLabel_(field,row,result){
     quantity:'Kuantiti (contoh 200)',
     unit:'Unit (contoh kg)',
     item_name:'Bahan (contoh Baja A)',
+    jenis_baja:'Jenis baja (contoh F atau N)',
+    invalid_baja_line:'Format item baja (contoh F atau F 2)',
+    duplicate_baja_type:'Jenis baja berulang',
+    plot_not_applicable:'Baja Masuk tidak memerlukan plot',
+    too_many_baja_items:'Terlalu banyak item dalam satu laporan',
     session:'Sesi (contoh Pagi)',
     report_format:'Susunan laporan (semak contoh format)'
   };
@@ -44,7 +49,8 @@ function bsePilotIncompleteCard_(row,result){
   const fields=(result.candidates||[]).map(c=>c&&c.fields||{});
   const one=result.candidates.length===1?result.candidates[0]:null;
   const census=one&&one.target==='Plant_Census_Log';
-  const lines=[census?'REKOD BANCI POKOK':'SEMAKAN LAPORAN BELUM LENGKAP',
+  const baja=one&&one.fields&&one.fields.baja_group===true;
+  const lines=[census?'REKOD BANCI POKOK':baja?(one.fields.record_type==='INVENTORY_IN'?'BAJA MASUK':'BAJA KELUAR'):'SEMAKAN LAPORAN BELUM LENGKAP',
     'Rujukan : BSE-TG-'+String(row[0])];
   if(census){
     const f=one.fields||{},entry=Array.isArray(f.census_entries)?f.census_entries[0]||{}:{};
@@ -57,6 +63,11 @@ function bsePilotIncompleteCard_(row,result){
     }
     if(Number.isInteger(entry.reported_dead_count))lines.push('Mati : '+entry.reported_dead_count);
     if(Number.isInteger(entry.reported_sick_count))lines.push('Sakit : '+entry.reported_sick_count);
+  }else if(baja){
+    const f=one.fields||{},items=Array.isArray(f.baja_items)?f.baja_items:[];
+    lines.push('Tarikh : '+String(f.event_date||'❌ Belum dinyatakan'));
+    if(f.record_type==='INVENTORY_OUT')lines.push('Plot : '+String(f.destination||'❌ Belum dinyatakan'));
+    items.forEach((item,i)=>lines.push((i+1)+'. Baja '+item.baja_type+' : '+item.quantity+' '+item.unit+(item.destination?' ('+item.destination+')':'')));
   }else{
     if(one)lines.push('Jenis : '+bsePilotIncompleteClean_(String(one.target||'Laporan').replace(/_/g,' '),65));
     const allowed={crop:'Tanaman',variety:'Varieti',plot_id:'Plot',event_date:'Tarikh',

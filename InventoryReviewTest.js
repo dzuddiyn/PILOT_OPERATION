@@ -7,7 +7,7 @@ const BSE_INVENTORY_EVENT_HEADERS = [
   'event_date','owner_id','owner_telegram_user_id','owner_name','status',
   'verification_status','production_write','original_note','created_at',
   'approved_at','reviewer','payload_hash','responsible_name','responsible_source','responsible_telegram_user_id',
-  'destination','storage_location','counted_quantity','movement_type','router_confidence'
+  'destination','storage_location','counted_quantity','movement_type','router_confidence','baja_type'
 ];
 const BSE_INVENTORY_REVIEW_HEADERS = [
   'review_id','source_key','event_id','domain','decision','reviewer',
@@ -491,6 +491,11 @@ function runBseInventoryResponsibleIsolationHarnessTests(){
 }
 
 function bseInventoryValidateResult_(result, receivedAt, reference) {
+  if(result&&result.candidates&&result.candidates.length===1&&result.candidates[0].fields&&result.candidates[0].fields.baja_group===true){
+    const checked=bsePilotBajaValidateResult_(result),candidate=result.candidates[0];
+    candidate.missing=checked.missing;candidate.validation=checked.validation;result.validation=checked.validation;
+    return checked;
+  }
   const candidates = result && Array.isArray(result.candidates) ? result.candidates : [];
   if (result && result.production_write !== false) return { validation: 'FAIL', missing: [], reason: 'production_write mesti false' };
   if (candidates.length !== 1 || !['Inventory_Event_Log', 'Input_Usage_Log', 'Claim_Request_Log', 'Asset_Proposal_Log'].includes(String(candidates[0] && candidates[0].target || ''))) return null;
