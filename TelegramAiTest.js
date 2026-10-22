@@ -24,9 +24,9 @@ function bseTelegramAiAccessAllowed_(book,m,allowedPrivate,allowedGroup){
 }
 function bseTelegramAiSystemPrompt_(hasKb){
   return [
-    'Anda ialah pembantu Q&A OpsMate BSE dalam mod PILOT_TEST.',
+    bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'Anda ialah pembantu Q&A OpsMate BSE.':'Anda ialah pembantu Q&A OpsMate BSE dalam mod PILOT_TEST.',
     'Semua jawapan anda adalah NON_CANONICAL: bukan rekod BSE, bukan approval, bukan arahan operasi rasmi, dan tidak boleh mendakwa telah mengubah sebarang data.',
-    'Jangan baca atau reka data operasi/canonical BSE. Jika pengguna meminta stok, sejarah, status plot atau rekod BSE, jelaskan bahawa /ask_ai tidak mempunyai akses kepada rekod canonical dan arahkan pengguna menggunakan command retrieval rasmi.',
+    'Jangan baca atau reka data operasi/canonical BSE. Jika pengguna meminta stok, sejarah, status plot atau rekod BSE, jelaskan bahawa '+(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'/ask':'/ask_ai')+' tidak mempunyai akses kepada rekod canonical dan arahkan pengguna menggunakan command retrieval rasmi.',
     hasKb?'Anda mempunyai File Search knowledge base pertanian. Untuk soalan pertanian, utamakan sumber KB sebelum pengetahuan umum. Jika soalan menyebut IRAC, kumpulan IRAC atau Mode of Action (MoA), WAJIB gunakan File Search KB dan jangan nyatakan nombor kumpulan/MoA sebagai fakta jika tiada grounding daripada KB.':'Knowledge base pertanian belum dikonfigurasi; nyatakan jika jawapan pertanian hanya menggunakan pengetahuan umum model.',
     'Untuk racun perosak Malaysia: pendaftaran produk dikawal oleh Lembaga Racun Makhluk Perosak/Jabatan Pertanian; SISMARP ialah pangkalan rujukan maklumat racun berdaftar yang disyorkan bagi tanaman/perosak tertentu. Jangan kata produk didaftarkan melalui SISMARP. IRAC ialah rujukan Mode of Action dan resistance management, BUKAN bukti sesuatu racun diluluskan di Malaysia.',
     'Jangan mereka kadar, PHI, MRL, pendaftaran, label, atau status syor. Jika SISMARP CURRENT tersedia dan freshness masih sah, gunakan hasil semasa itu hanya untuk padanan query/filter yang diberikan. Jika total=0, sebut tiada padanan SISMARP semasa untuk kombinasi/filter itu; JANGAN tukar 0 padanan menjadi dakwaan bahawa bahan aktif atau produk itu tidak berdaftar di Malaysia secara umum. Jika cache stale/tidak tersedia atau tiada filter eksplisit, nyatakan batas semakan dan jangan membuat kesimpulan pendaftaran.',
@@ -174,19 +174,20 @@ function bseTelegramAiToHtml_(text){
   s=s.replace(/\*/g,'');
   return s.replace(/[\r\n]{3,}/g,'\n\n').trim();
 }
-function bseTelegramAiSend_(m,text){
-  const chunks=[];let rest=String(text||'');
+function bseTelegramAiSend_(m,text,options){
+  const chunks=[];let rest=String(text||''),pilot=bseRuntimeEnvironmentName_()==='PILOT_OPERATION';
+  if(pilot&&!(options&&options.noAnswerHeading===true)){rest=rest.replace(/^\*\*🤖 AI — NON_CANONICAL\*\*\s*/,'');rest='**🤖 Jawapan AI — Maklumat rujukan sahaja**\n\n'+rest;}
   while(rest.length>3600){let cut=rest.lastIndexOf('\n',3600);if(cut<2400)cut=3600;chunks.push(rest.slice(0,cut));rest=rest.slice(cut).replace(/^\s+/,'');}
   if(rest)chunks.push(rest);
-  chunks.forEach((chunk,i)=>{const payload={chat_id:String(m.chat.id),text:bseTelegramAiToHtml_(chunk),parse_mode:'HTML'};if(i===0&&m.message_id)payload.reply_parameters={message_id:Number(m.message_id),allow_sending_without_reply:true};bseTelegramApi_('sendMessage',payload);});
+  chunks.forEach((chunk,i)=>{const payload={chat_id:String(m.chat.id),text:bseTelegramAiToHtml_(chunk),parse_mode:'HTML'};if(!pilot&&i===0&&m.message_id)payload.reply_parameters={message_id:Number(m.message_id),allow_sending_without_reply:true};bseTelegramApi_('sendMessage',payload);});
   return chunks.length;
 }
 function bseTelegramAiReceive_(book,m,allowedPrivate,allowedGroup){
   if(!bseTelegramAiCommand_(m&&m.text))return {handled:false};
   if(!bseTelegramAiAccessAllowed_(book,m,allowedPrivate,allowedGroup))return {handled:true,unauthorized:true,production_write:false};
   const question=bseTelegramAiQuestion_(m.text);
-  if(!question){const command=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'/ask':'/ask_ai';bseTelegramAiSend_(m,'Gunakan: '+command+' <soalan>\nContoh: '+command+' abamectin kumpulan IRAC berapa?');return {handled:true,production_write:false};}
-  if(question.length>6000){const command=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'/ask':'/ask_ai';bseTelegramAiSend_(m,'Soalan terlalu panjang. Had '+command+' ialah 6000 aksara.');return {handled:true,production_write:false};}
+  if(!question){const command=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'/ask':'/ask_ai';bseTelegramAiSend_(m,'Gunakan: '+command+' <soalan>\nContoh: '+command+' abamectin kumpulan IRAC berapa?',{noAnswerHeading:true});return {handled:true,production_write:false};}
+  if(question.length>6000){const command=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'/ask':'/ask_ai';bseTelegramAiSend_(m,'Soalan terlalu panjang. Had '+command+' ialah 6000 aksara.',{noAnswerHeading:true});return {handled:true,production_write:false};}
   if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'){
     const siteAnswer=bsePilotKbStructuredAnswer_(book,question)||bsePilotSiteBFaq_(book,question);
     if(siteAnswer){bseTelegramAiSend_(m,siteAnswer);return {handled:true,kb_used:true,production_write:false};}
@@ -197,7 +198,7 @@ function bseTelegramAiReceive_(book,m,allowedPrivate,allowedGroup){
     console.log('BSE_AI_REPLY_SENT: '+JSON.stringify({kb_used:answer.kb_used,source_count:answer.sources.length,sismarp_current:!!(currentSismarp&&currentSismarp.available),production_write:false}));
     return {handled:true,kb_used:answer.kb_used,source_count:answer.sources.length,sismarp_current:!!(currentSismarp&&currentSismarp.available),production_write:false};
   }catch(error){
-    bseTelegramAiSend_(m,'AI tidak dapat menjawab sekarang. '+String(error.message||'Ralat tidak diketahui').replace(/AIza[A-Za-z0-9_-]+/g,'[REDACTED]').slice(0,180));
+    bseTelegramAiSend_(m,'AI tidak dapat menjawab sekarang. '+String(error.message||'Ralat tidak diketahui').replace(/AIza[A-Za-z0-9_-]+/g,'[REDACTED]').slice(0,180),{noAnswerHeading:true});
     return {handled:true,error:true,production_write:false};
   }
 }
