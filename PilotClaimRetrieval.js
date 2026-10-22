@@ -97,6 +97,14 @@ function bsePilotClaimAudit_(book,m,period,outcome,reason,scope,count){
   sheet.appendRow([new Date().toISOString(),user,chat,message,String(period&&period.key||''),String(outcome||''),String(reason||''),String(scope||''),Number(count||0)]);
   SpreadsheetApp.flush();
 }
+function bsePilotClaimEvidenceMonth_(value){
+  // Evidence received_at is a timestamp, not a claim ledger event_date.
+  const dateObject=Object.prototype.toString.call(value)==='[object Date]'; if(dateObject&&!Number.isFinite(value.getTime()))return ''; const raw=dateObject?value.toISOString():String(value||'').trim();
+  if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(raw))return '';
+  const instant=new Date(raw);
+  if(!Number.isFinite(instant.getTime())||instant.toISOString().slice(0,10)!==raw.slice(0,10))return '';
+  return Utilities.formatDate(instant,'Asia/Kuala_Lumpur','yyyy-MM');
+}
 function bsePilotClaimRetrieve_(book,m,now){
   const period=bsePilotClaimPeriod_(m&&m.text,now);
   if(!period.matched)return {handled:false};
@@ -105,30 +113,40 @@ function bsePilotClaimRetrieve_(book,m,now){
   const access=bsePilotClaimAccess_(book,m);
   if(!access.ok){audit('DENIED','NOT_ACTIVE','',0);return {handled:true,text:'Akses tuntutan hanya untuk pengguna aktif melalui PM bot.',production_write:false};}
   if(!period.ok){audit('DENIED','INVALID_PERIOD',access.scope,0);return {handled:true,text:period.help,production_write:false};}
-  const table=bsePilotClaimTable_(book,'TEST_CLAIM_LOG',['source_key','claimant_telegram_user_id','item_name','amount_myr','event_date','status','production_write']);
-  if(!table.ok){audit('BLOCKED',table.reason,access.scope,0);return {handled:true,text:'Data tuntutan belum tersedia untuk semakan yang selamat.',production_write:false};}
+  const table=bsePilotClaimTable_(book,'TEST_FILE_EVIDENCE',['evidence_id','reporter_telegram_user_id','received_at','caption','attachment_type','mime_type','file_name','category','visibility','status','drive_file_id']);
+  if(!table.ok){audit('BLOCKED',table.reason,access.scope,0);return {handled:true,text:'Rekod tuntutan belum tersedia untuk semakan.',production_write:false};}
   const i=table.idx,selected=[],invalid=[];
   for(const row of table.rows){
-    if(access.scope!=='OWNER'&&String(row[i.claimant_telegram_user_id]||'')!==access.id)continue;
-    const day=bsePilotClaimDate_(row[i.event_date]);
-    if(!day){invalid.push('DATE_INVALID');continue;}
-    if(!day.startsWith(period.key+'-'))continue;
-    if(row[i.production_write]===true||String(row[i.production_write]||'').toUpperCase()==='TRUE'){invalid.push('PRODUCTION_FLAG');continue;}
-    const amountText=String(row[i.amount_myr]==null?'':row[i.amount_myr]).trim();
-    const amountFormatOk=/^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d{1,2})?$/.test(amountText);
-    const amount=amountFormatOk?Number(amountText.replace(/,/g,'')):NaN;
-    if(!amountFormatOk||!Number.isSafeInteger(Math.round(amount*100))||amount<=0||!String(row[i.source_key]||'').trim()){invalid.push('CLAIM_INVALID');continue;}
-    if(access.scope==='OWNER'&&!/^\d+$/.test(String(row[i.claimant_telegram_user_id]||''))){invalid.push('CLAIMANT_ID_INVALID');continue;}
-    selected.push({date:day,item:String(row[i.item_name]||'').replace(/[\r\n]/g,' ').slice(0,72)||'(tiada keterangan)',amount:amount,status:bsePilotClaimStatus_(row[i.status]),claimant:String(row[i.claimant_telegram_user_id]||'')});
+    if(String(row[i.category]||'')!=='INVENTORY_CLAIM')continue;
+    if(access.scope!=='OWNER'&&String(row[i.reporter_telegram_user_id]||'')!==access.id)continue;
+    if(!bseRuntimeEvidenceIsConfirmed_(row[i.status]))continue;
+    const month=bsePilotClaimEvidenceMonth_(row[i.received_at]);
+    if(!month){invalid.push('DATE_INVALID');continue;}
+    if(month!==period.key)continue;
+    if(!['RESTRICTED','PRIVATE_SUBMISSION'].includes(String(row[i.visibility]||''))||
+       !String(row[i.evidence_id]||'').trim()||
+       !/^\d+$/.test(String(row[i.reporter_telegram_user_id]||''))){invalid.push('SOURCE_INVALID');continue;}
+    const text=String(row[i.caption]||'').trim().replace(/[\r\n]+/g,' ');
+    if(!text){invalid.push('CAPTION_MISSING');continue;}
+    const id=String(row[i.drive_file_id]||'').trim();
+    if(id&&!/^[A-Za-z0-9_-]{15,128}$/.test(id)){invalid.push('DRIVE_ID_INVALID');continue;}
+    const type=String(row[i.attachment_type]||'').trim().toUpperCase();
+    const mime=String(row[i.mime_type]||'').trim().toLowerCase();
+    const isImage=type==='PHOTO'||/^image\/(?:jpeg|png|webp|gif|heic|heif)$/.test(mime);
+    const fileName=String(row[i.file_name]||'').trim().replace(/[\r\n]+/g,' ').slice(0,180);
+    selected.push({stamp:String(row[i.received_at]),text:text,fileName:isImage?fileName:'',url:isImage&&id?'https://drive.google.com/file/d/'+id+'/view':''});
   }
-  if(invalid.length){audit('BLOCKED',invalid[0],access.scope,0);return {handled:true,text:'Semakan tuntutan ditahan: terdapat rekod berkaitan yang tidak dapat disahkan. Hubungi owner untuk audit.',production_write:false};}
-  selected.sort((a,b)=>a.date.localeCompare(b.date));
-  const total=selected.reduce((sum,x)=>sum+x.amount,0);
-  const lines=['📋 Tuntutan '+period.label,access.scope==='OWNER'?'Skop: pemilik operasi semasa':'Skop: tuntutan sendiri'];
-  if(!selected.length)lines.push('Tiada rekod tuntutan bagi bulan ini.');
-  selected.slice(0,15).forEach((x,k)=>lines.push((k+1)+'. '+x.date.slice(8)+'/'+x.date.slice(5,7)+'/'+x.date.slice(0,4)+' | '+x.item+' | RM'+x.amount.toFixed(2)+' | '+x.status+(access.scope==='OWNER'?' | ID '+x.claimant:'')));
-  if(selected.length>15)lines.push('Memaparkan 15 daripada '+selected.length+' rekod.');
-  lines.push('Jumlah direkodkan: RM'+total.toFixed(2),'Jumlah dibayar: tidak dapat disahkan daripada ledger ini.','Nota: tuntutan dihantar/pending/direkodkan tidak bermakna sudah dibayar.');
+  if(invalid.length){audit('BLOCKED',invalid[0],access.scope,0);return {handled:true,text:'Semakan tuntutan ditahan: rekod evidence perlu disemak.',production_write:false};}
+  selected.sort((a,b)=>a.stamp.localeCompare(b.stamp));
+  const lines=['Tuntutan '+period.label];
+  if(!selected.length)lines.push('Tiada rekod INVENTORY_CLAIM bagi bulan ini.');
+  selected.slice(0,10).forEach((x,k)=>{
+    lines.push('',(k+1)+'. '+x.text);
+    if(x.fileName&&x.url)lines.push('Fail: '+x.fileName,'Pautan: '+x.url);
+  });
+  if(selected.length>10)lines.push('Memaparkan 10 daripada '+selected.length+' rekod.');
+  const output=lines.join('\n');
+  if(output.length>3900){audit('BLOCKED','MESSAGE_TOO_LONG',access.scope,0);return {handled:true,text:'Terlalu banyak teks tuntutan untuk satu mesej. Gunakan bulan yang lebih khusus atau rujuk owner.',production_write:false};}
   audit('RESULT_READY','OK',access.scope,selected.length);
-  return {handled:true,text:lines.join('\n'),count:selected.length,total_myr:total,production_write:false};
+  return {handled:true,text:output,count:selected.length,production_write:false};
 }
