@@ -41,7 +41,7 @@ vm.createContext(context);
 vm.runInContext(source('PilotIncompleteBatalTest.js'),context);
 for(const name of ['bseTelegramApprovalPersistCallback_','bseTelegramApprovalCallback_','processBseTelegramApprovalCallbacks'])vm.runInContext(get(name),context);
 const cb=(id='1234',cid='callback-one',messageId=900)=>({id:cid, data:'C2:772257581:C',
- from:{id:Number(id)},message:{message_id:messageId,chat:{id:-100333,type:'supergroup'}}});
+ from:{id:Number(id)},message:{message_id:messageId,chat:{id:-100333,type:'supergroup'},text:'SEMAKAN LAPORAN BELUM LENGKAP\nRujukan : BSE-TG-772257581'}});
 const update=(c,n)=>({update_id:n,callback_query:c});
 let count=0;const t=(label,fn)=>{fn();count++;console.log('PASS '+label);};
 t('persist callback through real callback pending queue without group nudge',()=>{
@@ -53,7 +53,7 @@ t('persist callback through real callback pending queue without group nudge',()=
 t('durable callback processed through actual dispatcher and marks queue only',()=>{
  context.processBseTelegramApprovalCallbacks();
  assert.equal(callbacks.data[1][5],'PROCESSED');assert.equal(queueRow[6],'INCOMPLETE_CANCELLED');
- assert.equal(lockCalls,1);assert.deepEqual(actions,['answerCallbackQuery']);
+ assert.equal(lockCalls,1);assert.deepEqual(actions,['editMessageText','answerCallbackQuery']);
 });
 t('repeat Telegram update deduplicated without reprocessing',()=>{
  assert(context.bseTelegramApprovalPersistCallback_(book,update(cb(),1001)).duplicate);
@@ -64,7 +64,7 @@ t('different callback ID against completed report cannot rewrite queue',()=>{
  assert(context.bseTelegramApprovalPersistCallback_(book,update(cb('1234','second-click'),1002)).persisted);
  context.processBseTelegramApprovalCallbacks();
  assert.equal(callbacks.data[2][5],'PROCESSED');assert.equal(queueRow[6],'INCOMPLETE_CANCELLED');
- assert.deepEqual(actions,['answerCallbackQuery']);
+ assert.deepEqual(actions,['editMessageText','answerCallbackQuery','editMessageText','answerCallbackQuery']);
 });
 t('forged different author fails and does not mutate queue',()=>{
  queueRow[6]='INCOMPLETE_CANCEL_ONLY';
