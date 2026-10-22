@@ -456,7 +456,14 @@ function bseTelegramConfirmedPersistedSummary_(book,reference,domain,outcome){
    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!crop||plots.some(p=>!/^M\d+P\d+$/.test(p))||new Set(plots).size!==plots.length)return '';
    const status=plain(get(found[2],found[2].rows[0],'allocation_status')),verify=plain(get(batch,r,'verification_status'));
    if(found[2].rows.some(row=>plain(get(found[2],row,'allocation_status'))!==status))return '';
-   const lines=['REKOD SEMAIAN DISIMPAN','Rujukan: '+reference,'Tarikh semai: '+format('event_date',date),'Tanaman: '+crop+(variety?' ('+variety+')':''),'Plot: '+plots.join(', '),'Direkodkan: 1 batch, 1 aktiviti semaian, '+plots.length+' plot'];
+   const planted=found[1],eventRow=planted.rows[0];
+   const seedQty=planted.headers.includes('seed_quantity')?plain(get(planted,eventRow,'seed_quantity')):'';
+   const seedUnit=planted.headers.includes('seed_unit')?plain(get(planted,eventRow,'seed_unit')):'';
+   if((seedQty&&!seedUnit)||(!seedQty&&seedUnit))return '';
+   if(seedQty&&(!/^\d+(?:\.\d+)?$/.test(seedQty)||Number(seedQty)<=0||!Number.isFinite(Number(seedQty))||!/^[A-Za-z][A-Za-z0-9/%-]{0,15}$/.test(seedUnit)))return '';
+   const lines=['REKOD SEMAIAN DISIMPAN','Rujukan: '+reference,'Tarikh semai: '+format('event_date',date),'Tanaman: '+crop+(variety?' ('+variety+')':''),'Plot: '+plots.join(', ')];
+   if(seedQty)lines.push('Kuantiti benih: '+seedQty+' '+seedUnit);
+   lines.push('Direkodkan: 1 batch, 1 aktiviti semaian, '+plots.length+' plot');
    if(status)lines.push('Status plot: '+format('allocation_status',status));
    if(verify)lines.push('Status semakan: '+format('verification_status',verify));
    const receipt=lines.join('\n');return receipt.length<=3900?receipt:'';
@@ -508,7 +515,7 @@ function bseTelegramReporterConfirmationCore_(book,context,input){
   const bajaSummary=bajaGroup?bsePilotBajaConfirmedSummary_(book,String(row[0]),parsed):'';
   const verifiedSummary=bajaSummary||recordSummary||bseTelegramConfirmedPersistedSummary_(book,String(row[0]),domain.target,outcome);
   const receiptText=verifiedSummary||('REKOD DISAHKAN - RINGKASAN BELUM DAPAT DISAHKAN\nRujukan: '+String(row[0])+'\nJenis: '+domain.target);
-  const censusSingle=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&(domain.target==='Plant_Census_Log'||bajaGroup);
+  const censusSingle=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&(domain.target==='Plant_Census_Log'||bajaGroup||domain.target==='Crop_Batch_Log');
   const reporterRaw=censusSingle?String(bseTelegramReporterDisplayName_(book,String(row[0]))||context.actor_name||''):'';
   const reporterName=reporterRaw.replace(/[\r\n\t<>]/g,' ').replace(/\s+/g,' ').trim().slice(0,90)||('Telegram '+String(row[3]||''));
   bseTelegramApprovalCloseCard_(row,'REPORTER_CONFIRMED',context.actor_name,censusSingle?receiptText+'\nPelapor : '+reporterName:receiptText);
