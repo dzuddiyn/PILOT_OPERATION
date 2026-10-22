@@ -25,6 +25,14 @@ function bsePilotBajaFlexibleDate_(raw){
   return check.getUTCFullYear()===y&&check.getUTCMonth()+1===m&&check.getUTCDate()===d
     ?String(y).padStart(4,'0')+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0'):'';
 }
+function bsePilotBajaExpandPlot_(moduleNum,firstPlot,secondPlot){
+  const module='M'+String(moduleNum),plot=String(firstPlot),second=String(secondPlot||'');
+  const parts=second?[plot,second]:plot.length===2&&/^[1-9]{2}$/.test(plot)?plot.split(''):[plot];
+  // Three-or-more digits without separators are ambiguous: never guess a list.
+  if(!second&&plot.length>2)return {plots:[],ambiguous:true};
+  const names=parts.map(n=>module+'P'+n);
+  return {plots:names,ambiguous:parts.some(n=>!/^[1-9]\d*$/.test(n))};
+}
 function bsePilotBajaFlexNormalize_(input){
   const original=String(input||'').trim();
   const header=original.match(/^baja\s+(masuk|in|keluar|out)\b\s*:?\s*/i);
@@ -41,11 +49,17 @@ function bsePilotBajaFlexNormalize_(input){
   const date=dateTokens.length===1?bsePilotBajaFlexibleDate_(dateTokens[0]):'';
   if(dateTokens.length===1&&!date)bad=true;
   // Plot is a separate axis, regardless of its position relative to date/type.
-  rest=rest.replace(/\bM\s*[1-9]\d*\s*P\s*[1-9]\d*\b/gi,found=>{
-    const plot=found.replace(/\s+/g,'').toUpperCase();
-    if(plots.includes(plot))bad=true;
-    plots.push(plot);return ' ';
+  rest=rest.replace(/\bM\s*([1-9]\d*)\s*P\s*([1-9]\d*)(?:\s*(?:,|&|\bdan\b)\s*(?:P\s*)?([1-9]\d*))?/gi,(found,moduleNum,first,second)=>{
+    const expanded=bsePilotBajaExpandPlot_(moduleNum,first,second);
+    if(expanded.ambiguous)bad=true;
+    for(const plot of expanded.plots){
+      if(plots.includes(plot))bad=true; // Repeated plot must never double issue fertilizer.
+      else plots.push(plot);
+    }
+    return ' ';
   });
+  // When two or more full plot references are joined with "dan", it is a connector, not a fertilizer type.
+  if(plots.length>=2)rest=rest.replace(/\bdan\b/gi,' ');
   rest=rest.replace(/\b(?:Tarikh|Date|Plot|Modul)\s*:/gi,' ');
   rest=rest.replace(/\b(?:Tarikh|Date|Plot|Modul)\b/gi,' ');
   // e.g. "F:2", "F 2kg", "N 1 set".

@@ -21,10 +21,11 @@ for(let i=0;i<outgoing.length;i++){
   assert.equal(p.validation,'PASS',outgoing[i]);
   assert.equal(f.event_date,'2026-10-23');
   assert.equal(f.record_type,'INVENTORY_OUT');
-  assert.equal(f.baja_items.length,1);
+  assert.equal(f.baja_items.length,i<2?2:1);
   const x=f.baja_items[0];
   assert.equal(x.baja_type,i<2?'N':'F');
-  assert.equal(x.destination,i<2?'M5P34':'M5P3');
+  assert.equal(x.destination,'M5P3');
+  if(i<2){assert.equal(f.baja_items[1].destination,'M5P4');assert.equal(f.baja_items[1].quantity,1);}
   assert.equal(x.item_name,'Baja');assert.equal(x.quantity,1);assert.equal(x.unit,'set');
   assert.equal(f.original_note,outgoing[i]);
   assert.equal(ctx.bsePilotBajaValidateResult_(p).validation,'PASS');
