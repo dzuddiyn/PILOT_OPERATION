@@ -24,6 +24,7 @@ function bsePilotIncompleteDateExamples_(row,result){
 }
 function bsePilotIncompleteMissingLabel_(field,row,result){
   const key=String(field||'');
+  if(key==='batch_match'&&result&&Array.isArray(result.candidates)&&result.candidates.some(c=>c&&c.target==='Plant_Census_Log'))return 'Plot belum dipadankan kepada tanaman aktif dalam sistem (hubungi penyelia)';
   const names={
     plot_id:'Plot (contoh M1P1)',
     crop:'Tanaman (contoh Peria Besar)',
