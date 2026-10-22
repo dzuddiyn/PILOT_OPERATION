@@ -15,7 +15,7 @@ const BSE_TG_TEST_COMMANDS=[
 ];
 function bsePilotTelegramCommandMenu_(){
   const pilot=bseRuntimeEnvironmentName_()==='PILOT_OPERATION';
-  return BSE_TG_TEST_COMMANDS.map(function(item){
+  const commands=BSE_TG_TEST_COMMANDS.map(function(item){
     return {
       command:pilot&&item.command==='ec_history'?'ec':pilot&&item.command==='ask_ai'?'ask':item.command,
       description:pilot&&item.command==='ec_history'?'Sejarah EC_IN ikut hari/bulan/minggu':pilot&&item.command==='ask_ai'?'Tanya AI dengan rujukan KB yang tersedia':
@@ -23,6 +23,8 @@ function bsePilotTelegramCommandMenu_(){
         pilot?item.description.replace(/ TEST\b/g,'').replace(/TEST/g,'operasi'):item.description
     };
   });
+  if(pilot)commands.push({command:'claim',description:'Tuntutan sendiri melalui PM bot, contoh /claim Okt 2026'});
+  return commands;
 }
 function configureBseTelegramTestCommands(){const expected=bseRuntimeBotUsername_(),label=bseRuntimeEnvironmentLabel_(),me=bseTelegramApi_('getMe',{});if(!me||me.username!==expected)throw new Error('Identiti bot '+label+' tidak sepadan.');const result=bseTelegramApi_('setMyCommands',{commands:bsePilotTelegramCommandMenu_()});if(result!==true)throw new Error('Telegram tidak mengesahkan command menu '+label+'.');const commands=bseTelegramApi_('getMyCommands',{});if(JSON.stringify(commands)!==JSON.stringify(bsePilotTelegramCommandMenu_()))throw new Error('Command menu Telegram '+label+' tidak sepadan.');console.log('TELEGRAM_COMMAND_MENU_CONFIGURED: '+JSON.stringify({environment:bseRuntimeEnvironmentName_(),count:commands.length,production_write:false}));return {commands:commands,production_write:false};}
 function runBseTelegramCommandHarnessTests(){const source=configureBseTelegramTestCommands.toString()+BSE_TG_TEST_COMMANDS.map(c=>c.command).join(','),names=BSE_TG_TEST_COMMANDS.map(c=>c.command),tests=[{id:'only implemented commands are published',pass:JSON.stringify(names)===JSON.stringify(['start','status','summary','retrieve','image_to_text','image_analysis','ask_ai','history','ec_history','report','delete'])},{id:'image processing commands replace legacy OCR menu entry',pass:names.includes('image_to_text')&&names.includes('image_analysis')&&!names.includes('ocr')},{id:'delete remains visible for PoC',pass:names.includes('delete')},{id:'identity and Telegram acknowledgement required',pass:/getMe/.test(source)&&/setMyCommands/.test(source)&&/getMyCommands/.test(source)},{id:'no domain or production writer',pass:!/bse(?:Measurement|CropBatch|Transplant|PlantCensus|Treatment|Inventory)ReviewCore_|production_write\s*:\s*true/.test(source)}];console.log('TELEGRAM_COMMAND_HARNESS: '+JSON.stringify(tests));const failures=tests.filter(t=>!t.pass);if(failures.length)throw new Error('Telegram command harness gagal: '+failures.map(t=>t.id).join(','));return tests;}

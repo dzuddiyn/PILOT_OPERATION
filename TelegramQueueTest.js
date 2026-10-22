@@ -83,6 +83,11 @@ function bseTelegramPilotNoticeParent_(rows,sourceChat,reporter,replyId){
         console.log('PILOT_SUMMARY_ROUTED: '+JSON.stringify({kind:summaryRequest&&summaryRequest.kind==='SUMMARY'?'SUMMARY':'USAGE',production_write:false}));
       }
       else if(privateStart){const registration=typeof bseTelegramRegistrationHandleStart_==='function'?bseTelegramRegistrationHandleStart_(book,m,me.username):bseTelegramPrivateOptInRegister_(book,m,me.username);if(registration&&registration.text)bseTelegramPrivateCommandReply_(m,registration.text);}
+      else if(typeof bsePilotClaimCommand_==='function'&&bsePilotClaimCommand_(m&&m.text)){
+        const claim=bsePilotClaimRetrieve_(book,m);
+        // Group commands never disclose a claim, including usage, counts or denial reasons.
+        if(m&&m.chat&&m.chat.type==='private'&&claim&&claim.handled&&claim.text)bseTelegramPrivateCommandReply_(m,claim.text);
+      }
       else if(m&&m.chat&&m.from&&m.chat.type==='private'&&bseTelegramDeleteCommand_(m.text)){
         const deletion=bseTelegramDeleteReceiveCommand_(book,m);
         if(deletion.text)bseTelegramPrivateCommandReply_(m,deletion.text);

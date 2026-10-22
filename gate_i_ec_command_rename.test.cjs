@@ -49,7 +49,7 @@ ok('PILOT old command and lookalike commands are not routed',()=>{
 });
 ok('PILOT command menu contains /ec and not /ec_history',()=>{
  const menu=context.bsePilotTelegramCommandMenu_();
- assert.equal(menu.length,11);
+ assert.equal(menu.length,12);
  assert.equal(menu.filter(x=>x.command==='ec').length,1);
  assert(!menu.some(x=>x.command==='ec_history'));
  assert.match(menu.find(x=>x.command==='ec').description,/EC_IN/);
