@@ -13,7 +13,7 @@
 - Registered-active private user sees only matching numeric `claimant_telegram_user_id`. Group messages receive **no reply**. No identity by username.
 - All-claim access requires exactly one active owner row with matching private Telegram ID AND exact verified immutable runtime bootstrap owner ID; `is_admin` and nominations never grant elevation. In ambiguous state deny.
 - Status display distinguishes submitted, pending, approved, rejected, cancelled, and `APPROVED_TEST` (PILOT record, not payment approval).
-- Amount must be positive finite, nonblank and tied to a source key; invalid data and unexpected official-write flags block the result. The sum is **recorded claim amounts**, not disbursed money. No trusted paid amount exists in this ledger; no claim of payment.
+- Amount must be positive finite, nonblank, correctly formatted as MYR decimal (up to two fractional digits, optional grouped thousands) and tied to a source key. Malformed thousands (e.g. 1,2,3), over-precision, scientific notation, invalid data and unexpected official-write flags block the result. The sum is **recorded claim amounts**, not disbursed money. No trusted paid amount exists in this ledger; no claim of payment.
 - Access audit logs only request identity/period/outcome/reason/scope/count, not claim description/amount, before reply authorization.
 
 ## Evidence

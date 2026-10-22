@@ -76,7 +76,9 @@ test('malformed input returns help to private active user, without data',()=>{
 test('unmatched month, invalid amounts and wrong production flag fail closed',()=>{
  const b=book({claims:[claim('200','APPROVED_TEST',25,'2026-09-12')]});
  assert.match(context.bsePilotClaimRetrieve_(b,message(),now).text,/Tiada rekod/);
- for(const val of ['abc',-10,0,'',' '])assert.match(context.bsePilotClaimRetrieve_(book({claims:[claim('200','APPROVED_TEST',val)]}),message(),now).text,/ditahan/);
+ for(const val of ['abc',-10,0,'',' ','1,2,3','1,00','1,234.567','1e4'])assert.match(context.bsePilotClaimRetrieve_(book({claims:[claim('200','APPROVED_TEST',val)]}),message(),now).text,/ditahan/);
+ const valid=context.bsePilotClaimRetrieve_(book({claims:[claim('200','APPROVED_TEST','1,234.50')]}),message(),now);
+ assert.equal(valid.total_myr,1234.5); assert.match(valid.text,/RM1234\.50/);
  assert.match(context.bsePilotClaimRetrieve_(book({claims:[row(claimHead,{...Object.fromEntries(claimHead.map((h,i)=>[h,claim('200','APPROVED_TEST')[i]])),production_write:true})]}),message(),now).text,/ditahan/);
 });
 test('duplicate owner authority cannot expose other claims',()=>{

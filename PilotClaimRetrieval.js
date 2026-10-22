@@ -114,8 +114,10 @@ function bsePilotClaimRetrieve_(book,m,now){
     if(!day){invalid.push('DATE_INVALID');continue;}
     if(!day.startsWith(period.key+'-'))continue;
     if(row[i.production_write]===true||String(row[i.production_write]||'').toUpperCase()==='TRUE'){invalid.push('PRODUCTION_FLAG');continue;}
-    const amountText=String(row[i.amount_myr]==null?'':row[i.amount_myr]).trim(),amount=Number(amountText.replace(/,/g,''));
-    if(!amountText||!Number.isFinite(amount)||amount<=0||!String(row[i.source_key]||'').trim()){invalid.push('CLAIM_INVALID');continue;}
+    const amountText=String(row[i.amount_myr]==null?'':row[i.amount_myr]).trim();
+    const amountFormatOk=/^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d{1,2})?$/.test(amountText);
+    const amount=amountFormatOk?Number(amountText.replace(/,/g,'')):NaN;
+    if(!amountFormatOk||!Number.isSafeInteger(Math.round(amount*100))||amount<=0||!String(row[i.source_key]||'').trim()){invalid.push('CLAIM_INVALID');continue;}
     if(access.scope==='OWNER'&&!/^\d+$/.test(String(row[i.claimant_telegram_user_id]||''))){invalid.push('CLAIMANT_ID_INVALID');continue;}
     selected.push({date:day,item:String(row[i.item_name]||'').replace(/[\r\n]/g,' ').slice(0,72)||'(tiada keterangan)',amount:amount,status:bsePilotClaimStatus_(row[i.status]),claimant:String(row[i.claimant_telegram_user_id]||'')});
   }
