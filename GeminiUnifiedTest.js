@@ -814,13 +814,14 @@ function bsePlantCensusMalaysiaDate_(receivedAt){
 
 function bseUnifiedGuardPlantCensus_(r,sourceNote,receivedAt){
   const candidates=r.candidates||[],census=candidates.filter(candidate=>candidate&&candidate.target==='Plant_Census_Log'),candidate=census[0],fields=candidate&&candidate.fields;
-  const parsed=bsePlantCensusSource_(sourceNote),eventDate=bsePlantCensusMalaysiaDate_(receivedAt),hasText=key=>fields&&typeof fields[key]==='string'&&fields[key].trim();
+  const parsed=bsePlantCensusSource_(sourceNote),eventDate=bseCensusOperationalDate_(sourceNote,receivedAt,[]),hasText=key=>fields&&typeof fields[key]==='string'&&fields[key].trim();
   const allowedMissing=candidate&&Array.isArray(candidate.missing)&&candidate.missing.every(key=>key==='event_date'||key==='crop'||key==='census_entries');
   const sameCrop=!!(parsed.crop&&hasText('crop')&&bseTransplantNormalizeCrop_(fields.crop)===bseTransplantNormalizeCrop_(parsed.crop));
   const valid=candidates.length===1&&census.length===1&&candidate&&['PASS','NEED_INFO'].includes(candidate.validation)&&allowedMissing&&fields&&fields.project_id==='BSE_SB'&&fields.system_year===2026&&fields.record_type==='PLANT_CENSUS'&&fields.verification_status==='PROVISIONAL'&&parsed.ok&&eventDate&&sameCrop;
   if(!valid){
     r.validation='NEED_INFO';
-    candidates.forEach(item=>{if(!item)return;item.validation='NEED_INFO';item.missing=Array.from(new Set((Array.isArray(item.missing)?item.missing:[]).concat(['batch_match'])));});
+    if(fields&&!eventDate)fields.event_date='';
+    candidates.forEach(item=>{if(!item)return;item.validation='NEED_INFO';item.missing=Array.from(new Set((Array.isArray(item.missing)?item.missing:[]).concat(eventDate?['batch_match']:['event_date'])));});
     return;
   }
   fields.event_date=eventDate;fields.crop=parsed.crop;fields.census_entries=parsed.entries;candidates.forEach(item=>{item.validation='PASS';item.missing=[];});r.validation='PASS';
