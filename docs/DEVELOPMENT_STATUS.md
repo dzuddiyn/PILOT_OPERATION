@@ -1,5 +1,8 @@
 # OpsMate BSE site B v1.0 Final Handover
 
+## GI-EMERGENCY-OWNER-ADMIN-HANDOVER (2026-10-22; NOMINATED, NOT GRANTED)
+- Departing owner designated `S S.` as future BSE operational OWNER and `zen areyf` as operational ADMIN for handover on 23 Oct. Fresh PILOT registry read: both numeric-identified registered-active; old owner still active and only owner row; no canonical role ledger/intents exist. Legacy owner resolver confers power on any active owner row; unsafe to add ADMIN via `is_admin`. RBAC M3 branch is LOCAL-ONLY/PARTIAL with trusted binding unimplemented; no live grants or bootstrap re-key. BSE recipient and technical custody remain PENDING. Documentation: `docs/GI_EMERGENCY_OWNER_ADMIN_HANDOVER_20261022.md`. NEXT: controlled one-time bootstrap re-anchoring architecture exception + real role resolver, authentication, tests, owner/recipient approval and read-back. No runtime writes.
+
 ## GI-FIELD-UX-NATIVE-REGRESSION-RECOVERY-05B / EVIDENCE-05C (2026-10-22; SCRIPT HEAD VERIFIED, NATIVE PASS)
 - Recovery 05B completed on 22 Oct 2026: PR #158 merged to main cdaec25b3b0f102a45844dc57a2205bbd36cfb84; controlled PILOT_OPERATION Script HEAD updated and independently verified **80/80** (all 9 Gate F helpers, manifest and binding preserved). Actual native Apps Script runBseI011FullRegression **48/48 PASS**, confirmed by independent Executions UI (08:09:05 MYT, Selesai); local Node **125/125 PASS**, syntax **79/79 PASS**. No new version/deployment or recovery-initiated operational writes; worker reliability, field UX and formal handover NOT VERIFIED. Separate 08:01 bseTelegramTick failure remains OPEN/out-of-scope. Evidence: docs/GI_FIELD_UX_NATIVE_REGRESSION_RECOVERY_05B_20261022.md.
 
