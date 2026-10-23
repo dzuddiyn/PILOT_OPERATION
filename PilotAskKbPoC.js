@@ -12,11 +12,21 @@ function bsePilotAskKbWords_(s){
  return Array.from(new Set((String(s||'').toLowerCase().match(/[a-z0-9]{2,}/g)||[])
    .filter(w=>!stop[w]&&w.length>=3))).slice(0,16);
 }
-function bsePilotAskKbNoteContext_(question){
- if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||typeof BSE_SITE_B_NOTE_POC_TEXT!=='string')return '';
+const BSE_PILOT_SITE_B_DOC_ID='1iRd8fcbHQbzj04Tnia417iYChFmnBjB2Bft4s2yQnyA';
+function bsePilotAskKbDocText_(){
+ if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')return {text:'',live:false};
+ try{
+   const text=String(DocumentApp.openById(BSE_PILOT_SITE_B_DOC_ID).getBody().getText()||'').trim();
+   if(text.length>=500)return {text:text,live:true};
+   console.log('PILOT_ASK_DOC_EMPTY_OR_SHORT');
+ }catch(error){console.log('PILOT_ASK_DOC_READ_FAILED: '+String(error&&error.message||error).slice(0,100));}
+ return {text:typeof BSE_SITE_B_NOTE_POC_TEXT==='string'?BSE_SITE_B_NOTE_POC_TEXT:'',live:false};
+}
+function bsePilotAskKbNoteContext_(question,doc){
+ if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')return '';
  const terms=bsePilotAskKbWords_(question);
  if(!terms.length)return '';
- const source=String(BSE_SITE_B_NOTE_POC_TEXT||'');
+ const source=String(doc&&doc.text||bsePilotAskKbDocText_().text||'');
  const blocks=source.split(/\n\s*\n/).map(x=>x.trim()).filter(x=>x.length>=35);
  const ranked=blocks.map((block,i)=>{
    const normalized=block.toLowerCase();const matched=terms.filter(t=>normalized.indexOf(t)>=0);
