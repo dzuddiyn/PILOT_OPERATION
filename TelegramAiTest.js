@@ -191,7 +191,12 @@ function bseTelegramAiReceive_(book,m,allowedPrivate,allowedGroup){
   const question=bseTelegramAiQuestion_(m.text);
   if(!question){const command=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'/ask':'/ask_ai';bseTelegramAiSend_(m,'Gunakan: '+command+' <soalan>\nContoh: '+command+' abamectin kumpulan IRAC berapa?',{noAnswerHeading:true});return {handled:true,production_write:false};}
   if(question.length>6000){const command=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'/ask':'/ask_ai';bseTelegramAiSend_(m,'Soalan terlalu panjang. Had '+command+' ialah 6000 aksara.',{noAnswerHeading:true});return {handled:true,production_write:false};}
-  if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'){
+  const isPilot=bseRuntimeEnvironmentName_()==='PILOT_OPERATION';
+  const isPesticideReference=/\b(?:irac|moa|mode of action|sismarp|pendaftaran|berdaftar)\b/i.test(question);
+  const noteContext=isPilot&&!isPesticideReference&&typeof bsePilotAskKbNoteContext_==='function'?bsePilotAskKbNoteContext_(question):'';
+  // Note-first for site questions; if Gemini is unavailable, retain structured KB.
+  // SISMARP and IRAC retain their specialized source-authority paths.
+  if(isPilot&&!noteContext&&!isPesticideReference){
     const siteAnswer=bsePilotKbStructuredAnswer_(book,question)||bsePilotSiteBFaq_(book,question);
     if(siteAnswer){bseTelegramAiSend_(m,siteAnswer);return {handled:true,kb_used:true,production_write:false};}
   }
@@ -201,6 +206,10 @@ function bseTelegramAiReceive_(book,m,allowedPrivate,allowedGroup){
     console.log('BSE_AI_REPLY_SENT: '+JSON.stringify({kb_used:answer.kb_used,source_count:answer.sources.length,sismarp_current:!!(currentSismarp&&currentSismarp.available),production_write:false}));
     return {handled:true,kb_used:answer.kb_used,source_count:answer.sources.length,sismarp_current:!!(currentSismarp&&currentSismarp.available),production_write:false};
   }catch(error){
+    if(isPilot&&noteContext){
+      const fallback=bsePilotKbStructuredAnswer_(book,question)||bsePilotSiteBFaq_(book,question);
+      if(fallback){bseTelegramAiSend_(m,fallback);return {handled:true,kb_used:true,note_fallback:true,production_write:false};}
+    }
     bseTelegramAiSend_(m,'AI tidak dapat menjawab sekarang. '+String(error.message||'Ralat tidak diketahui').replace(/AIza[A-Za-z0-9_-]+/g,'[REDACTED]').slice(0,180),{noAnswerHeading:true});
     return {handled:true,error:true,production_write:false};
   }
