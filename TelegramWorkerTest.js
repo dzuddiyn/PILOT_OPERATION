@@ -531,7 +531,8 @@ function processBseTelegramTestQueue() {
       // Deterministic-first router: recognised EC and Inventory/Claim traffic is
       // resolved locally before any Gemini fallback. Confidence controls UX only;
       // deterministic validation and reporter confirmation remain authoritative.
-      const ecResult=typeof bseEcLeachateParseJob_==='function'?bseEcLeachateParseJob_(job):typeof bseEcLeachateParseMessage_==='function'?bseEcLeachateParseMessage_(job.input):null;
+      const ecSource=bseTelegramLatestCorrectionText_(job.input)||String(job.provenance||job.original||job.input||'');
+      const ecResult=typeof bsePilotEcHardRouteSafeResult_==='function'&&bsePilotEcHardHeading_(ecSource)?bsePilotEcHardRouteSafeResult_('BSE-TG-'+job.id,ecSource):typeof bseEcLeachateParseJob_==='function'?bseEcLeachateParseJob_(job):typeof bseEcLeachateParseMessage_==='function'?bseEcLeachateParseMessage_(job.input):null;
       // A Betulkan answer is a full replacement report: parse only its newest text.
       // Provenance remains on job.provenance and is restored during finalization.
       const inventoryInput=bseTelegramLatestCorrectionText_(job.input)||job.input;
@@ -559,7 +560,7 @@ function processBseTelegramTestQueue() {
       if(typeof bsePlantConditionApplyReporterSnapshot_==='function')bsePlantConditionApplyReporterSnapshot_(rawResult,job);
       if(typeof bseInventoryApplyReporterSnapshot_==='function')bseInventoryApplyReporterSnapshot_(rawResult,job);
       if(typeof bseInventoryApplyResponsibleSnapshot_==='function')bseInventoryApplyResponsibleSnapshot_(rawResult,job);
-      result=ecResult?bseEcLeachateFinalizeResult_(rawResult,job):censusResult&&typeof bseCensusDeterministicFinalize_==='function'?bseCensusDeterministicFinalize_(book,rawResult,job):treatmentResult&&typeof bseTreatmentFinalizeResult_==='function'?bseTreatmentFinalizeResult_(book,rawResult,job):plantReplacementResult&&typeof bsePlantReplacementFinalizeResult_==='function'?bsePlantReplacementFinalizeResult_(book,rawResult,job):bseTelegramWorkerFinalizeResult_(book,rawResult,job);
+      result=ecResult&&ecResult.aggregate_type==='PILOT_EC_ATOMIC'?ecResult:ecResult?bseEcLeachateFinalizeResult_(rawResult,job):censusResult&&typeof bseCensusDeterministicFinalize_==='function'?bseCensusDeterministicFinalize_(book,rawResult,job):treatmentResult&&typeof bseTreatmentFinalizeResult_==='function'?bseTreatmentFinalizeResult_(book,rawResult,job):plantReplacementResult&&typeof bsePlantReplacementFinalizeResult_==='function'?bsePlantReplacementFinalizeResult_(book,rawResult,job):bseTelegramWorkerFinalizeResult_(book,rawResult,job);
       inventoryCheck=typeof bseInventoryValidateResult_==='function'?bseInventoryValidateResult_(result,job.receivedAt,'BSE-TG-'+job.id):null;
       encoded=JSON.stringify(result);if(encoded.length>45000)throw new Error('Output too long');
     } catch(_) {

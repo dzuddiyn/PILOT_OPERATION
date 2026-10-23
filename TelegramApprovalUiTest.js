@@ -438,7 +438,7 @@ function bseTelegramApprovalEnsureCard_(book,queueRow){
   if((!groupAllowed&&!ownerPrivateAllowed)||!/^\d+$/.test(reporter))return {skipped:'CHAT_OR_REPORTER_INVALID'};
   let result;try{result=JSON.parse(String(queueRow[9]||''));}catch(_){return {skipped:'CANDIDATE_JSON_INVALID'};}
   if(result.production_write!==false||result.validation!=='PASS'||!Array.isArray(result.candidates)||!result.candidates.length)return {skipped:'CANDIDATE_NOT_CONFIRMABLE'};
-  const ecEnvelope=typeof bsePilotEcAggregateEnvelope_==='function'?bsePilotEcAggregateEnvelope_(reference,String(queueRow[4]||''),result):null;
+  const ecEnvelope=result.aggregate_type==='PILOT_EC_ATOMIC'?result:typeof bsePilotEcAggregateEnvelope_==='function'?bsePilotEcAggregateEnvelope_(reference,String(queueRow[4]||''),result):null;
   if(ecEnvelope)result=ecEnvelope;
   const envelopes=bseApprovalEnvelopes_(result);
   // Validate every target before creating any durable card.
@@ -535,7 +535,7 @@ function bseTelegramReporterConfirmationCore_(book,context,input){
   if(q<0)throw new Error('Queue tidak ditemui.');
   let aggregate;try{aggregate=JSON.parse(String(qrows[q][9]||''));}catch(_){throw new Error('candidate_json tidak sah.');}
   const candidateIndex=bseApprovalCandidateIndexFromSourceKey_(row[1]);
-  const ecEnvelope=typeof bsePilotEcAggregateEnvelope_==='function'?bsePilotEcAggregateEnvelope_(String(row[0]),String(qrows[q][4]||''),aggregate):null;
+  const ecEnvelope=aggregate.aggregate_type==='PILOT_EC_ATOMIC'?aggregate:typeof bsePilotEcAggregateEnvelope_==='function'?bsePilotEcAggregateEnvelope_(String(row[0]),String(qrows[q][4]||''),aggregate):null;
   if(ecEnvelope)aggregate=ecEnvelope;
   const envelopes=bseApprovalEnvelopes_(aggregate);
   if(candidateIndex==null&&envelopes.length!==1)throw new Error('Bilangan calon pengesahan tidak sepadan dengan kad.');
