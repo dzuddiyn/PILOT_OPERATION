@@ -310,3 +310,32 @@ test('missing sowing facts cannot regain Benar through stale raw PASS',()=>{
  assert(blocked.candidates.some(c=>c.missing.includes('seed_quantity')));
 });
 console.log('GI_UX_05_SEED_QUANTITY '+num+'/'+num+' PASS');
+
+test('formal title and bilingual sowing aliases accept date crop plot quantity in any order',()=>{
+ const headings=['KERJA SEMAIAN BENIH','LAPORAN SEMAIAN','AKTIVITI MENYEMAI BENIH','SEMAIAN BENIH','TABUR BENIH','SOWING','SEED SOWING','SEEDING ACTIVITY','PLANTING SEEDS','SOWING SEEDS','SEEDING REPORT'];
+ for(const heading of headings){
+  const note=[heading,'20/10/2026','Timun (CP 282)','M8P1, M8P2','62 tray'].join('\n');
+  const r=parse(note);
+  assert(r,heading+' unmatched');
+  assert.equal(r.validation,'PASS',heading+': '+JSON.stringify(r.candidates?.[0]?.missing));
+  const event=r.candidates.find(c=>c.target==='Planting_Event_Log').fields;
+  assert.equal(event.crop,'Timun',heading);
+  assert.equal(event.variety,'CP 282',heading);
+  assert.equal(event.event_date,'2026-10-20',heading);
+  assert.equal(event.seed_quantity,62,heading);
+  assert.equal(event.seed_unit,'tray',heading);
+  assert.equal(r.candidates.filter(c=>c.target==='Plot_Allocation_Log').map(c=>c.fields.plot_id).sort().join(','),'M8P1,M8P2',heading);
+  assert.equal(event.original_note,note,heading);
+ }
+});
+test('sowing aliases remain fail-closed if count or unit omitted',()=>{
+ for(const heading of ['KERJA SEMAIAN BENIH','SEED SOWING','SOWING']){
+  const note=[heading,'20/10/2026','Timun (CP 282)','M8P1, M8P2'].join('\n');
+  const r=parse(note);assert(r);assert.equal(r.validation,'NEED_INFO');
+  assert(r.candidates.some(c=>c.missing.includes('seed_quantity')),heading);
+ }
+});
+test('unrelated reports do not turn into sowing',()=>{
+ for(const note of ['Kerja membaja\nTimun (CP 282)\nM8P1\n20/10/2026\n62 tray','Harvest\nTimun (CP 282)\nM8P1\n20/10/2026\n62 tray'])
+  assert.equal(ctx.bsePilotSeedFreeOrderFacts_(note),null);
+});

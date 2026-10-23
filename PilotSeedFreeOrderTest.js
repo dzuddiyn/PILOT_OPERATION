@@ -2,13 +2,19 @@
 // GI-UX-05 FIELD: read explicit sowing facts in mixed order, not fixed lines.
 // Constrained to PILOT "Semai"/"Semaian" with an actual (crop) (variety) pair.
 // No AI, no field inference, no sheet write, no lifecycle transition.
+function bsePilotSowingHeadingPattern_(){
+  // Deliberately anchored: activity titles only, never a crop/variety substring.
+  return /^(?:(?:KERJA|LAPORAN|AKTIVITI)\s+)?(?:SEMAI(?:AN)?(?:\s+BENIH)?|MENYEMAI(?:\s+BENIH)?|TABUR\s+BENIH|SOWING(?:\s+(?:SEEDS?|ACTIVITY|REPORT))?|SEED\s+SOWING|SEEDING(?:\s+(?:ACTIVITY|REPORT))?|PLANTING\s+SEEDS?)\b\s*:?\s*/i;
+}
 function bsePilotSeedFreeOrderFacts_(input){
   if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')return null;
   const src=bseUnifiedSourceContext_(input);
   if((src.clarifications||[]).length)return null; // Historic clarification path untouched.
   const original=String(src.original||'').trim();
-  if(!/^Semai(?:an)?(?:\s|:|$)/i.test(original))return null;
-  let rest=original.replace(/^Semai(?:an)?\s*:?\s*/i,' ');
+  if(!bsePilotSowingHeadingPattern_().test(original))return null;
+  // Structured formal reports stay on the existing labelled-fields parser.
+  if(/^KERJA\s+SEMAIAN\s+BENIH\b/i.test(original)&&/^(?:Jenis\s+Tanaman|Varieti|Modul|Tarikh\s+Semai)\s*:/im.test(original))return null;
+  let rest=original.replace(bsePilotSowingHeadingPattern_(),' ');
   const pairs=Array.from(rest.matchAll(/\b([\p{L}][\p{L}-]*(?:\s+[\p{L}][\p{L}-]*){0,3})\s*\(([^()\r\n]{1,50})\)/gu));
   if(pairs.length!==1)return null; // Preserve existing contract for other sowing messages.
   let crop=String(pairs[0][1]).trim();
