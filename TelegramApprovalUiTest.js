@@ -581,10 +581,13 @@ function bseTelegramReporterConfirmationCore_(book,context,input){
   const bajaSummary=bajaGroup?bsePilotBajaConfirmedSummary_(book,String(row[0]),parsed):'';
   const verifiedSummary=bajaSummary||recordSummary||bseTelegramConfirmedPersistedSummary_(book,String(row[0]),domain.target,outcome);
   const receiptText=verifiedSummary||('REKOD DISAHKAN - RINGKASAN BELUM DAPAT DISAHKAN\nRujukan: '+String(row[0])+'\nJenis: '+domain.target);
+  const cycleSingle=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&domain.target==='Operation_Log'&&parsed.candidates.length===1&&parsed.candidates[0].fields.operation_type==='CYCLE_END';
   const censusSingle=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&(domain.target==='Plant_Census_Log'||bajaGroup||domain.target==='Crop_Batch_Log'||domain.target==='EC_Leachate_Log');
-  const reporterRaw=censusSingle?String(bseTelegramReporterDisplayName_(book,String(row[0]))||context.actor_name||''):'';
+  const reporterRaw=censusSingle||cycleSingle?String(bseTelegramReporterDisplayName_(book,String(row[0]))||context.actor_name||''):'';
   const reporterName=reporterRaw.replace(/[\r\n\t<>]/g,' ').replace(/\s+/g,' ').trim().slice(0,90)||('Telegram '+String(row[3]||''));
-  bseTelegramApprovalCloseCard_(row,'REPORTER_CONFIRMED',context.actor_name,censusSingle?receiptText+'\nPelapor : '+reporterName:receiptText);
+  const cycleText=cycleSingle?'✅ KITARAN TANAMAN BERJAYA DITAMATKAN\n\nRujukan: '+String(row[0])+'\nTarikh: '+bseApprovalDisplayDate_(parsed.candidates[0].fields.event_date)+'\nPlot: '+String(parsed.candidates[0].fields.plot_id)+'\nAktiviti: Tamat Kitaran Tanaman\nPelapor: '+reporterName+'\n\nStatus: Berjaya direkodkan.':'';
+  bseTelegramApprovalCloseCard_(row,'REPORTER_CONFIRMED',context.actor_name,cycleSingle?cycleText:censusSingle?receiptText+'\nPelapor : '+reporterName:receiptText);
+  if(cycleSingle){outcome.candidate_index=candidateIndex;outcome.queue_status=status;return outcome;}
   if(!censusSingle){
     try{bseTelegramReporterReceipt_(book,row[3],receiptText);}catch(_){}
     const ownerNotice=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'

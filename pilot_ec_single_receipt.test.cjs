@@ -13,7 +13,13 @@ test('PILOT EC uses one original card with reporter name; no duplicate owner/PM 
  assert(selection[1].includes("domain.target==='EC_Leachate_Log'"));
  assert(latest.includes("bseTelegramReporterDisplayName_(book,String(row[0]))"));
  assert(latest.includes("receiptText+'\\nPelapor : '+reporterName"));
- assert(latest.includes('if(!censusSingle){'),'fallback notices guarded');
+ assert(latest.includes('if(cycleSingle){outcome.candidate_index=candidateIndex;outcome.queue_status=status;return outcome;}'),'Cycle End exits before duplicate notifications');
+ assert(latest.includes('if(!censusSingle){'),'EC and other existing routes preserved');
  assert(latest.includes('bseTelegramReporterReceipt_(book,row[3],receiptText)'));
  assert(latest.includes('bseTelegramOwnerNotice_(book,ownerNotice)'));
+ assert(latest.includes("domain.target==='Operation_Log'"));
+ assert(latest.includes("operation_type==='CYCLE_END'"));
+ assert(latest.includes('✅ KITARAN TANAMAN BERJAYA DITAMATKAN'));
+ assert(latest.includes('Pelapor: '+"'"+'+reporterName'));
+ assert(latest.includes('cycleSingle?cycleText:censusSingle?receiptText'));
 });
