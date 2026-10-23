@@ -35,7 +35,7 @@ function bseTelegramAiSystemPrompt_(hasKb){
     'Gunakan **Tajuk** hanya untuk tajuk/pembahagian utama. Jangan guna asterisk untuk bullet; guna tanda •. Elakkan markdown table, heading #, code fence, dan hiasan markdown berlebihan.',
     'Untuk istilah teknikal IRAC, kekalkan nama rasmi/English label daripada sumber grounding (contohnya Pyrethroids, Sodium channel modulators). Jangan cipta atau terjemah sendiri nama kelas/Mode of Action yang tidak disebut dalam grounding.',
     'Jawab dalam Bahasa Melayu yang ringkas dan praktikal kecuali pengguna meminta bahasa lain.',
-    'Soalan fakta mudah: jawab terus dalam 1-3 baris. Jangan ulang tajuk soalan atau senarai peringatan panjang. Cukup satu nota pendek tentang status data jika benar-benar perlu.',
+    'Soalan fakta mudah: jawab terus dalam 1-3 baris. Jangan ulang tajuk soalan atau senarai peringatan panjang. Bagi jawapan Nota Induk, JANGAN tulis nota atau disclaimer dalam isi jawapan: sistem menambah nota standard selepas jawapan.',
     'Jangan ulang seksyen Rujukan KB atau pautan sumber dalam isi jawapan; sistem akan menambah sumber dan pautan Google Docs secara automatik.'
   ].join('\n');
 }
@@ -168,7 +168,7 @@ function bseTelegramAiRender_(answer){
   if(answer.sources&&answer.sources.length){lines.push('','**Rujukan KB**');answer.sources.forEach(s=>lines.push('• '+s+(s.indexOf('Nota Induk BSE Site B')>=0?' — https://docs.google.com/document/d/1iRd8fcbHQbzj04Tnia417iYChFmnBjB2Bft4s2yQnyA/edit':'')));}
   const details=(answer.source_details||[]).filter(x=>x&&x.url);if(details.length){lines.push('','**Butiran sumber**');details.forEach(x=>lines.push('• '+x.title+' — '+x.url));}
   if(current&&current.source_url)lines.push('• SISMARP — '+current.source_url);
-  lines.push('','Peringatan: Maklumat KB ialah rujukan, bukan status operasi terkini.');
+  if((answer.sources||[]).some(s=>String(s).indexOf('Nota Induk BSE Site B')>=0))lines.push('','Nota: Maklumat ini berdasarkan rekod dokumen 10 September 2026.');
   return lines.join('\n');
 }
 function bseTelegramAiToHtml_(text){
