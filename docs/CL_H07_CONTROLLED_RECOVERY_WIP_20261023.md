@@ -64,3 +64,26 @@ Status: LOCAL PASS only. HIGH-RISK RUNTIME GATE not met; do not promote to LIVE 
 The live callback in TelegramApprovalUiTest.js uses bseApprovalEnvelopes_(aggregate) and rejects more than one envelope for a single card. Existing bseApprovalDomain_ rejects multiple Measurement_Log candidates. A true 1-card EC batch therefore still needs a new versioned aggregate approval envelope and a dedicated callback core. Neither existing multi-row EC_LeachateReviewCore_ nor existing MeasurementReviewCore_ can be reused safely as atomic authority. **Do not merge or push this branch** until replacement is complete and independent native regression can be run safely.
 
 Continuation work: full-source candidate reconciliation 6/6 PASS, derived index recovery 6/6 PASS, complete local Node 264/264 PASS. READ-ONLY inspections only; no Sheets/Telegram writes. Historical 772258028 never replayed.
+## CL-H07 EC Approval Controller — 2026-10-24 continuation
+
+Implementation on feature branch:
+- Versioned `PILOT_EC_ATOMIC` aggregate envelope built from complete original source text, with exact numeric candidate reconciliation, including EC-only M7 => M7P3 and preserved x/blank values.
+- One Telegram card for nine locations with bounded batch summary, routed to canonical domain `PILOT_EC_CANONICAL_BATCH`.
+- Callback verifies token, original reporter, persisted envelope hash under existing `bseReviewWithLock_` and invokes dedicated batch core.
+- Dedicated core creates one idempotent canonical row, independently reads it back, updates approval state/queue and attempts edit of existing card. If Telegram acknowledgment fails, it remains UNVERIFIED; no second domain write.
+- Confirmed-card reconciliation reads canonical record and edits same card only; no new send or record creation.
+- Derived reading index remains reconstructible, not canonical.
+- Synthetic / mocked integration test `cl_h07_ec_callback_integration.test.cjs` passes; full Node suite 266/266 PASS, 0 FAIL, no live writes.
+
+Native TEST_ONLY attempt:
+- Created separate standalone Apps Script project BSE-CL-H07-EC-TEST-ONLY-20261024 (unbound from PILOT_OPERATION Sheets/Telegram).
+- Pushed only EC code, synthetic native harness and isolated environment stub to the TEST_ONLY project.
+- Selected `runClH07EcNativeSyntheticRegression` through RDC editor UI and issued Run once.
+- Editor displayed **Dibutuhkan otorisasi** / **Tinjau izin**; executions list showed 0 runs.
+- **NATIVE PROOF BLOCKED: Google OAuth user authorization required**. Do not claim native PASS or proceed with merge/production HEAD sync based on local results.
+- Human gate: explicitly authorize permissions in the isolated TEST_ONLY Apps Script editor; verify scope before granting. No authorization was accepted by assistant.
+
+Source of truth / state:
+- Branch only; no merge, no PILOT_OPERATION Script HEAD sync or official production write.
+- Original EC reference BSE-TG-772258028 not replayed.
+- Full live acceptance / CL-H07 remains BLOCKED until native synthetic proof and independent acceptance.

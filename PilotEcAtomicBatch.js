@@ -87,3 +87,55 @@ function bsePilotEcRebuildIndex_(batch,observedRows){
   }
   return {canonical_unchanged:true,expected_count:wanted.length,missing:wanted.filter(r=>!ids.has(key(r)))};
 }
+
+function bsePilotEcAggregateEnvelope_(reference,originalText,result){
+  if(!/^\s*EC\s+LEACH(?:ING|ATE)?\b/i.test(String(originalText||'')))return null;
+  const date=String(originalText).match(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/);
+  if(!date)throw Error('EC_BATCH_DATE_MISSING');
+  const iso=date[3]+'-'+date[2].padStart(2,'0')+'-'+date[1].padStart(2,'0');
+  const batch=bsePilotEcCanonicalBatch_(reference,originalText,iso);
+  bsePilotEcReconcileCandidateBatch_(batch,result);
+  return {aggregate_type:'PILOT_EC_ATOMIC',validation:'PASS',production_write:false,
+    official_bse_write:false,ec_batch:batch,candidates:JSON.parse(JSON.stringify(result.candidates))};
+}
+function bsePilotEcCardText_(reference,envelope){
+  if(!envelope||envelope.aggregate_type!=='PILOT_EC_ATOMIC'||!bsePilotEcCanonicalValidate_(envelope.ec_batch))throw Error('EC_CARD_ENVELOPE_INVALID');
+  const lines=['SEMAKAN EC LEACHING','Rujukan: '+reference,'Tarikh: '+envelope.ec_batch.event_date,
+    'Satu kelulusan untuk '+envelope.ec_batch.source_count+' lokasi:'];
+  envelope.ec_batch.readings.forEach(r=>lines.push(r.plot_id+': '+(r.input_status==='NUMERIC'?String(r.value):r.input_status==='NOT_MEASURED'?'x':'kosong')));
+  lines.push('Jika diluluskan, satu batch canonical disimpan. Bacaan x/kosong tidak dianggap bacaan nombor.');
+  return lines.join('\n');
+}
+
+function bsePilotEcTelegramAggregateCore_(book,context,input,params){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')throw Error('EC_WRONG_ENV');
+  if(!params||!params.proposal||params.proposal.aggregate_type!=='PILOT_EC_ATOMIC')throw Error('EC_AGGREGATE_PROPOSAL_REQUIRED');
+  if(String(params.row[17])!=='OPEN'||input.kind!=='A')throw Error('EC_APPROVAL_NOT_OPEN');
+  const batch=params.proposal.ec_batch;
+  if(!bsePilotEcCanonicalValidate_(batch)||batch.reference!==String(params.row[0]))throw Error('EC_SOURCE_MISMATCH');
+  // Caller holds bseReviewWithLock_. The write is idempotent and read back.
+  const write=bsePilotEcCanonicalCommit_(book,batch);
+  const approval=bseTelegramApprovalSheet_(book);
+  try{
+    approval.getRange(params.card_row,18).setValue('REPORTER_CONFIRMED');
+    approval.getRange(params.card_row,19).setValue('PILOT_EC_ATOMIC');
+    SpreadsheetApp.flush();
+    bseApprovalRecomputeQueueStatus_(book,batch.reference);
+  }catch(error){throw Error('EC_APPROVAL_STATE_UNVERIFIED');}
+  const message='EC LEACHING DIREKODKAN\nRujukan: '+batch.reference+'\nTarikh: '+batch.event_date+'\nJumlah lokasi: '+batch.source_count+'\nStatus: Disahkan';
+  const delivery=bseTelegramApprovalCloseCard_(params.row,'REPORTER_CONFIRMED',context.actor_name,message);
+  return {decision:'CONFIRMED',domain:'PILOT_EC_CANONICAL_BATCH',canonical_state:write.state,receipt_state:delivery&&delivery.state||'UNVERIFIED',production_write:false};
+}
+
+function bsePilotEcTelegramReconcileExisting_(book,context,input,params){
+  if(String(params.row[17])!=='REPORTER_CONFIRMED'||String(params.row[18])!=='PILOT_EC_ATOMIC'||input.kind!=='A')return {blocked:true,status:'EC_NOT_COMMITTED'};
+  const sheet=book.getSheetByName('PILOT_EC_CANONICAL_BATCH');
+  if(!sheet||sheet.getLastRow()<2)return {blocked:true,status:'EC_CANONICAL_MISSING'};
+  const matches=sheet.getRange(2,1,sheet.getLastRow()-1,4).getValues().filter(x=>String(x[0])===String(params.row[0])&&String(x[3])==='COMMITTED');
+  if(matches.length!==1)return {blocked:true,status:'EC_CANONICAL_UNVERIFIED'};
+  let batch;try{batch=JSON.parse(String(matches[0][2]));}catch(_){return {blocked:true,status:'EC_CANONICAL_UNREADABLE'};}
+  if(!bsePilotEcCanonicalValidate_(batch))return {blocked:true,status:'EC_CANONICAL_INVALID'};
+  const message='EC LEACHING DIREKODKAN\nRujukan: '+batch.reference+'\nTarikh: '+batch.event_date+'\nJumlah lokasi: '+batch.source_count+'\nStatus: Disahkan';
+  const receipt=bseTelegramApprovalCloseCard_(params.row,'REPORTER_CONFIRMED',context.actor_name,message);
+  return {duplicate:true,status:'REPORTER_CONFIRMED',receipt_state:receipt&&receipt.state||'UNVERIFIED',production_write:false};
+}
