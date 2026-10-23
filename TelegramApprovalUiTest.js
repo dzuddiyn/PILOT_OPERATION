@@ -532,7 +532,7 @@ function bseTelegramReporterConfirmationCore_(book,context,input){
   const bajaSummary=bajaGroup?bsePilotBajaConfirmedSummary_(book,String(row[0]),parsed):'';
   const verifiedSummary=bajaSummary||recordSummary||bseTelegramConfirmedPersistedSummary_(book,String(row[0]),domain.target,outcome);
   const receiptText=verifiedSummary||('REKOD DISAHKAN - RINGKASAN BELUM DAPAT DISAHKAN\nRujukan: '+String(row[0])+'\nJenis: '+domain.target);
-  const censusSingle=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&(domain.target==='Plant_Census_Log'||bajaGroup||domain.target==='Crop_Batch_Log');
+  const censusSingle=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&(domain.target==='Plant_Census_Log'||bajaGroup||domain.target==='Crop_Batch_Log'||domain.target==='EC_Leachate_Log');
   const reporterRaw=censusSingle?String(bseTelegramReporterDisplayName_(book,String(row[0]))||context.actor_name||''):'';
   const reporterName=reporterRaw.replace(/[\r\n\t<>]/g,' ').replace(/\s+/g,' ').trim().slice(0,90)||('Telegram '+String(row[3]||''));
   bseTelegramApprovalCloseCard_(row,'REPORTER_CONFIRMED',context.actor_name,censusSingle?receiptText+'\nPelapor : '+reporterName:receiptText);
