@@ -47,7 +47,7 @@ function bsePilotRacunTelegramFinalizeState_(book,context,input,snapshot,firstCo
   if(String(final[13])!=='REPORTER_CONFIRMED'||String(final[16])!==String(row[2])||
       String(final[17])!=='REPORTER_CONFIRMED')
     throw Error('RACUN_FINAL_AUDIT_READBACK_FAILED');
-  const summary=bsePilotRacunReceiptText_(reference,plan);
+  const summary=bsePilotRacunReceiptText_(reference,plan,String(context.actor_name||row[3]||''));
   const needsUiRepair=firstConfirmation||String(final[19])==='RACUN_CARD_EDIT_PENDING';
   const card=needsUiRepair?bsePilotRacunCardEdit_(book,row,summary,position):{synced:true};
   if(!card.synced&&input.callback&&input.callback.id){
@@ -70,21 +70,22 @@ function bsePilotRacunCancelEligibility_(book,reference){
     return {allowed:true,reason:'NOT_WRITTEN'};
   }catch(_){return {allowed:false,reason:'STORAGE_UNVERIFIED'};}
 }
-function bsePilotRacunReceiptText_(reference,plan){
+function bsePilotRacunReceiptText_(reference,plan,reporter){
   const iso=String(plan.records[0].event_date||'');
   const date=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   const friendlyDate=date?date[3]+'/'+date[2]+'/'+date[1]:iso;
   const lines=['✅ REKOD RACUN BERJAYA DISIMPAN','',
     'Rujukan: '+reference,'Tarikh: '+friendlyDate,
-    'Jumlah: '+plan.record_count+' rekod','',
-    'BUTIRAN REKOD'];
+    'Jumlah: '+plan.record_count+' rekod',
+    'Pelapor: '+String(reporter||'Tidak dinyatakan'),'','BUTIRAN REKOD'];
   plan.records.forEach((r,i)=>{
     lines.push('',(i+1)+'. '+r.plot_ids.join(', ')+(r.crop?' — '+r.crop:''));
     String(r.treatment_description||'').split(/\r?\n/).filter(Boolean)
       .forEach(item=>lines.push('   • '+item.trim()));
   });
-  lines.push('','Status: Direkodkan dalam PILOT (unlinked)',
-    'Nota: Belum dipautkan kepada batch; bukan rekod rasmi BSE.');
+  lines.push('','Status: Disimpan dalam rekod percubaan OpsMate.',
+    'Rekod ini belum dipadankan dengan tanaman/batch yang sedang aktif.',
+    'Ia tidak dihantar ke sistem rasmi BSE.');
   const receipt=lines.join('\n');
   if(receipt.length>3900)throw Error('RACUN_RECEIPT_TOO_LONG');
   return receipt;
@@ -131,7 +132,7 @@ function bsePilotRacunRepairPendingCard_(book){
     {reference:reference,authorized:true,hash_verified:true});
   if(confirmed.status!=='LEDGER_VERIFIED'||confirmed.record_count!==plan.record_count)
     throw Error('RACUN_REPAIR_LEDGER_UNVERIFIED');
-  const repair=bsePilotRacunCardEdit_(book,row,bsePilotRacunReceiptText_(reference,plan),item.index);
+  const repair=bsePilotRacunCardEdit_(book,row,bsePilotRacunReceiptText_(reference,plan,String(row[3]||'')),item.index);
   return {status:repair.synced?'CARD_REPAIRED':'REPAIR_PENDING',
     reference:reference,production_write:false};
 }

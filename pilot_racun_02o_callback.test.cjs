@@ -66,7 +66,8 @@ test('real callback core commits 10 synthetic Racun records with one outer lock 
  assert.match(output.receipt_text,/Jumlah: 10 rekod/);
  assert.match(output.receipt_text,/Tarikh: 19\/10\/2026/);
  assert.match(output.receipt_text,/1\. M1P1\n   • TEST_ONLY_MATERIAL - 1/);
- assert.match(output.receipt_text,/bukan rekod rasmi BSE/);
+ assert.match(output.receipt_text,/tidak dihantar ke sistem rasmi BSE/);
+ assert.match(output.receipt_text,/Pelapor: TEST_ONLY/);
  assert(output.receipt_text.length<=3900);
  const replay=x.ctx.bsePilotRacunWithLock_(()=>x.ctx.bsePilotRacunTelegramAggregateCore_(x.book,x.context,x.input,x.snapshot()));
  assert.equal(replay.status,'ALREADY_CONFIRMED');

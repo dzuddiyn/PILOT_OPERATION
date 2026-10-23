@@ -4,12 +4,15 @@ function bsePilotCycleEndResult_(input){
   if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')return null;
   const source=bseUnifiedSourceContext_(input),note=String(source.original||'').trim();
   const lines=note.split(/\r?\n/).map(x=>String(x).trim()).filter(Boolean);
-  if(!lines.length||!/^(?:tarikh\s+habis\s+(?:harvest|tuai)|end\s+of\s+cycle|habis\s+(?:tuai|harvest)|plot\s+tamat|tanaman\s+tamat)\b/i.test(lines[0]))return null;
-  const header=/^(?:tarikh\s+habis\s+(?:harvest|tuai)|end\s+of\s+cycle|habis\s+(?:tuai|harvest)|plot\s+tamat|tanaman\s+tamat)$/i.test(lines[0]);
-  const parsed=bseCanonicalPlotTokens_(lines[1]||''),plots=parsed.ok?parsed.plots:[];
+  const phrase=/^(?:tarikh\s+habis\s+(?:harvest|tuai)|end\s+(?:of\s+)?(?:crop\s+)?cycle|habis\s+(?:tuai|harvest|musim|tanaman)|tamat\s+(?:musim|tuai|harvest|tanaman|kitaran(?:\s+tanaman)?)|plot\s+tamat|tanaman\s+tamat|musim\s+(?:tamat|berakhir)|crop\s+cycle\s+(?:end|completed))$/i;
+  if(!lines.length||!phrase.test(lines[0].replace(/[.!]+$/,'')))return null;
+  const header=phrase.test(lines[0].replace(/[.!]+$/,''));
+  const date2=bseTransplantFlexibleDate_(lines[1]||''),date3=bseTransplantFlexibleDate_(lines[2]||'');
+  const parsed=bseCanonicalPlotTokens_(date2?lines[2]||'':lines[1]||'');
+  const plots=parsed.ok?parsed.plots:[];
   const valid=plots.length>=1&&plots.length<=2&&new Set(plots).size===plots.length;
-  const date=bseTransplantFlexibleDate_(lines[2]||'');
-  const validation=!header||lines.length!==3?'REJECTED':valid&&date?'PASS':'NEED_INFO';
+  const date=date2||date3;
+  const validation=!header||lines.length>3?'REJECTED':valid&&date?'PASS':'NEED_INFO';
   const missing=[];if(!valid)missing.push('plot_id');if(!date)missing.push('event_date');
   return {validation,production_write:false,candidates:(valid?plots:['']).map(plotId=>({
     target:'Operation_Log',validation,missing:missing.slice(),
