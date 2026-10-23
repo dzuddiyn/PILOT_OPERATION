@@ -68,6 +68,11 @@ function bseTelegramApprovalCallbackB1D1_(callback){
     if(outcome.selected&&typeof bseTelegramApprovalEnsureCard_==='function'&&row){let card;try{card=bseTelegramApprovalEnsureCard_(book,row);}catch(error){throw new Error('APPROVAL_CARD_RETRY: '+String(error.message||''));}if(!card||(!card.created&&!card.duplicate))throw new Error('APPROVAL_CARD_RETRY: kad approval belum tersedia.');}
     return outcome;
   });
+  // Answer the tap promptly; acknowledgement is not a claim that inventory was saved.
+  if(match[1]==='B1'&&match[3]==='A'&&callback.id&&/^BAJA (MASUK|KELUAR)\b/.test(String(callback.message&&callback.message.text||''))){
+    try{bseTelegramApi_('answerCallbackQuery',{callback_query_id:callback.id,text:'Pengesahan diterima untuk diproses. Semak resit pada kad.'});}
+    catch(error){console.log('BAJA_CALLBACK_ACK_UNVERIFIED: '+String(error.message||''));}
+  }
   return bseReviewWithLock_(context,(book,ctx)=>bseTelegramReporterConfirmationCore_(book,ctx,{token:match[2],kind:match[3],callback:callback}));
 }
 function bseTelegramApprovalRejectPromptMatch_(book,chatId,userId,replyId){return bseApprovalRows_(bseTelegramApprovalSheet_(book)).find(row=>String(row[17])==='PENDING_REJECT_REASON'&&String(row[7])===String(chatId)&&String(row[5])===String(userId)&&String(row[22])===String(replyId))||null;}
@@ -522,6 +527,10 @@ function bseTelegramReporterConfirmationCore_(book,context,input){
   const row=rows[i],sheetRow=i+2;
   if(!bseTelegramReporterCardAuthorized_(row,input.callback)){if(input.callback.id)bseTelegramApi_('answerCallbackQuery',{callback_query_id:input.callback.id,text:'Pilihan ini hanya untuk penghantar asal.',show_alert:true});return {authorized:false};}
   if(String(row[17])!=='OPEN'){
+    if(typeof bsePilotBajaReceiptRecovery_==='function'&&input.kind==='A'){
+      const bajaRecovery=bsePilotBajaReceiptRecovery_(book,row,context,input);
+      if(bajaRecovery)return bajaRecovery;
+    }
     if(String(row[17])==='REPORTER_CONFIRMED'&&String(row[18])==='PILOT_EC_ATOMIC'&&typeof bsePilotEcTelegramReconcileExisting_==='function'&&input.kind==='A')
       return bsePilotEcTelegramReconcileExisting_(book,context,input,{row:row,card_row:sheetRow});
     const isCommittedRacun=String(row[17])==='REPORTER_CONFIRMED'&&
@@ -742,4 +751,19 @@ function runBseTransplantReallocationUiHarnessTests(){
     {id:'reallocation Batal is direct audit-only with no second reason prompt',pass:/reallocation&&reallocation\.required===true/.test(controller)&&/Batal oleh penghantar pada kad perubahan plot/.test(controller)&&/Allocation asal kekal; tiada rekod transplant\/reallocation ditulis/.test(controller)}
   ];
   const failed=tests.filter(t=>!t.pass);if(failed.length)throw new Error('Transplant reallocation UI harness gagal: '+failed.map(t=>t.id).join(', '));return tests;
+}
+
+function bsePilotBajaReceiptRecovery_(book,row,context,input){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||input.kind!=='A'||String(row[17])!=='REPORTER_CONFIRMED'||String(row[1])!==String(row[0])+'|Inventory_Event_Log')return null;
+  const queue=bseTelegramQueue_(book),qr=queue.getLastRow()>1?queue.getRange(2,1,queue.getLastRow()-1,BSE_TG_QUEUE_HEADERS.length).getValues():[];
+  const found=qr.find(r=>'BSE-TG-'+String(r[0])===String(row[0]));
+  if(!found||String(found[6])!=='REPORTER_CONFIRMED')return {duplicate:true,status:'BAJA_QUEUE_UNVERIFIED'};
+  let proposal;try{proposal=JSON.parse(String(found[9]||''));}catch(_){return {duplicate:true,status:'BAJA_PROPOSAL_UNVERIFIED'};}
+  if(proposal.production_write!==false||proposal.validation!=='PASS'||!Array.isArray(proposal.candidates)||proposal.candidates.length!==1)return {duplicate:true,status:'BAJA_PROPOSAL_UNVERIFIED'};
+  const f=proposal.candidates[0].fields||{};
+  if(proposal.candidates[0].target!=='Inventory_Event_Log'||f.baja_group!==true||bseApprovalHash_(proposal)!==String(row[2]))return {duplicate:true,status:'BAJA_SOURCE_MISMATCH'};
+  const summary=bsePilotBajaConfirmedSummary_(book,String(row[0]),proposal);
+  if(!summary)return {duplicate:true,status:'BAJA_LEDGER_UNVERIFIED'};
+  const delivery=bseTelegramApprovalCloseCard_(row,'REPORTER_CONFIRMED',context.actor_name,summary);
+  return {duplicate:true,status:'REPORTER_CONFIRMED',receipt_state:delivery&&delivery.state||'UNVERIFIED',production_write:false};
 }
