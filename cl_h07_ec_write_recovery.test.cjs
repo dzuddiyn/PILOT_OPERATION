@@ -1,0 +1,13 @@
+const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
+const ctx={bseRuntimeEnvironmentName_:()=> 'PILOT_OPERATION',Set,SpreadsheetApp:{flush:()=>{}}};vm.createContext(ctx);vm.runInContext(fs.readFileSync(__dirname+'/PilotEcAtomicBatch.js','utf8'),ctx);
+const source='14/10/2026\nM1P1-x\nM2P3-\nM7-3.5';const batch=ctx.bsePilotEcCanonicalBatch_('BSE-TG-772258028',source,'2026-10-14');
+const rows=[['reference','schema_version','canonical_json','state']];
+let failAfterWrite=false;const sheet={getLastRow:()=>rows.length,getRange:(r,c,n)=>({setValues:x=>rows.push(...x),getValues:()=>rows.slice(r-1,r-1+n)}),appendRow:x=>{rows.push(x);if(failAfterWrite)throw Error('timeout')}};const book={getSheetByName:()=>sheet,insertSheet:()=>sheet};
+assert.equal(ctx.bsePilotEcCanonicalCommit_(book,batch).state,'COMMITTED');assert.equal(rows.length,2);
+assert.equal(ctx.bsePilotEcCanonicalCommit_(book,batch).state,'ALREADY_APPLIED');assert.equal(rows.length,2);
+const idx=Array.from(ctx.bsePilotEcDerivedIndex_(batch));assert.equal(idx.length,3);assert.equal(idx[2].plot_id,'M7P3');
+assert.throws(()=>ctx.bsePilotEcCanonicalCommit_(book,{...batch,source_text:'changed'}),/SOURCE_MISMATCH/);
+rows.pop();failAfterWrite=true;
+assert.throws(()=>ctx.bsePilotEcCanonicalCommit_(book,batch),/OUTCOME_UNKNOWN/);
+failAfterWrite=false;assert.equal(ctx.bsePilotEcCanonicalCommit_(book,batch).state,'ALREADY_APPLIED');assert.equal(rows.length,2);
+console.log('EC_CANONICAL_WRITE_RECOVERY 9/9 PASS');
