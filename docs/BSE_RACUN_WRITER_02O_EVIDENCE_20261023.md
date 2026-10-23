@@ -31,6 +31,13 @@
 - Local synthetic tests exercised injected after-append-5 failure and recovery, duplicate protection, authorization failure, hash and lock checks, summary formatting and fail-closed oversized Telegram card.
 - Full Node suite: **182/182 PASS (LOCAL / SYNTHETIC)**.
 
+
+## Independent reviewer findings and controlled recovery patch
+- Real Codex CLI 0.155.1 READ-ONLY review of `origin/main...HEAD` detected TWO HIGH issues: (1) reporter Batal was possible after partial durable Racun rows, leaving stranded records with a discarded approval; (2) Telegram card edit error was swallowed, leaving a visually clickable card after committed ledger and reporter confirmation.
+- Controlled recovery patch in same feature branch: `bsePilotRacunCancelEligibility_` reads actual journal and rows and prohibits cancel when either exists (or storage cannot be checked); `bsePilotRacunCardEdit_` persists `RACUN_CARD_EDIT_PENDING` after API error. Retry is idempotent; bounded `bsePilotRacunRepairPendingCard_` processes one pending confirmed card only after independent ledger verification. Callback processor invokes the repair trigger when its due queue is empty, preserving the existing one-line callback processor contract.
+- Synthetic negative tests include cancellation guard for zero/partial/committed/orphan/error cases, failed Telegram edit + retry, periodic repair ledger gate.
+- Full local regression after patch: **187/187 PASS**. This is still LOCAL / SYNTHETIC, not native Telegram proof.
+
 ## Unverified gates
 - Canonical PR #184 remains DRAFT; no merge authorization granted.
 - No Apps Script HEAD update, version, deployment, native regression, live Telegram approval or runtime binding change in this task.

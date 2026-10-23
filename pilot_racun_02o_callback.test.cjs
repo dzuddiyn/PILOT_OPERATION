@@ -14,7 +14,7 @@ const make=()=>{
   PILOT_RACUN_TX_ROWS:[['source_key','reference','payload_json','updated_at']],
   TEST_TELEGRAM_APPROVAL_UI:[approvalHeaders.slice(),approval]
  };
- let injectAt=0,appendCount=0,locks=0,releases=0;
+ let injectAt=0,appendCount=0,locks=0,releases=0,editFailures=0;
  const sheet=name=>({
   getLastRow:()=>tables[name].length,
   getRange:(r,c,n=1,w=1)=>({
@@ -34,7 +34,7 @@ const make=()=>{
   bseTelegramReporterCardAuthorized_:(row,cb)=>String(row[3])===String(cb.from.id)&&String(row[7])===String(cb.message.chat.id),
   bseTelegramApprovalSheet_:()=>sheet('TEST_TELEGRAM_APPROVAL_UI'),
   bseApprovalRecomputeQueueStatus_:()=> 'REPORTER_CONFIRMED',
-  bseTelegramApprovalCloseCard_:(...args)=>close.push(args)
+  bseTelegramApi_:(method,payload)=>{if(method==='editMessageText'){close.push(payload);if(editFailures-->0)throw Error('TEST_ONLY_TELEGRAM_EDIT_FAIL');return {message_id:payload.message_id};}return {ok:true};}
  };
  vm.createContext(ctx);
  for(const f of ['PilotRacunAtomicPlan.js','PilotRacunSheetAdapter.js','PilotRacunJournal.js',
@@ -51,7 +51,7 @@ const make=()=>{
  const callback={from:{id:'123'},message:{chat:{id:'456'},message_id:111},id:'TEST_ONLY_CB'};
  const input={kind:'A',token,callback};const context={actor_name:'TEST_ONLY'};
  const snapshot=()=>({row:[...tables.TEST_TELEGRAM_APPROVAL_UI[1]],proposal,card_row:2});
- return {ctx,tables,book,reference,input,context,snapshot,close,setFailure:n=>injectAt=n,disableFailure:()=>injectAt=0,lockCounts:()=>[locks,releases]};
+ return {ctx,tables,book,reference,input,context,snapshot,close,setFailure:n=>injectAt=n,disableFailure:()=>injectAt=0,setEditFailures:n=>editFailures=n,lockCounts:()=>[locks,releases]};
 };
 test('real callback core commits 10 synthetic Racun records with one outer lock and verified approval',()=>{
  const x=make();
@@ -78,6 +78,26 @@ test('failure on append 5 leaves approval OPEN; retry converges to ten and only 
  assert.equal(x.tables.PILOT_RACUN_TX_ROWS.length,11);
  assert.equal(new Set(x.tables.PILOT_RACUN_TX_ROWS.slice(1).map(r=>r[0])).size,10);
  assert.deepEqual(x.lockCounts(),[2,2]);
+});
+test('Telegram edit failure leaves durable repair marker; idempotent replay repairs card',()=>{
+ const x=make();x.setEditFailures(1);
+ const result=x.ctx.bsePilotRacunWithLock_(()=>x.ctx.bsePilotRacunTelegramAggregateCore_(x.book,x.context,x.input,x.snapshot()));
+ assert.equal(result.card_display_status,'REPAIR_PENDING');
+ assert.equal(x.tables.TEST_TELEGRAM_APPROVAL_UI[1][19],'RACUN_CARD_EDIT_PENDING');
+ assert.equal(x.tables.PILOT_RACUN_TX_JOURNAL[1][2],'COMMITTED');
+ const replay=x.ctx.bsePilotRacunWithLock_(()=>x.ctx.bsePilotRacunTelegramAggregateCore_(x.book,x.context,x.input,x.snapshot()));
+ assert.equal(replay.status,'ALREADY_CONFIRMED');assert.equal(replay.card_display_status,'SYNCED');
+ assert.equal(x.tables.TEST_TELEGRAM_APPROVAL_UI[1][19],'');
+ assert.equal(x.close.length,2);assert.equal(x.tables.PILOT_RACUN_TX_ROWS.length,11);
+});
+test('cancel guard blocks after partial durable writes, accepts only untouched records',()=>{
+ const x=make();
+ assert.equal(x.ctx.bsePilotRacunCancelEligibility_(x.book,x.reference).allowed,true);
+ x.setFailure(5);
+ assert.throws(()=>x.ctx.bsePilotRacunWithLock_(()=>x.ctx.bsePilotRacunTelegramAggregateCore_(x.book,x.context,x.input,x.snapshot())),/RECOVERY_REQUIRED/);
+ const decision=x.ctx.bsePilotRacunCancelEligibility_(x.book,x.reference);
+ assert.equal(decision.allowed,false);assert.equal(decision.reason,'DURABLE_JOURNAL_OR_ROWS_PRESENT');
+ assert.equal(x.tables.TEST_TELEGRAM_APPROVAL_UI[1][17],'OPEN');
 });
 test('forged reporter and missing lock do not create journal rows',()=>{
  const x=make(),cb={...x.input.callback,from:{id:'999'}};

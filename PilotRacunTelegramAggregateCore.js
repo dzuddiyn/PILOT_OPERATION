@@ -47,19 +47,81 @@ function bsePilotRacunTelegramFinalizeState_(book,context,input,snapshot,firstCo
   if(String(final[13])!=='REPORTER_CONFIRMED'||String(final[16])!==String(row[2])||
       String(final[17])!=='REPORTER_CONFIRMED')
     throw Error('RACUN_FINAL_AUDIT_READBACK_FAILED');
+  const summary=bsePilotRacunReceiptText_(reference,plan);
+  const needsUiRepair=firstConfirmation||String(final[19])==='RACUN_CARD_EDIT_PENDING';
+  const card=needsUiRepair?bsePilotRacunCardEdit_(book,row,summary,position):{synced:true};
+  if(!card.synced&&input.callback&&input.callback.id){
+    try{bseTelegramApi_('answerCallbackQuery',{callback_query_id:input.callback.id,
+      text:'Rekod disimpan. Paparan kad sedang dipulihkan.',show_alert:true});}catch(_){/* durable repair marker remains */}
+  }
+  return {status:firstConfirmation?'REPORTER_CONFIRMED':'ALREADY_CONFIRMED',
+    record_count:plan.record_count,storage_mode:'UNLINKED_PILOT',
+    approval_readback:true,card_display_status:card.synced?'SYNCED':'REPAIR_PENDING',
+    production_write:false,official_bse_write:false,receipt_text:summary};
+}
+
+function bsePilotRacunCancelEligibility_(book,reference){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||!/^BSE-TG-\d+$/.test(String(reference||'')))
+    return {allowed:false,reason:'INVALID_SCOPE'};
+  try{
+    const adapter=bsePilotRacunSheetAdapter_(book);
+    const journal=adapter.getJournal(reference),rows=adapter.readRows(reference);
+    if(journal||rows.length)return {allowed:false,reason:'DURABLE_JOURNAL_OR_ROWS_PRESENT',status:journal&&journal.status||'ORPHAN_ROWS'};
+    return {allowed:true,reason:'NOT_WRITTEN'};
+  }catch(_){return {allowed:false,reason:'STORAGE_UNVERIFIED'};}
+}
+function bsePilotRacunReceiptText_(reference,plan){
   const lines=['REKOD RACUN PILOT DISIMPAN','Rujukan: '+reference,
     'Tarikh: '+plan.records[0].event_date,'Jumlah rekod: '+plan.record_count,
     'Simpanan: PILOT unlinked (bukan rekod rasmi BSE)'];
   plan.records.forEach((r,i)=>lines.push((i+1)+'. '+r.plot_ids.join(', ')+(r.crop?' | '+r.crop:'')+
     ' | '+r.treatment_description.replace(/\n/g,'; ')));
-  const summary=lines.join('\n').slice(0,3900);
-  if(firstConfirmation){
-    bseTelegramApprovalCloseCard_(row,'REPORTER_CONFIRMED',context.actor_name,summary);
+  return lines.join('\n').slice(0,3900);
+}
+function bsePilotRacunCardEdit_(book,row,summary,position){
+  const sheet=bseTelegramApprovalSheet_(book);
+  try{
+    const ack=bseTelegramApi_('editMessageText',{
+      chat_id:String(row[7]),message_id:Number(row[9]),text:summary
+    });
+    if(!ack)throw Error('RACUN_CARD_EDIT_NO_ACK');
+    sheet.getRange(position,20).setValue('');SpreadsheetApp.flush();
+    return {synced:true};
+  }catch(error){
+    if(/message is not modified/i.test(String(error&&error.message||''))){
+      sheet.getRange(position,20).setValue('');SpreadsheetApp.flush();
+      return {synced:true};
+    }
+    sheet.getRange(position,20).setValue('RACUN_CARD_EDIT_PENDING');SpreadsheetApp.flush();
+    return {synced:false};
   }
-  return {status:firstConfirmation?'REPORTER_CONFIRMED':'ALREADY_CONFIRMED',
-    record_count:plan.record_count,storage_mode:'UNLINKED_PILOT',
-    approval_readback:true,production_write:false,official_bse_write:false,
-    receipt_text:summary};
+}
+/** Bounded repair for one committed Racun card with a durable pending-edit marker. */
+function bsePilotRacunRepairPendingCard_(book){
+  if(!bsePilotRacunLockOwned_())throw Error('RACUN_REPAIR_LOCK_REQUIRED');
+  const sheet=bseTelegramApprovalSheet_(book),cards=bseApprovalRows_(sheet);
+  const pending=cards.map((row,i)=>({row,index:i+2}))
+    .filter(x=>String(x.row[17])==='REPORTER_CONFIRMED'&&
+      String(x.row[18])==='PILOT_RACUN_ATOMIC'&&
+      String(x.row[19])==='RACUN_CARD_EDIT_PENDING');
+  if(!pending.length)return {status:'NO_PENDING'};
+  const item=pending[0],row=item.row,reference=String(row[0]);
+  const queue=bseTelegramQueue_(book),rows=queue.getLastRow()>1?
+    queue.getRange(2,1,queue.getLastRow()-1,BSE_TG_QUEUE_HEADERS.length).getValues():[];
+  const matches=rows.filter(q=>'BSE-TG-'+String(q[0])===reference);
+  if(matches.length!==1)throw Error('RACUN_REPAIR_QUEUE_CONFLICT');
+  const result=JSON.parse(String(matches[0][9]||'{}'));
+  const envelope=bsePilotRacunAggregateEnvelope_(result);
+  if(!envelope||envelope.aggregate_type!=='PILOT_RACUN_ATOMIC'||
+     bseApprovalHash_(envelope)!==String(row[2]))throw Error('RACUN_REPAIR_HASH_CONFLICT');
+  const plan=bsePilotRacunAtomicPlan_(envelope,reference),adapter=bsePilotRacunSheetAdapter_(book);
+  const confirmed=bsePilotRacunApprovalReconcile_(plan,adapter,
+    {reference:reference,authorized:true,hash_verified:true});
+  if(confirmed.status!=='LEDGER_VERIFIED'||confirmed.record_count!==plan.record_count)
+    throw Error('RACUN_REPAIR_LEDGER_UNVERIFIED');
+  const repair=bsePilotRacunCardEdit_(book,row,bsePilotRacunReceiptText_(reference,plan),item.index);
+  return {status:repair.synced?'CARD_REPAIRED':'REPAIR_PENDING',
+    reference:reference,production_write:false};
 }
 
 /** Retry repair after journal+approval committed but callback crashed before audit/status sync. */
