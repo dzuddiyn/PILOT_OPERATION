@@ -71,12 +71,23 @@ function bsePilotRacunCancelEligibility_(book,reference){
   }catch(_){return {allowed:false,reason:'STORAGE_UNVERIFIED'};}
 }
 function bsePilotRacunReceiptText_(reference,plan){
-  const lines=['REKOD RACUN PILOT DISIMPAN','Rujukan: '+reference,
-    'Tarikh: '+plan.records[0].event_date,'Jumlah rekod: '+plan.record_count,
-    'Simpanan: PILOT unlinked (bukan rekod rasmi BSE)'];
-  plan.records.forEach((r,i)=>lines.push((i+1)+'. '+r.plot_ids.join(', ')+(r.crop?' | '+r.crop:'')+
-    ' | '+r.treatment_description.replace(/\n/g,'; ')));
-  return lines.join('\n').slice(0,3900);
+  const iso=String(plan.records[0].event_date||'');
+  const date=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  const friendlyDate=date?date[3]+'/'+date[2]+'/'+date[1]:iso;
+  const lines=['✅ REKOD RACUN BERJAYA DISIMPAN','',
+    'Rujukan: '+reference,'Tarikh: '+friendlyDate,
+    'Jumlah: '+plan.record_count+' rekod','',
+    'BUTIRAN REKOD'];
+  plan.records.forEach((r,i)=>{
+    lines.push('',(i+1)+'. '+r.plot_ids.join(', ')+(r.crop?' — '+r.crop:''));
+    String(r.treatment_description||'').split(/\r?\n/).filter(Boolean)
+      .forEach(item=>lines.push('   • '+item.trim()));
+  });
+  lines.push('','Status: Direkodkan dalam PILOT (unlinked)',
+    'Nota: Belum dipautkan kepada batch; bukan rekod rasmi BSE.');
+  const receipt=lines.join('\n');
+  if(receipt.length>3900)throw Error('RACUN_RECEIPT_TOO_LONG');
+  return receipt;
 }
 function bsePilotRacunCardEdit_(book,row,summary,position){
   const sheet=bseTelegramApprovalSheet_(book);
