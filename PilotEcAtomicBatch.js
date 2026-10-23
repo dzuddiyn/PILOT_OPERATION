@@ -146,3 +146,38 @@ function bsePilotEcTelegramReconcileExisting_(book,context,input,params){
   const receipt=bseTelegramApprovalCloseCard_(params.row,'REPORTER_CONFIRMED',context.actor_name,message);
   return {duplicate:true,status:'REPORTER_CONFIRMED',receipt_state:receipt&&receipt.state||'UNVERIFIED',production_write:false};
 }
+
+function bsePilotEcHardHeading_(text){
+  return /^\s*(?:SEMAKAN\s+|REKOD\s+)?EC\s+LEACH(?:ING|ATE)?\s*\b/i.test(String(text||''));
+}
+function bsePilotEcHardRouteResult_(reference,text){
+  if(!bsePilotEcHardHeading_(text))return null;
+  const lines=String(text||'').replace(/\r/g,'').split('\n');
+  const dates=lines.join('\n').match(/\b\d{1,2}\/\d{1,2}\/\d{4}\b/g)||[];
+  if(dates.length!==1)throw Error('EC_HARD_ROUTE_DATE_COUNT');
+  const parts=dates[0].split('/');
+  const iso=parts[2]+'-'+parts[1].padStart(2,'0')+'-'+parts[0].padStart(2,'0');
+  const dt=new Date(iso+'T00:00:00Z');
+  if(Number.isNaN(dt.getTime())||dt.toISOString().slice(0,10)!==iso)throw Error('EC_HARD_ROUTE_DATE_INVALID');
+  const batch=bsePilotEcCanonicalBatch_(reference,text,iso);
+  const sourceLines=lines.map(s=>s.trim()).filter(Boolean);
+  const readingLines=sourceLines.filter(s=>/^M[1-9]\d*(?:P[1-9]\d*)?\s*-/i.test(s));
+  if(readingLines.length!==batch.source_count)throw Error('EC_HARD_ROUTE_LOSSY_SOURCE');
+  if(sourceLines.some(s=>!bsePilotEcHardHeading_(s)&&!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)&&!/^M[1-9]\d*(?:P[1-9]\d*)?\s*-/i.test(s)))
+    throw Error('EC_HARD_ROUTE_UNRECOGNIZED_SOURCE');
+  return {aggregate_type:'PILOT_EC_ATOMIC',validation:'PASS',production_write:false,
+    official_bse_write:false,ec_batch:batch,
+    candidates:[{target:'PILOT_EC_CANONICAL_BATCH',validation:'PASS',missing:[],
+      fields:{event_date:iso,source_count:batch.source_count,production_write:false}}]};
+}
+
+function bsePilotEcHardRouteSafeResult_(reference,text){
+  if(!bsePilotEcHardHeading_(text))return null;
+  try{return bsePilotEcHardRouteResult_(reference,text);}
+  catch(error){
+    return {validation:'NEED_INFO',production_write:false,official_bse_write:false,
+      ec_hard_route_error:String(error.message||'EC_SOURCE_INVALID').slice(0,100),
+      candidates:[{target:'PILOT_EC_CANONICAL_BATCH',validation:'NEED_INFO',
+        missing:['ec_full_report'],fields:{original_note:String(text||''),production_write:false}}]};
+  }
+}
