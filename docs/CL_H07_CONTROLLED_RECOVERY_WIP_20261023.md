@@ -1,0 +1,26 @@
+# CL-H07 Controlled Recovery — Work in progress
+
+Date: 2026-10-23, PILOT_OPERATION. Feature branch only; do not deploy this state.
+
+## Read-only reconciliation
+- BSE-TG-772258015: callback PROCESSED; PILOT_INVENTORY_EVENT contains one INVENTORY_IN Baja F, 4 set. Approval card REPORTER_CONFIRMED, but Telegram receipt not observed by owner.
+- BSE-TG-772258024: callback PROCESSED; two INVENTORY_OUT rows Baja F x 1 set (M3P3, M3P4).
+- BSE-TG-772258025: callback PROCESSED; two INVENTORY_OUT rows Baja F x 1 set (M1P1, M1P2).
+- Do not invoke callbacks, resend writes or press Benar on these references.
+
+## Candidate modifications (not merged, not synced)
+1. Make Telegram card edit return explicit ACKNOWLEDGED versus UNVERIFIED; record fail-closed baja receipt uncertainty in approval UI last_error without retry/send.
+2. Narrow normalization for /summary and /status, retaining duplicate and ambiguity rejection. New tests cover /summary M8P1,2 & M8P3 and /status M4 P1.
+3. EC case BSE-TG-772258028: queue NEEDS_HUMAN_REVIEW contains multiple Measurement_Log candidates. bseApprovalDomain_ only supports a single Measurement_Log target; no approval row, no measurement or EC ledger writes. It is unsafe to route multiple candidates through a single-record review core or autoapprove. Requires explicit batch-level atomic review design / scope.
+
+## Tests
+- Targeted Baja receipt acknowledgement: 5/5 PASS.
+- Targeted plot commands: 9/9 PASS.
+- Complete local node suite: 259/259 PASS, no live writes.
+- Apps Script HEAD / Telegram live: NOT ATTEMPTED.
+- Merge/deployment: NOT STARTED.
+
+## Outstanding safety gates
+- Receipt delivery requires genuine Telegram error evidence and safe edit-only reconciliation, not blind sendMessage.
+- EC needs an explicit atomic multi-measurement review contract; no partial field write.
+- Targeted native regression then GitHub review before merge / HEAD sync.
