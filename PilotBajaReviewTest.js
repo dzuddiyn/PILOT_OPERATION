@@ -9,14 +9,15 @@ function bsePilotBajaLineage_(reference,f,item){
   const hash=bseInventoryPayloadHash_(payload);
   return {sourceKey:sourceKey,hash:hash,id:'BSE-SB-INV-'+hash.slice(0,12),payload:payload};
 }
-function bsePilotBajaAuditRows_(rows,lineage){
+function bsePilotBajaAuditRows_(rows,lineage,timeZone){
   const matches=(rows||[]).filter(r=>String(r[0])===lineage.sourceKey);
   if(!matches.length)return 'NEW';
   if(matches.length!==1)throw Error('BAJA_SOURCE_KEY_DUPLICATE');
   const r=matches[0],p=lineage.payload;
+  const eventDate=Object.prototype.toString.call(r[6])==='[object Date]'?Utilities.formatDate(r[6],timeZone||'Etc/GMT','yyyy-MM-dd'):String(r[6]);
   const ok=String(r[1])===lineage.id&&String(r[2])===p.domain&&
     String(r[3])===p.item_name&&Number(r[4])===p.quantity&&
-    String(r[5])===p.unit&&String(r[6])===p.event_date&&
+    String(r[5])===p.unit&&eventDate===p.event_date&&
     String(r[10])==='APPROVED_TEST'&&r[12]===false&&
     String(r[13])===p.original_note&&String(r[17])===lineage.hash&&
     String(r[21]||'')===p.destination&&String(r[26]||'')===p.baja_type;
@@ -34,7 +35,7 @@ function bsePilotBajaReviewCore_(book,context){
   const items=f.baja_items,lines=items.map(item=>bsePilotBajaLineage_(reference,f,item));
   const sheet=bseInventoryMigrateSheetHeaders_(book,'TEST_INVENTORY_EVENT',BSE_INVENTORY_EVENT_HEADERS);
   const prior=sheet.getLastRow()>1?sheet.getRange(2,1,sheet.getLastRow()-1,BSE_INVENTORY_EVENT_HEADERS.length).getValues():[];
-  const plan=lines.map(x=>({line:x,decision:bsePilotBajaAuditRows_(prior,x)}));
+  const plan=lines.map(x=>({line:x,decision:bsePilotBajaAuditRows_(prior,x,(typeof book.getSpreadsheetTimeZone === 'function' ? book.getSpreadsheetTimeZone() : 'Etc/GMT'))}));
   const review=bseInventoryEnsureSheet_(book,'TEST_INVENTORY_REVIEW',BSE_INVENTORY_REVIEW_HEADERS);
   const groupKey=reference+'|'+f.record_type+'|BAJA_GROUP';
   const groupHash=bseInventoryPayloadHash_({groupKey:groupKey,lines:lines.map(x=>x.hash)});
@@ -77,7 +78,7 @@ function bsePilotBajaConfirmedSummary_(book,reference,result){
   const sheet=bseInventoryMigrateSheetHeaders_(book,'TEST_INVENTORY_EVENT',BSE_INVENTORY_EVENT_HEADERS);
   const rows=sheet.getLastRow()>1?sheet.getRange(2,1,sheet.getLastRow()-1,BSE_INVENTORY_EVENT_HEADERS.length).getValues():[];
   const expected=items.map(item=>bsePilotBajaLineage_(reference,f,item));
-  if(expected.some(e=>bsePilotBajaAuditRows_(rows,e)!=='RECOVER'))return '';
+  if(expected.some(e=>bsePilotBajaAuditRows_(rows,e,(typeof book.getSpreadsheetTimeZone === 'function' ? book.getSpreadsheetTimeZone() : 'Etc/GMT'))!=='RECOVER'))return '';
   return ['REKOD '+(f.record_type==='INVENTORY_IN'?'BAJA MASUK':'BAJA KELUAR'),
     'Rujukan: '+reference,'Tarikh: '+f.event_date,
     ...(f.record_type==='INVENTORY_OUT'?['Plot: '+f.destination]:[]),

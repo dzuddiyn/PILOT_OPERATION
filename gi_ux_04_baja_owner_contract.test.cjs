@@ -184,3 +184,4 @@ t('Baja In 4 set F remains PASS',()=>{
  const r=parse('Baja in\n23/10/2026\n4 set F');assert.equal(r.validation,'PASS');
  assert.equal(r.candidates[0].fields.baja_items[0].quantity,4);
 });
+t('Date roundtrip guard',()=>{assert(writer.includes('Utilities.formatDate'));assert(writer.includes('getSpreadsheetTimeZone'));});
