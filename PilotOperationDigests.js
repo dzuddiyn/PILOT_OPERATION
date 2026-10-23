@@ -83,6 +83,21 @@ function bsePilotDigestExisting_(rows,kind,start,end,chat){
     return valid&&['SENDING','SENT','OUTCOME_UNKNOWN'].includes(String(r[kind==='DAILY'?4:5]));
   });
 }
+// Presentation-only: preserve all canonical fields while separating records for Telegram.
+function bsePilotDigestReadableRecord_(event){
+  const raw=String(bseTelegramHistorySafeLine_(event)||'').trim();
+  if(!raw)return '';
+  const parts=raw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  // Long one-line fallback records are separated into labelled lines, without dropping tokens.
+  const items=parts.length===1&&raw.includes(' | ')?raw.split(' | ').map(s=>s.trim()):parts;
+  return items.map((item,i)=>(i===0?'• ':'  ')+item).join('\n');
+}
+function bsePilotDigestAppendRecords_(lines,events){
+  events.forEach((e,i)=>{
+    const item=bsePilotDigestReadableRecord_(e);
+    if(item){if(i)lines.push('');lines.push(item);}
+  });
+}
 function bsePilotDigestRender_(book,kind,owner,window){
   const events=kind==='DAILY'?
     bseTelegramReportCanonicalEvents_(book,window.start):
@@ -95,12 +110,12 @@ function bsePilotDigestRender_(book,kind,owner,window){
   const lines=[kind==='DAILY'?'DAILY MORNING DIGEST — '+today:'FRIDAY WEEKLY DIGEST — '+period,
     kind==='DAILY'?'RINGKASAN SEMALAM — '+period+':':'Fakta canonical PILOT_OPERATION:'];
   if(!shown.length)lines.push('Tiada rekod PILOT yang disahkan dalam sela masa ini.');
-  else shown.forEach(e=>lines.push(bseTelegramHistorySafeLine_(e)));
+  else {lines.push('');bsePilotDigestAppendRecords_(lines,shown);}
   if(events.length>shown.length)lines.push('Dipaparkan '+shown.length+' daripada '+events.length+' rekod.');
   if(kind==='DAILY'){
     lines.push('','STATUS SEMASA — '+today+':');
     if(!todayEvents.length)lines.push('Belum ada rekod operasi hari ini yang disahkan dalam PILOT.');
-    else todayEvents.slice(0,BSE_TG_HISTORY_MAX_DISPLAY).forEach(e=>lines.push(bseTelegramHistorySafeLine_(e)));
+    else {lines.push('');bsePilotDigestAppendRecords_(lines,todayEvents.slice(0,BSE_TG_HISTORY_MAX_DISPLAY));}
     lines.push('','PERHATIAN HARI INI:');
     lines.push('Semak laporan belum disahkan, tindakan lapangan dan ketepatan rekod bersama penyelia.');
     lines.push('Jangan anggap tiada rekod bermaksud tiada aktiviti; sahkan dengan laporan sebenar.');
