@@ -34,6 +34,8 @@
 ## Unverified gates
 - Canonical PR #184 remains DRAFT; no merge authorization granted.
 - No Apps Script HEAD update, version, deployment, native regression, live Telegram approval or runtime binding change in this task.
+- Fresh connected owner-account metadata read found **77** tabs in the operational `BSE_OpsMate_SB_PILOT_OPERATION` workbook. Its physical approval tab is `PILOT_TELEGRAM_APPROVAL_UI`; neither `PILOT_RACUN_TX_JOURNAL` nor `PILOT_RACUN_TX_ROWS` exists there yet.
+- Verified `boundTestBook_()` returns `bseRuntimeBook_(book)`; `bseRuntimeSheetName_('TEST_TELEGRAM_APPROVAL_UI')` maps to the physical `PILOT_TELEGRAM_APPROVAL_UI` tab under PILOT_OPERATION. The Racun ledger names already start with `PILOT_` and remain unchanged. **No operational workbook write was performed.**
 - The real operational PILOT workbook was **not** provisioned with new Racun ledger tabs by this task, and no operational Racun rows were written.
 - Native `SpreadsheetApp` + `LockService` integration and actual Telegram card/callback remain **UNVERIFIED** until authorized merge/deployment and isolated controlled live proof.
 - Review source architecture and physical binding before promoting to LIVE PASS.
