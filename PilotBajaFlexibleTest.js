@@ -62,6 +62,8 @@ function bsePilotBajaFlexNormalize_(input){
   if(plots.length>=2)rest=rest.replace(/\bdan\b/gi,' ');
   rest=rest.replace(/\b(?:Tarikh|Date|Plot|Modul)\s*:/gi,' ');
   rest=rest.replace(/\b(?:Tarikh|Date|Plot|Modul)\b/gi,' ');
+  // Bounded stock-in shorthand: "4 set F" means type F, 4 set; never infer an unspecified type.
+  if(inbound)rest=rest.replace(/\b(\d+(?:[.,]\d+)?)\s+(set|beg|botol|unit|pcs|pek|kotak|tong|kg|g|ml|l)\s+([FN])\b/gi,'$3 $1 $2');
   // e.g. "F:2", "F 2kg", "N 1 set".
   rest=rest.replace(/([A-Za-z][A-Za-z0-9-]{0,15})\s*[:=]\s*(\d)/g,'$1 $2');
   rest=rest.replace(/(\d+(?:[.,]\d+)?)(kg|g|ml|l|set|beg|botol|unit|pcs|pek|kotak|tong)\b/gi,'$1 $2');

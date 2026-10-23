@@ -158,3 +158,14 @@ t('Incomplete Baja Keluar explains missing plot',()=>{
  assert.match(card,/Baja F/);assert(!/Simpan Draf|Benar/.test(card));
 });
 console.log('GI_UX_04_BAJA_OWNER_CONTRACT '+n+'/'+n+' PASS');
+
+t('Baja in free-order report reads 4 set F without inventing fields',()=>{
+ const raw='Baja in\n23/10/2026\n4 set F';
+ const r=parse(raw);assert.equal(r.validation,'PASS');
+ const item=r.candidates[0].fields.baja_items[0];
+ assert.equal(item.baja_type,'F');assert.equal(item.quantity,4);assert.equal(item.unit,'set');
+ assert.equal(r.candidates[0].fields.original_note,raw);
+});
+t('Baja in shorthand still fails closed for missing type',()=>{
+ assert.equal(parse('Baja in\n23/10/2026\n4 set').validation,'NEED_INFO');
+});
