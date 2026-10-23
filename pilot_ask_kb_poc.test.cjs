@@ -27,6 +27,6 @@ test('existing /ask generic fallback preserved when no note keywords found',()=>
  assert.equal(x,'');
  const ai=fs.readFileSync(__dirname+'/TelegramAiTest.js','utf8');
  assert.match(ai,/bsePilotKbStructuredAnswer_\(book,question\)\|\|bsePilotSiteBFaq_\(book,question\)/);
- assert.match(ai,/bseAiGeminiAnswer_\(question,currentSismarp,iracGrounded\)/);
+ assert.match(ai,/bseAiGeminiAnswer_\(question,currentSismarp,iracGrounded(?:,noteContext)?\)/);
  assert.match(ai,/question\+currentContext\+iracContext\+sitePocContext\+archivePocContext/);
 });

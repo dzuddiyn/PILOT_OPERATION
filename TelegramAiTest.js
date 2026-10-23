@@ -117,7 +117,7 @@ function bseAiIracGrounded_(question){
   return {available:true,text:text,source_details:details,sources:details.map(x=>x.title),model_used:modelUsed,production_write:false};
 }
 function diagnoseBseAiIracGroundingTest(){return bseAiIracGrounded_('Abamectin kumpulan IRAC berapa?');}
-function bseAiGeminiAnswer_(question,currentSismarp,iracGrounded){
+function bseAiGeminiAnswer_(question,currentSismarp,iracGrounded,providedNoteContext){
   const props=PropertiesService.getScriptProperties();
   const key=String(props.getProperty('GEMINI_API_KEY')||'').trim();
   const preferredModel=String(props.getProperty('GEMINI_AI_MODEL')||props.getProperty('GEMINI_MODEL')||'').trim();
@@ -128,7 +128,7 @@ function bseAiGeminiAnswer_(question,currentSismarp,iracGrounded){
   if(bseAiIracQuestion_(question)&&!(iracGrounded&&iracGrounded.available))throw new Error('IRAC grounding daripada KB tidak tersedia; klasifikasi tidak dijawab untuk mengelakkan jawapan tanpa sumber.');
   const currentContext=currentSismarp?('\n\nCURRENT_SISMARP_CONTEXT_JSON:\n'+JSON.stringify(currentSismarp)+'\nGunakan konteks SISMARP CURRENT ini sebagai fakta semasa hanya untuk padanan query/filter yang dinyatakan apabila available=true. Jangan tambah produk, tanaman, perosak, nombor pendaftaran atau status yang tiada dalam konteks. Jika total=0, nyatakan tepat bahawa tiada padanan SISMARP semasa ditemui untuk filter tersebut; jangan simpulkan bahan aktif/produk tidak berdaftar di Malaysia secara umum. Jika available=false, nyatakan semakan semasa tidak tersedia/stale dan jangan membuat kesimpulan pendaftaran.'):'';
   const iracContext=iracGrounded&&iracGrounded.available?('\n\nGROUNDED_IRAC_CONTEXT:\n'+String(iracGrounded.text||'')+'\nGunakan konteks IRAC ini sahaja untuk klasifikasi IRAC/MoA; jangan tambah klasifikasi dari pengetahuan model. Kekalkan group code dan nama teknikal rasmi/English label seperti yang terdapat dalam grounding; jangan reka terjemahan Melayu untuk nama kelas atau Mode of Action.'):'';
-  const sitePocContext=typeof bsePilotAskKbNoteContext_==='function'?bsePilotAskKbNoteContext_(question):'';
+  const sitePocContext=providedNoteContext!==undefined?String(providedNoteContext||''):(typeof bsePilotAskKbNoteContext_==='function'?bsePilotAskKbNoteContext_(question):'');
   const archivePocContext=typeof bsePilotAskKbManifestContext_==='function'?bsePilotAskKbManifestContext_(question):'';
   const payload={
     systemInstruction:{parts:[{text:bseTelegramAiSystemPrompt_(!!store||!!sitePocContext)}]},
@@ -193,8 +193,9 @@ function bseTelegramAiReceive_(book,m,allowedPrivate,allowedGroup){
   if(question.length>6000){const command=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'/ask':'/ask_ai';bseTelegramAiSend_(m,'Soalan terlalu panjang. Had '+command+' ialah 6000 aksara.',{noAnswerHeading:true});return {handled:true,production_write:false};}
   const isPilot=bseRuntimeEnvironmentName_()==='PILOT_OPERATION';
   const isPesticideReference=/\b(?:irac|moa|mode of action|sismarp|pendaftaran|berdaftar)\b/i.test(question);
-  const noteContext=isPilot&&!isPesticideReference&&typeof bsePilotAskKbNoteContext_==='function'?bsePilotAskKbNoteContext_(question):'';
-  const exactFromNote=isPilot&&!isPesticideReference&&typeof bsePilotAskKbPrecisePlotAnswer_==='function'?bsePilotAskKbPrecisePlotAnswer_(question):'';
+  const liveNote=isPilot&&!isPesticideReference&&typeof bsePilotAskKbDocText_==='function'?bsePilotAskKbDocText_():{text:'',live:false};
+  const noteContext=isPilot&&!isPesticideReference&&typeof bsePilotAskKbNoteContext_==='function'?bsePilotAskKbNoteContext_(question,liveNote):'';
+  const exactFromNote=isPilot&&!isPesticideReference&&!liveNote.live&&typeof bsePilotAskKbPrecisePlotAnswer_==='function'?bsePilotAskKbPrecisePlotAnswer_(question):'';
   if(exactFromNote){bseTelegramAiSend_(m,exactFromNote);return {handled:true,kb_used:true,source:'NOTA_INDUK_VERIFIED_TABLE',production_write:false};}
   // Note-first for site questions; if Gemini is unavailable, retain structured KB.
   // SISMARP and IRAC retain their specialized source-authority paths.
@@ -203,7 +204,7 @@ function bseTelegramAiReceive_(book,m,allowedPrivate,allowedGroup){
     if(siteAnswer){bseTelegramAiSend_(m,siteAnswer);return {handled:true,kb_used:true,production_write:false};}
   }
   try{
-    const currentSismarp=bseAiSismarpCurrent_(question),iracQuestion=bseAiIracGroundingQuestion_(question,currentSismarp),iracGrounded=bseAiIracGroundedReliable_(iracQuestion),answer=bseAiGeminiAnswer_(question,currentSismarp,iracGrounded);
+    const currentSismarp=bseAiSismarpCurrent_(question),iracQuestion=bseAiIracGroundingQuestion_(question,currentSismarp),iracGrounded=bseAiIracGroundedReliable_(iracQuestion),answer=bseAiGeminiAnswer_(question,currentSismarp,iracGrounded,noteContext);
     bseTelegramAiSend_(m,bseTelegramAiRender_(answer));
     console.log('BSE_AI_REPLY_SENT: '+JSON.stringify({kb_used:answer.kb_used,source_count:answer.sources.length,sismarp_current:!!(currentSismarp&&currentSismarp.available),production_write:false}));
     return {handled:true,kb_used:answer.kb_used,source_count:answer.sources.length,sismarp_current:!!(currentSismarp&&currentSismarp.available),production_write:false};
