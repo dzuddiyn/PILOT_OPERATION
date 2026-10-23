@@ -17,11 +17,13 @@ for(const [text,plots] of [
  ['/summary plot M3P3,M3P4',['M3P3','M3P4']],
  ['/summary M3P3,M3P4,M3P5',['M3P3','M3P4','M3P5']],
  ['/summary M3P34,M3P5',['M3P3','M3P4','M3P5']],
+ ['/summary M3P345',['M3P3','M3P4','M3P5']],
+ ['/summary M3P3456',['M3P3','M3P4','M3P5','M3P6']],
  ['/summary M2P1,M3P1,M4P1,M5P1,M6P1,M7P1',['M2P1','M3P1','M4P1','M5P1','M6P1','M7P1']]
 ])check('valid '+text,()=>assert.deepEqual(parse(text),{kind:'SUMMARY',plots}));
 for(const text of [
  '/summary','/summary ','/summary plot','/summary ABC','/summary M3P3','/summary M3P33',
- '/summary M3P345','/summary M3P3,3','/summary M3P3,M3P3',
+ '/summary M3P333','/summary M3P3,3','/summary M3P3,M3P3',
  '/summary M3P34,M3P3','/summary M3P3,M3P4,M3P5,M3P6,M3P7,M3P8,M3P9',
  '/summary M3P3 extra','/summary plot M3P3 extra','/summary xyz M3P34'
 ])check('invalid '+text,()=>{assert.equal(parse(text),null);assert.equal(c.bseTelegramPlotSummaryUsageCommand_(text),true)});
@@ -36,7 +38,7 @@ check('bad syntax authorized private gets help',()=>{
  const x=c.bseTelegramPlotSummaryUsageRetrieve_({},message('/summary'));assert.equal(x.handled,true);assert.equal(x.production_write,false);assert.ok(x.text.includes('Cara guna /summary'));
 });
 check('bad syntax unauthorized PM exposes no plot data',()=>{
- const x=c.bseTelegramPlotSummaryUsageRetrieve_({},message('/summary M3P345',2));assert.equal(x.production_write,false);assert.ok(x.text.includes('ahli aktif'));assert.ok(!x.text.includes('Batch:'));
+ const x=c.bseTelegramPlotSummaryUsageRetrieve_({},message('/summary M3P333',2));assert.equal(x.production_write,false);assert.ok(x.text.includes('ahli aktif'));assert.ok(!x.text.includes('Batch:'));
 });
 check('group receives PM instruction only',()=>{
  const x=c.bseTelegramPlotSummaryUsageRetrieve_({},message('/summary M3P3',1,true));assert.equal(x.production_write,false);assert.ok(x.text.includes('hanya boleh disemak melalui PM'));

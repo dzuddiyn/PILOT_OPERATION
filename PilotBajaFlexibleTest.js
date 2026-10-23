@@ -69,6 +69,8 @@ function bsePilotBajaFlexNormalize_(input){
   if(plots.length>=2)rest=rest.replace(/\bdan\b/gi,' ');
   rest=rest.replace(/\b(?:Tarikh|Date|Plot|Modul)\s*:/gi,' ');
   rest=rest.replace(/\b(?:Tarikh|Date|Plot|Modul)\b/gi,' ');
+  // Common receiving note: "1 Set baja - N" is explicitly N 1 set, never guessed.
+  if(inbound)rest=rest.replace(/\b(\d+(?:[.,]\d+)?)\s+(set|beg|botol|unit|pcs|pek|kotak|tong|kg|g|ml|l)\s+baja\s*-\s*([FN])\b/gi,'$3 $1 $2');
   // Bounded stock-in shorthand: "4 set F" means type F, 4 set; never infer an unspecified type.
   if(inbound)rest=rest.replace(/\b(\d+(?:[.,]\d+)?)\s+(set|beg|botol|unit|pcs|pek|kotak|tong|kg|g|ml|l)\s+([FN])\b/gi,'$3 $1 $2');
   // e.g. "F:2", "F 2kg", "N 1 set".
@@ -92,8 +94,40 @@ function bsePilotBajaFlexNormalize_(input){
   if(items.length>12)bad=true;
   return {base:base,original:original,incoming:inbound,date:date,plots:plots,items:items,bad:bad};
 }
+function bsePilotBajaGroupedOut_(input,receivedAt){
+  const source=String(input||'').trim();
+  const heading=source.match(/^baja\s+(?:out|keluar)\b/i);
+  if(!heading||!/\bM\s*[1-9]\d*\s+P\s*[1-9]\d*(?:\s+P\s*[1-9]\d*)*\s*-\s*[FN]\b/i.test(source))return null;
+  const matchDate=source.match(/\b\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\b/);
+  const iso=matchDate?bsePilotBajaFlexibleDate_(matchDate[0]):'';
+  const items=[],plots=[],keys=[];
+  let remainder=source.slice(heading[0].length);
+  if(matchDate)remainder=remainder.replace(matchDate[0],' ');
+  const group=/\bM\s*([1-9]\d*)\s+((?:P\s*[1-9]\d*\s*){1,6})\s*-\s*([FN])\b/gi;
+  remainder=remainder.replace(group,(_,m,suffix,type)=>{
+    for(const match of suffix.matchAll(/P\s*([1-9]\d*)/gi)){
+      const plot='M'+m+'P'+match[1],key=type.toUpperCase()+'|'+plot;
+      if(keys.includes(key))return ' INVALID_DUPLICATE ';
+      keys.push(key);if(!plots.includes(plot))plots.push(plot);
+      items.push({item_name:'Baja',baja_type:type.toUpperCase(),quantity:1,unit:'set',destination:plot});
+    }
+    return ' ';
+  });
+  // Do not silently consume unexpected quantities, tokens or partial groups.
+  if(!iso||!items.length||items.length>24||keys.length!==items.length||remainder.replace(/[\s,;&:]+/g,'').length)return null;
+  const baseline=bsePilotBajaParseCanonical_('Baja Keluar\nTarikh: '+iso+'\nPlot: '+plots.join(', ')+'\n'+items[0].baja_type,receivedAt);
+  const candidate=baseline&&baseline.candidates&&baseline.candidates[0];
+  if(!candidate||baseline.validation!=='PASS')return null;
+  candidate.fields.baja_items=items;
+  candidate.fields.baja_scoped_group=true;
+  candidate.fields.original_note=source;
+  candidate.fields.destination=plots.join(', ');
+  return baseline;
+}
 function bsePilotBajaParse_(input,receivedAt){
   if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')return null;
+  const grouped=bsePilotBajaGroupedOut_(input,receivedAt);
+  if(grouped)return grouped;
   const norm=bsePilotBajaFlexNormalize_(input);
   if(!norm)return null;
   const canonical=[norm.base];
