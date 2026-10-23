@@ -83,9 +83,7 @@ function bsePilotRacunReceiptText_(reference,plan,reporter){
     String(r.treatment_description||'').split(/\r?\n/).filter(Boolean)
       .forEach(item=>lines.push('   • '+item.trim()));
   });
-  lines.push('','Status: Disimpan dalam rekod percubaan OpsMate.',
-    'Rekod ini belum dipadankan dengan tanaman/batch yang sedang aktif.',
-    'Ia tidak dihantar ke sistem rasmi BSE.');
+  lines.push('','Status: Berjaya direkodkan.');
   const receipt=lines.join('\n');
   if(receipt.length>3900)throw Error('RACUN_RECEIPT_TOO_LONG');
   return receipt;
