@@ -105,7 +105,7 @@ function bsePilotEcAggregateEnvelope_(reference,originalText,result){
   return {aggregate_type:'PILOT_EC_ATOMIC',validation:'PASS',production_write:false,
     official_bse_write:false,ec_batch:batch,candidates:JSON.parse(JSON.stringify(result.candidates))};
 }
-function bsePilotEcCardText_(reference,envelope){
+function bsePilotEcAtomicCardText_(reference,envelope){
   if(!envelope||envelope.aggregate_type!=='PILOT_EC_ATOMIC'||!bsePilotEcCanonicalValidate_(envelope.ec_batch))throw Error('EC_CARD_ENVELOPE_INVALID');
   const lines=['SEMAKAN EC LEACHING','Rujukan: '+reference,'Tarikh: '+envelope.ec_batch.event_date,
     'Satu kelulusan untuk '+envelope.ec_batch.source_count+' lokasi:'];
