@@ -4,7 +4,10 @@ function bsePilotRacunExecuteApproval_(input,book){
     throw Error('RACUN_EXECUTE_UNAUTHORIZED');
   if(!input.source_key||input.source_key!==input.reference+'|Treatment_Event_Log')
     throw Error('RACUN_EXECUTE_SOURCE_CONFLICT');
+  // Callback owns the script lock; journal adapter must not acquire it again.
+  if(input.outer_lock_held!==true)throw Error('RACUN_OUTER_LOCK_REQUIRED');
   const rows=bsePilotRacunSheetAdapter_(book);
+  rows.lock=fn=>fn();
   const approval=bsePilotRacunApprovalSheetAdapter_(book,input.source_key,input.callback_token);
   const current=approval.get(input.reference);
   if(current.hash!==input.approval_hash||!['OPEN','COMMIT_PENDING','REPORTER_CONFIRMED'].includes(current.status))
