@@ -102,6 +102,11 @@ function bseAiIracGroundedReliable_(question){
     Utilities.sleep(750*(retry+1));
     result=bseAiIracGrounded_(question);
   }
+  if(result&&!result.available&&typeof bsePilotIracFromPdf_==='function'){
+    const pdf=bsePilotIracFromPdf_(question);
+    if(pdf&&pdf.available)return pdf;
+    console.log('BSE_IRAC_PDF_FALLBACK: '+String(pdf&&pdf.reason||'UNAVAILABLE'));
+  }
   return result;
 }
 function bseAiIracQuestion_(question){return /\b(?:IRAC|mode of action|MoA|kumpulan\s+IRAC)\b/i.test(String(question||''));}
