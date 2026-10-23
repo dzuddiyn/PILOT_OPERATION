@@ -47,3 +47,20 @@ CRITICAL NOT INTEGRATED:
 - Existing EcLeachateTest.js two-sheet write path must not be used as the new atomic authority; redesign/adapter required.
 - Canonical sheet schema/migration authorization and runtime revision validation before any sync.
 State: WIP / NOT MERGED / HEAD UNCHANGED / LIVE UNVERIFIED.
+## CL-H07 EC integration continuation — 2026-10-24
+
+- Fresh GitHub main inspected: ef276b3; current feature head cc9f0eb before this continuation; local worktree clean at start.
+- Owner-approved EC-only alias M7 -> M7P3, never global plot alias.
+- Added source-to-candidate reconciliation: preserve all 9 source locations; match 5 numeric Measurement_Log candidates; recognize missing M7P3 as an unmatched source numeric, not a phantom saved candidate. Reject other missing/duplicate/mismatched candidates. Test 6/6 PASS.
+- Added derived index rebuild **pure planner**, deterministic count and missing rows, duplicates/conflicts fail closed. Test 6/6 PASS.
+- Previous canonical batch tests 9/9 PASS and timeout-after-write reconciliation 9/9 PASS.
+- Full Node suite 264/264 PASS, without live writes.
+- Approval controller unresolved: bseTelegramApprovalEnsureCard_ invokes bseApprovalDomain_(result), which rejects multiple Measurement_Log candidates. bseTelegramReporterConfirmationCore_ requires a single approval envelope unless candidate-indexed. Directly routing existing five candidates would violate nine-location source conservation.
+- Current one-row canonical Sheet write implementation is only a prototype. Further live integration requires a versioned aggregate envelope, a single batch summary card/approval path, lock ownership and recovery of partial writes/uncertain states, plus independent actual Apps Script native harness.
+- No merge, no HEAD sync, no deployment, no Telegram send, no pilot Sheet mutation. Historical BSE-TG-772258028 is NOT retried.
+
+Status: LOCAL PASS only. HIGH-RISK RUNTIME GATE not met; do not promote to LIVE PASS or DELIVERED.
+## Integration gate found
+The live callback in TelegramApprovalUiTest.js uses bseApprovalEnvelopes_(aggregate) and rejects more than one envelope for a single card. Existing bseApprovalDomain_ rejects multiple Measurement_Log candidates. A true 1-card EC batch therefore still needs a new versioned aggregate approval envelope and a dedicated callback core. Neither existing multi-row EC_LeachateReviewCore_ nor existing MeasurementReviewCore_ can be reused safely as atomic authority. **Do not merge or push this branch** until replacement is complete and independent native regression can be run safely.
+
+Continuation work: full-source candidate reconciliation 6/6 PASS, derived index recovery 6/6 PASS, complete local Node 264/264 PASS. READ-ONLY inspections only; no Sheets/Telegram writes. Historical 772258028 never replayed.

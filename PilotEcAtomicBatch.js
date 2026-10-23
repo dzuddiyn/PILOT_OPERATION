@@ -54,3 +54,36 @@ function bsePilotEcDerivedIndex_(batch){
   if(!bsePilotEcCanonicalValidate_(batch))throw Error('EC_BATCH_INVALID');
   return batch.readings.map((r,i)=>({reference:batch.reference,ordinal:i+1,date:batch.event_date,plot_id:r.plot_id,input_status:r.input_status,value:r.value}));
 }
+
+function bsePilotEcReconcileCandidateBatch_(batch,result){
+  if(!bsePilotEcCanonicalValidate_(batch)||!result||result.production_write!==false||result.validation!=='PASS')throw Error('EC_BATCH_RECONCILE_INVALID');
+  const candidates=Array.isArray(result.candidates)?result.candidates:[];
+  if(candidates.some(c=>!c||c.target!=='Measurement_Log'||c.validation!=='PASS'||!c.fields||c.fields.measurement_type!=='EC_LEACHING'))throw Error('EC_BATCH_UNEXPECTED_CANDIDATE');
+  const actual=batch.readings.filter(r=>r.input_status==='NUMERIC');
+  const matches=[];
+  for(const r of actual){
+    const hit=candidates.filter(c=>String(c.fields.plot_id||'').toUpperCase()===r.plot_id&&Number(c.fields.value)===r.value);
+    // A module-only M7 proposal is not allowed to act as a plot record.
+    if(hit.length===1)matches.push(hit[0]);
+    else if(r.plot_id==='M7P3'&&hit.length===0&&!candidates.some(c=>String(c.fields.plot_id||'').toUpperCase()==='M7'))matches.push(null);
+    else throw Error('EC_BATCH_SOURCE_CANDIDATE_MISMATCH');
+  }
+  if(candidates.length!==matches.filter(Boolean).length)throw Error('EC_BATCH_UNMATCHED_CANDIDATE');
+  return {ok:true,canonical:batch,unrepresented_source_count:batch.readings.length-candidates.length,requires_explicit_atomic_review:true};
+}
+
+function bsePilotEcRebuildIndex_(batch,observedRows){
+  const wanted=bsePilotEcDerivedIndex_(batch);
+  const existing=Array.isArray(observedRows)?observedRows:[];
+  const key=r=>String(r.reference)+'|'+String(r.ordinal);
+  const ids=new Set();
+  for(const r of existing){
+    if(String(r.reference)!==batch.reference)continue;
+    const id=key(r);
+    if(ids.has(id))throw Error('EC_DERIVED_INDEX_DUPLICATE');
+    ids.add(id);
+    const expected=wanted.find(x=>key(x)===id);
+    if(!expected||JSON.stringify(r)!==JSON.stringify(expected))throw Error('EC_DERIVED_INDEX_CONFLICT');
+  }
+  return {canonical_unchanged:true,expected_count:wanted.length,missing:wanted.filter(r=>!ids.has(key(r)))};
+}
