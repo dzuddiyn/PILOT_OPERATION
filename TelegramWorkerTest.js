@@ -406,6 +406,7 @@ function bsePilotEcReviewCardOnly_(result,status){
      status!=='NEEDS_HUMAN_REVIEW'||!result||
      result.validation!=='PASS'||result.production_write!==false||
      !Array.isArray(result.candidates)||result.candidates.length!==1)return false;
+  if(result.aggregate_type==='PILOT_EC_ATOMIC'&&typeof bsePilotEcCanonicalValidate_==='function'&&bsePilotEcCanonicalValidate_(result.ec_batch))return true;
   const candidate=result.candidates[0],f=candidate&&candidate.fields||{};
   return !!candidate&&candidate.target==='EC_Leachate_Log'&&
     candidate.validation==='PASS'&&Array.isArray(candidate.missing)&&
