@@ -75,6 +75,9 @@ function bseCropBatchReviewCore_(book,reviewContext){
   if(decision==='APPROVED'&&typeof bsePilotSowingApprovedPayloadGuard_==='function')
     bsePilotSowingApprovedPayloadGuard_(String(selected.row[4]||''),proposal);
   if(batches.some(row=>String(row[0])===sourceKey)||events.some(row=>String(row[0])===sourceKey)||allocations.some(row=>String(row[0])===sourceKey))throw new Error('Konflik rekod Crop Batch TEST sedia ada.');
+  if(decision==='APPROVED'&&bseRuntimeEnvironmentName_()==='PILOT_OPERATION'){
+    bsePilotLifecycleRequireFreePlots_(allocations,bsePilotLifecycleBookRows_(book,'TEST_ALLOCATION_STATUS_EVENT',BSE_ALLOCATION_STATUS_EVENT_HEADERS),proposal.plots);
+  }
   const reviewOut=reviewSheet||bseCropBatchSheet_(book,'TEST_CROP_BATCH_REVIEW',BSE_CROP_BATCH_REVIEW_HEADERS);
   let batchId='';
   if(decision==='APPROVED'){

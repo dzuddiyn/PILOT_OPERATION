@@ -49,6 +49,9 @@ function bseTransplantReviewCore_(book,reviewContext){
       return {source_key:sourceKey,batch_id:batchId,transplant_event_id:eventId,decision:decision,duplicate:true,production_write:false};
     }
     const match=bseTransplantMatchForBook_(book,proposal);if(match.kind!=='UNIQUE')throw new Error('Batch Crop Batch atau allocation PLANNED tidak sepadan; tiada write dibuat.');
+    if(decision==='APPROVED'&&bseRuntimeEnvironmentName_()==='PILOT_OPERATION'){
+      bsePilotLifecycleRequireUniqueActive_(bsePilotLifecycleBookRows_(book,'TEST_PLOT_ALLOCATION',BSE_PLOT_ALLOCATION_HEADERS),statusEvents,proposal.plots,match.batch_id,proposal.fields.event_date);
+    }
     const payloadHash=bseCropBatchHash_({proposal:proposal.canonical,batch_id:match.batch_id});
     if(status!=='NEEDS_HUMAN_REVIEW')throw new Error('Baris queue bukan NEEDS_HUMAN_REVIEW.');
     if(events.some(row=>String(row[0])===sourceKey)||statusEvents.some(row=>String(row[0])===sourceKey)||reallocationEvents.some(row=>String(row[1])===root.updateId))throw new Error('Konflik rekod Transplant TEST sedia ada.');
