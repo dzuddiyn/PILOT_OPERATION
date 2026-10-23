@@ -92,6 +92,11 @@ function bseTelegramEcHistoryRetrieve_(book,m){
     audit('DENIED',access.reason,0,0,0);
     return {handled:true,text:'EC history hanya boleh diminta melalui PM oleh owner/admin atau user TEST yang aktif.'};
   }
+  if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'){
+    const report=bsePilotEcCanonicalHistory_(book,command,3900);
+    audit('SENT',access.reason,report.matched_batches,report.matched_rows,report.displayed_rows);
+    return {handled:true,text:report.text,matched_batches:report.matched_batches,matched_rows:report.matched_rows,displayed_rows:report.displayed_rows,production_write:false};
+  }
   const rows=bseTelegramEcHistoryRows_(book,command),groups=bseTelegramEcHistoryGroups_(rows),rendered=bseTelegramEcHistoryRender_(command,groups,3900);
   audit('SENT',access.reason,groups.length,rows.length,rendered.displayed_rows);
   return {handled:true,text:rendered.text,matched_batches:groups.length,matched_rows:rows.length,displayed_rows:rendered.displayed_rows,production_write:false};
@@ -135,4 +140,40 @@ function runBseTelegramEcHistoryHarnessTests(){
   ];
   const bad=tests.filter(t=>!t.pass);if(bad.length)throw new Error('EC history harness gagal: '+bad.map(t=>t.id).join(', '));
   return tests;
+}
+
+function bsePilotEcCanonicalHistory_(book,command,maxChars){
+  const sheet=book.getSheetByName('PILOT_EC_CANONICAL_BATCH');
+  const all=sheet&&sheet.getLastRow()>1?sheet.getRange(2,1,sheet.getLastRow()-1,4).getValues():[];
+  const batches=[];
+  for(const row of all){
+    if(String(row[1])!=='EC_BATCH_V1'||String(row[3])!=='COMMITTED')continue;
+    let b;
+    try{b=JSON.parse(String(row[2]||''));}catch(e){throw Error('EC_CANONICAL_HISTORY_CORRUPT');}
+    if(!bsePilotEcCanonicalValidate_(b)||b.reference!==String(row[0]))throw Error('EC_CANONICAL_HISTORY_MISMATCH');
+    if(bseTelegramHistoryInCommandPeriod_(b.event_date,command))batches.push(b);
+  }
+  batches.sort((a,b)=>a.event_date.localeCompare(b.event_date)||a.reference.localeCompare(b.reference));
+  const max=Math.min(3900,Number(maxChars||3900)),lines=['SEJARAH EC LEACHING — '+bseTelegramHistoryPeriodLabel_(command),'Rekod batch disahkan: '+batches.length];
+  let displayed=0;
+  for(const batch of batches){
+    const details=['',batch.event_date+' | '+batch.reference,'Lokasi: '+batch.readings.length]
+      .concat(batch.readings.map(r=>r.plot_id+': '+(r.input_status==='NUMERIC'?String(r.value):r.input_status==='NOT_MEASURED'?'x':'kosong')));
+    if((lines.join('\n')+'\n'+details.join('\n')).length>max-80){lines.push('','Paparan dipendekkan. Guna /ec YYYY-MM-DD.');break;}
+    lines.push(...details);displayed+=batch.readings.length;
+  }
+  if(!batches.length)lines.push('Tiada batch EC canonical yang disahkan untuk tempoh ini.');
+  return {text:lines.join('\n'),matched_batches:batches.length,matched_rows:batches.reduce((n,b)=>n+b.readings.length,0),displayed_rows:displayed};
+}
+
+function runClH07EcCanonicalHistoryNativeProof(){
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')throw Error('EC_HISTORY_NATIVE_WRONG_ENV');
+  const book=boundTestBook_(),command=bseTelegramEcHistoryCommand_('/ec 2026-10');
+  if(!command||command.invalid)throw Error('EC_HISTORY_NATIVE_COMMAND_INVALID');
+  const result=bsePilotEcCanonicalHistory_(book,command,3900);
+  if(result.matched_batches<2||result.matched_rows<18||!/BSE-TG-772258043/.test(result.text)||!/BSE-TG-772258047/.test(result.text))
+    throw Error('EC_HISTORY_NATIVE_MISSING_EXPECTED_BATCHES');
+  const proof={matched_batches:result.matched_batches,matched_rows:result.matched_rows,displayed_rows:result.displayed_rows,production_write:false};
+  console.log('CL_H07_EC_CANONICAL_NATIVE '+JSON.stringify(proof));
+  return proof;
 }

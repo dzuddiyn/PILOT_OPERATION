@@ -143,6 +143,33 @@ function bseTelegramHistoryPeriodLabel_(command){
 }
 function bseTelegramHistoryPilotSummary_(candidates){
   const list=Array.isArray(candidates)?candidates:[],find=target=>list.find(c=>c&&c.target===target);
+  const inventory=find('Inventory_Event_Log'),ec=find('PILOT_EC_CANONICAL_BATCH');
+  if(inventory){
+    const f=inventory.fields||{},items=Array.isArray(f.baja_items)?f.baja_items:[];
+    const lines=[String(f.movement_type||'').toUpperCase()==='IN'?'Baja masuk':'Baja keluar'];
+    if(f.event_date)lines.push('Tarikh kerja: '+f.event_date);
+    items.forEach((item,i)=>lines.push((i+1)+'. Baja '+(item.baja_type||'')+' — '+item.quantity+' '+item.unit+(item.destination?' ('+item.destination+')':'')));
+    if(!items.length)lines.push('Butiran baja tidak tersedia');
+    lines.push('Status: Disahkan');
+    return lines.join('\n');
+  }
+  if(ec){
+    const f=ec.fields||{};
+    return ['EC Leaching','Tarikh kerja: '+String(f.event_date||''),'Bilangan lokasi: '+String(f.source_count||'?'),'Status: Disahkan'].join('\n');
+  }
+  const operation=find('Operation_Log');
+  if(operation){
+    const f=operation.fields||{},kind=String(f.operation_type||'').toUpperCase();
+    const name=kind==='HARVEST_START'?'Mula tuai':kind==='CYCLE_END'?'Tamat kitaran':'Operasi ladang';
+    const plots=Array.isArray(f.plot_ids)?f.plot_ids:[f.plot_id];
+    const lines=[name];
+    if(f.event_date)lines.push('Tarikh kerja: '+f.event_date);
+    if(plots.filter(Boolean).length)lines.push('Plot: '+plots.filter(Boolean).join(', '));
+    const note=String(f.notes||f.original_note||'').replace(/[\r\n]+/g,' ').trim().slice(0,160);
+    if(note)lines.push('Catatan: '+note);
+    lines.push('Status: Disahkan');
+    return lines.join('\n');
+  }
   const sow=find('Crop_Batch_Log'),trans=find('Transplant_Event_Log');
   const source=sow||trans;
   if(!source)return '';
@@ -164,8 +191,13 @@ function bseTelegramHistorySafeLine_(event,includeWorkDate){
   const isPilot=bseRuntimeEnvironmentName_()==='PILOT_OPERATION';
   // PILOT history is work-date history, never approval/recording-date history.
   if(isPilot&&event.pilot_summary)return event.pilot_summary+'\nRujukan: '+event.reference;
-  const parts=(isPilot?(includeWorkDate===false?[]:['Tarikh kerja: '+event.date]):[event.date])
-    .concat([event.reference,event.category,event.summary]);
+  if(isPilot){
+    const types={'Inventory_Event_Log':'Stok baja','Operation_Log':'Operasi ladang','Plant_Census_Log':'Banci tanaman','PILOT_EC_CANONICAL_BATCH':'EC Leaching','Treatment_Event_Log':'Rawatan / Racun'};
+    const label=types[String(event.category||'')]||String(event.category||'').replace(/_/g,' ');
+    const summary=String(event.summary||'').replace(/[\r\n]+/g,' ').replace(/\s+/g,' ').trim();
+    return [(includeWorkDate===false?'':'Tarikh kerja: '+event.date),label+(summary?' — '+summary:''),'Rujukan: '+event.reference].filter(Boolean).join('\n');
+  }
+  const parts=[event.date,event.reference,event.category,event.summary];
   return parts.map(v=>String(v||'').replace(/[\r\n]+/g,' ').replace(/\s+/g,' ').trim()).join(' | ').slice(0,220);
 }
 function bseTelegramHistoryUserCandidateLine_(candidate){
@@ -327,12 +359,23 @@ function bseTelegramHistoryRetrieve_(book,m){
     return {handled:true,text:bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'Sejarah operasi hanya untuk ahli aktif melalui PM bot.':'History hanya boleh diminta melalui PM oleh owner/admin atau user TEST yang aktif.'};
   }
   const all=bseTelegramHistoryEventsFor_(book,command,user,access.is_owner),displayed=all.slice(0,BSE_TG_HISTORY_MAX_DISPLAY);
-  const isPilot=bseRuntimeEnvironmentName_()==='PILOT_OPERATION';const lines=[(isPilot?'Sejarah operasi':'Sejarah TEST')+' — '+bseTelegramHistoryPeriodLabel_(command)];if(isPilot)lines.push('');
-  if(!displayed.length)lines.push(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'?'Tiada rekod operasi disahkan untuk tempoh ini.':'Tiada rekod TEST yang boleh dipaparkan dalam sela masa ini.');
-  else displayed.forEach((event,index)=>{if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&index>0)lines.push('');lines.push(bseTelegramHistorySafeLine_(event,command.kind!=='DAY'));});
-  if(all.length>displayed.length)lines.push('Dipaparkan '+displayed.length+' daripada '+all.length+' rekod yang dipadankan.');
-  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')lines.push('Mod TEST — tiada rekod production ditulis.');
-  audit('SENT',access.reason,all.length,displayed.length);
+  const isPilot=bseRuntimeEnvironmentName_()==='PILOT_OPERATION',lines=[(isPilot?'Sejarah operasi':'Sejarah TEST')+' — '+bseTelegramHistoryPeriodLabel_(command)];
+  if(isPilot)lines.push('');
+  let shown=0;
+  if(!displayed.length)lines.push(isPilot?'Tiada rekod operasi disahkan untuk tempoh ini.':'Tiada rekod TEST yang boleh dipaparkan dalam sela masa ini.');
+  else for(const event of displayed){
+    const line=bseTelegramHistorySafeLine_(event,command.kind!=='DAY');
+    const sep=isPilot&&shown>0?'\n\n':'\n';
+    if(isPilot&&(lines.join('\n')+sep+line).length>3450)break;
+    if(isPilot&&shown>0)lines.push('');
+    lines.push(line);shown++;
+  }
+  if(all.length>shown){
+    lines.push('','Dipaparkan '+shown+' daripada '+all.length+' rekod.');
+    if(isPilot)lines.push('Untuk melihat selebihnya, guna /history week N 2026-10 atau /history DD/MM/YYYY.');
+  }
+  if(!isPilot)lines.push('Mod TEST — tiada rekod production ditulis.');
+  audit('SENT',access.reason,all.length,shown);
   return {handled:true,text:lines.join('\n'),production_write:false};
 }
 

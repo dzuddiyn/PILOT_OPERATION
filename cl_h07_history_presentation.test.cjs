@@ -1,0 +1,16 @@
+const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
+const s=fs.readFileSync(__dirname+'/TelegramHistoryTest.js','utf8'),a=s.indexOf('function bseTelegramHistoryPilotSummary_('),b=s.indexOf('function bseTelegramHistoryUserCandidateLine_(',a);
+assert(a>=0&&b>a);
+const ctx={bseRuntimeEnvironmentName_:()=> 'PILOT_OPERATION'};
+vm.createContext(ctx);vm.runInContext(s.slice(a,b),ctx);
+const summary=items=>ctx.bseTelegramHistoryPilotSummary_(items);
+const baja=summary([{target:'Inventory_Event_Log',fields:{event_date:'2026-10-08',movement_type:'OUT',baja_items:[{baja_type:'F',quantity:1,unit:'set',destination:'M3P3'},{baja_type:'N',quantity:1,unit:'set',destination:'M2P4'}]}}]);
+assert.match(baja,/Baja keluar/);assert.match(baja,/F — 1 set \(M3P3\)/);assert.match(baja,/N — 1 set \(M2P4\)/);
+const ec=summary([{target:'PILOT_EC_CANONICAL_BATCH',fields:{event_date:'2026-10-13',source_count:9}}]);
+assert.match(ec,/EC Leaching/);assert.match(ec,/Bilangan lokasi: 9/);
+const operation=summary([{target:'Operation_Log',fields:{event_date:'2026-10-02',operation_type:'HARVEST_START',plot_id:'M3P3'}}]);
+assert.match(operation,/Mula tuai/);assert.match(operation,/Plot: M3P3/);
+const line=ctx.bseTelegramHistorySafeLine_({date:'2026-10-08',reference:'BSE-TG-123',category:'Inventory_Event_Log',summary:'Baja set'},true);
+assert.match(line,/Stok baja/);assert.match(line,/Tarikh kerja: 2026-10-08/);assert.doesNotMatch(line,/Inventory_Event_Log/);
+assert(!summary([{target:'Other',fields:{}}]));
+console.log('CL_H07_HISTORY_PRESENTATION 10/10 PASS');
