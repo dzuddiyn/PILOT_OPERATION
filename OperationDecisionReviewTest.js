@@ -61,6 +61,9 @@ function bseOperationReviewCore_(book,reviewContext){
     return {source_key:sourceKey,duplicate:true,production_write:false};
   }
   if(priorLog)throw new Error('Log Operation tanpa audit ditemui; tiada write tambahan dibuat.');
+  if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&String(f.operation_type)==='HARVEST_START'){
+    bsePilotLifecycleRequireHarvestStart_(bsePilotLifecycleBookRows_(book,'TEST_PLOT_ALLOCATION',BSE_PLOT_ALLOCATION_HEADERS),bsePilotLifecycleBookRows_(book,'TEST_ALLOCATION_STATUS_EVENT',BSE_ALLOCATION_STATUS_EVENT_HEADERS),logs,f.plot_id,f.event_date,sourceKey);
+  }
   bseOperationDecisionAppend_(log,[sourceKey,String(context.reference).replace(/^BSE-TG-/,''),picked.index,f.event_date,f.event_time,f.plot_id,f.operation_type,f.remarks,f.verification_status,f.original_note,stamp,reviewer,payloadHash]);
   SpreadsheetApp.flush();
   bseOperationDecisionAppend_(review,[Utilities.getUuid(),sourceKey,String(context.reference).replace(/^BSE-TG-/,''),picked.index,'Operation_Log',payloadHash,'APPROVED',reviewer,'',stamp,'NEEDS_HUMAN_REVIEW',JSON.stringify(candidate)]);

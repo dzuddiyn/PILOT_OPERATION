@@ -1,0 +1,11 @@
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm');const ctx={};vm.createContext(ctx);vm.runInContext(fs.readFileSync(__dirname+'/PilotLifecycleGuard.js','utf8'),ctx);
+const a=(batch,id,plot,date='2026-10-01')=>['source','1',batch,id,date,plot,'PLANNED'];const s=(id,from,to,plot='M1P1')=>['source','1','sid','TR','batch',id,plot,from,to];
+test('sowing free plot accepted',()=>assert.equal(ctx.bsePilotLifecycleRequireFreePlots_([],[],['M1P1']),true));
+test('duplicate sow and cross batch overlap blocked',()=>{assert.throws(()=>ctx.bsePilotLifecycleRequireFreePlots_([a('B1','A1','M1P1')],[],['M1P1']),/CROP_LIFECYCLE_CONFLICT/);});
+test('two simultaneous planned blocked at transplant',()=>assert.throws(()=>ctx.bsePilotLifecycleRequireUniqueActive_([a('B1','A1','M1P1'),a('B2','A2','M1P1')],[],['M1P1'],'B1','2026-10-05'),/CONFLICT/));
+test('transplant requires correct unique planned',()=>{assert.equal(ctx.bsePilotLifecycleRequireUniqueActive_([a('B1','A1','M1P1')],[],['M1P1'],'B1','2026-10-05'),true);assert.throws(()=>ctx.bsePilotLifecycleRequireUniqueActive_([a('B1','A1','M1P1')],[],['M1P1'],'B2','2026-10-05'),/CONFLICT/);});
+test('backdated transplant blocked',()=>assert.throws(()=>ctx.bsePilotLifecycleRequireUniqueActive_([a('B1','A1','M1P1')],[],['M1P1'],'B1','2026-09-01'),/DATE_CONFLICT/));
+test('active occupancy prevents next sow',()=>assert.throws(()=>ctx.bsePilotLifecycleRequireFreePlots_([a('B1','A1','M1P1')],[s('A1','PLANNED','ACTIVE')],['M1P1']),/CONFLICT/));
+test('inactive cycle frees plot',()=>assert.equal(ctx.bsePilotLifecycleRequireFreePlots_([a('B1','A1','M1P1')],[s('A1','PLANNED','ACTIVE'),s('A1','ACTIVE','INACTIVE')],['M1P1']),true));
+test('one harvest start needs unique ACTIVE',()=>{const alloc=[a('B1','A1','M1P1')],states=[s('A1','PLANNED','ACTIVE')];assert.equal(ctx.bsePilotLifecycleRequireHarvestStart_(alloc,states,[],'M1P1','2026-10-06','key'),true);assert.throws(()=>ctx.bsePilotLifecycleRequireHarvestStart_(alloc,states,[['old',0,0,0,0,'M1P1','HARVEST_START']],'M1P1','2026-10-06','new'),/CONFLICT/);});
+test('invalid state transition is fail closed',()=>assert.throws(()=>ctx.bsePilotLifecycleRequireFreePlots_([a('B1','A1','M1P1')],[s('A1','ACTIVE','INACTIVE')],['M1P1']),/CONFLICT/));
