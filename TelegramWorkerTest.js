@@ -648,7 +648,8 @@ function bseTelegramWorkerFinalizeResult_(book,rawResult,job){
   }
   if(guarded&&Array.isArray(guarded.candidates))guarded.candidates.forEach(c=>{if(c&&c.fields)c.fields.original_note=job.provenance;});
   const checked=bsePilotCycleEndQueueGuard_(book,bseTreatmentQueueGuard_(book,bseCensusQueueGuard_(book,bseTransplantQueueGuard_(book,guarded))));
-  const result=typeof bsePilotSeedFinalizeGate_==='function'?bsePilotSeedFinalizeGate_(checked,job.input):checked;
+  const seedChecked=typeof bsePilotSeedFinalizeGate_==='function'?bsePilotSeedFinalizeGate_(checked,job.input):checked;
+  const result=typeof bsePilotSowingQueueGuard_==='function'?bsePilotSowingQueueGuard_(book,seedChecked):seedChecked;
   // Observed exact-date/plot Transplant already in PILOT: informational terminal
   // response only. Never mutate prior records or issue approval cards.
   if(book&&result&&result.validation==='NEED_INFO'&&result.candidates&&result.candidates.length===1&&
@@ -849,6 +850,7 @@ function bseTelegramQuestion_(result) {
   if(result&&result.transplant_already_recorded)return '';
   if(!result||result.validation!=='NEED_INFO'||!Array.isArray(result.candidates))return '';
   if(result.candidates.some(c=>c&&c.fields&&c.fields.operation_type==='CYCLE_END'&&Array.isArray(c.missing)&&c.missing.includes('active_allocation_match')))return 'Plot tidak mempunyai tepat satu allocation tanaman ACTIVE yang boleh ditamatkan pada tarikh dilaporkan. Sila semak status plot atau hubungi penyelia. Tiada plot ditutup.';
+  if(Array.isArray(result.lifecycle_plot_conflicts)&&result.lifecycle_plot_conflicts.length)return 'Plot '+result.lifecycle_plot_conflicts.join(', ')+' masih mempunyai kitaran tanaman PLANNED/ACTIVE. Semaian baharu tidak boleh direkodkan sehingga kitaran lama tamat (INACTIVE). Tiada rekod disimpan.';
   if(result.seed_sowing_split_required===true)return 'Laporan semaian mengandungi lebih daripada satu set tanaman. Sila hantar setiap semaian secara berasingan: satu jenis tanaman/varieti, satu modul, dan satu tarikh semai untuk setiap mesej.';
   if(result.transplant_date_conflict){
     const c=result.transplant_date_conflict;
