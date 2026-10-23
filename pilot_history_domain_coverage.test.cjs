@@ -32,5 +32,5 @@ assert(ctx.bseTelegramHistoryEventVisibleTo_(all.find(x=>x.reference==='TX-15'),
 assert(!ctx.bseTelegramHistoryEventVisibleTo_(all.find(x=>x.reference==='PRIVATE-EV'),'registered',false));
 assert(!JSON.stringify(all).includes('private raw report'));
 assert(!JSON.stringify(all).includes('private report'));
-assert(extract('bseTelegramHistoryRetrieve_').includes("bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')lines.push('Mod TEST"));
+assert(extract('bseTelegramHistoryRetrieve_').includes("if(!isPilot)lines.push('Mod TEST"));
 console.log('PILOT_HISTORY_COVERAGE 9/9 PASS');

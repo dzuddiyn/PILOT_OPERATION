@@ -15,10 +15,10 @@ const BSE_TG_TEST_COMMANDS=[
 ];
 function bsePilotTelegramCommandMenu_(){
   const pilot=bseRuntimeEnvironmentName_()==='PILOT_OPERATION';
-  const commands=BSE_TG_TEST_COMMANDS.map(function(item){
+  const commands=BSE_TG_TEST_COMMANDS.filter(item=>!(pilot&&item.command==='summary')).map(function(item){
     return {
       command:pilot&&item.command==='ec_history'?'ec':pilot&&item.command==='ask_ai'?'ask':item.command,
-      description:pilot&&item.command==='ec_history'?'Sejarah EC_IN ikut hari/bulan/minggu':pilot&&item.command==='ask_ai'?'Tanya AI dengan rujukan KB yang tersedia':
+      description:pilot&&item.command==='ec_history'?'Sejarah batch EC Leaching ikut hari/bulan/minggu':pilot&&item.command==='ask_ai'?'Tanya AI dengan rujukan KB yang tersedia':
         pilot&&item.command==='delete'?'Owner: batal rekod, contoh /delete BSE-TG-123':
         pilot?item.description.replace(/ TEST\b/g,'').replace(/TEST/g,'operasi'):item.description
     };
