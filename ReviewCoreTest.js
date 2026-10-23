@@ -62,7 +62,12 @@ function bseReviewWithLock_(context, core) {
   bseReviewContextValidate_(context);
   const lock=LockService.getScriptLock();
   if(!lock.tryLock(10000))throw new Error('Barisan sedang dikemas kini. Cuba semula.');
-  try { return core(boundTestBook_(), context); } finally { lock.releaseLock(); }
+  // The scope marker is set only after the real ScriptLock is acquired.
+  const racunScope=typeof BSE_PILOT_RACUN_LOCK_DEPTH!=='undefined';
+  if(racunScope&&BSE_PILOT_RACUN_LOCK_DEPTH!==0){lock.releaseLock();throw Error('RACUN_NESTED_LOCK');}
+  if(racunScope)BSE_PILOT_RACUN_LOCK_DEPTH=1;
+  try { return core(boundTestBook_(), context); }
+  finally { if(racunScope)BSE_PILOT_RACUN_LOCK_DEPTH=0;lock.releaseLock(); }
 }
 
 function runBseReviewTimezoneHarnessTests() {

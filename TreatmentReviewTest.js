@@ -281,6 +281,19 @@ function bseTreatmentListParseMessage_(text,receivedAt){
 function bseTreatmentFinalizeResult_(book,rawResult,job){
   if(!rawResult||rawResult.production_write!==false||!Array.isArray(rawResult.candidates)||!rawResult.candidates.length)return rawResult;
   if(!rawResult.candidates.every(c=>c&&c.target==='Treatment_Event_Log'))return rawResult;
+  const aggregate=rawResult.candidates.length>1&&rawResult.candidates.every(c=>c.fields&&/^Racun\s*$/im.test(String(c.fields.original_note||'')));
+  if(aggregate&&typeof bsePilotRacunSourceAssessment_==='function'){
+    const assessment=bsePilotRacunSourceAssessment_(rawResult);
+    if(assessment.status!=='SOURCE_COMPLETE_STORAGE_BLOCKED')return rawResult;
+    const prepared=JSON.parse(JSON.stringify(rawResult));
+    prepared.validation='PASS';prepared.candidates.forEach(c=>{c.validation='PASS';c.missing=[];});
+    const readiness=typeof bsePilotRacunAggregateEligibility_==='function'?bsePilotRacunAggregateEligibility_(prepared,book):{eligible:false,reason:'DURABLE_CALLBACK_NOT_BOUND'};
+    if(readiness.eligible===true)return prepared;
+    const blocked=JSON.parse(JSON.stringify(rawResult));
+    blocked.storage_blocked=true;blocked.storage_reason=String(readiness.reason||'UNVERIFIED');
+    blocked.candidates.forEach(c=>{c.validation='NEED_INFO';c.missing=['storage_ready'];});
+    return blocked;
+  }
   return bseTreatmentReconcileCandidates_(book,rawResult);
 }
 

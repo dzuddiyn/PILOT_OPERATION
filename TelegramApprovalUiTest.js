@@ -24,7 +24,7 @@ function processBseTelegramApprovalCallbacks(){const book=boundTestBook_(),sheet
 function diagnoseBseTelegramApprovalCallbackState(){const book=boundTestBook_(),offset=String(PropertiesService.getScriptProperties().getProperty('BSE_TELEGRAM_OFFSET')||''),sheet=bseTelegramApprovalCallbackSheet_(book),rows=sheet.getLastRow()>1?sheet.getRange(2,1,sheet.getLastRow()-1,BSE_APPROVAL_CALLBACK_HEADERS.length).getValues():[],callbacks=rows.slice(-10).map(row=>({update_id:String(row[0]||''),action:String(row[3]||''),status:String(row[5]||''),attempts:Number(row[6]||0),last_error:String(row[7]||'')})),approval=bseTelegramApprovalSheet_(book),approvalRows=approval.getLastRow()>1?approval.getRange(2,1,approval.getLastRow()-1,BSE_APPROVAL_UI_HEADERS.length).getValues():[],cards=approvalRows.slice(-10).map(row=>({reference:String(row[0]||''),source_key:String(row[1]||''),state:String(row[17]||''),last_error:String(row[19]||'')})),result={offset:offset,callback_count:rows.length,callbacks:callbacks,cards:cards,production_write:false};console.log('TELEGRAM_APPROVAL_CALLBACK_DIAGNOSTIC: '+JSON.stringify(result));return result;}
 function bseApprovalRows_(sheet){return sheet.getLastRow()>1?sheet.getRange(2,1,sheet.getLastRow()-1,BSE_APPROVAL_UI_HEADERS.length).getValues():[];}
 function bseApprovalHash_(value){return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,bseMeasurementStableJson_(value),Utilities.Charset.UTF_8).map(b=>('0'+((b+256)%256).toString(16)).slice(-2)).join('');}
-function bseApprovalDomain_(result){const targets=(result.candidates||[]).map(c=>c&&c.target).filter(Boolean);if(targets.length===1&&targets[0]==='Measurement_Log')return {target:'Measurement_Log',core:bseMeasurementReviewCore_};if(targets.includes('Crop_Batch_Log')&&targets.every(t=>['Crop_Batch_Log','Planting_Event_Log','Plot_Allocation_Log'].includes(t)))return {target:'Crop_Batch_Log',core:bseCropBatchReviewCore_};if(targets.length===1&&targets[0]==='Transplant_Event_Log')return {target:'Transplant_Event_Log',core:bseTransplantReviewCore_};if(targets.length===1&&targets[0]==='Plant_Census_Log')return {target:'Plant_Census_Log',core:bsePlantCensusReviewCore_};if(targets.length===1&&targets[0]==='Treatment_Event_Log')return {target:'Treatment_Event_Log',core:bseTreatmentReviewCore_};if(targets.length===1&&targets[0]==='EC_Leachate_Log')return {target:'EC_Leachate_Log',core:bseEcLeachateReviewCore_};if(targets.length===1&&targets[0]==='Inventory_Event_Log')return {target:'Inventory_Event_Log',core:result.candidates[0].fields&&result.candidates[0].fields.baja_group===true?bsePilotBajaReviewCore_:bseInventoryApprovalBoundaryCore_};if(targets.length===1&&targets[0]==='Input_Usage_Log')return {target:'Input_Usage_Log',core:bseInputUsageReviewCore_};if(targets.length===1&&targets[0]==='Claim_Request_Log')return {target:'Claim_Request_Log',core:bseInventoryApprovalBoundaryCore_};if(targets.length===1&&targets[0]==='Asset_Proposal_Log')return {target:'Asset_Proposal_Log',core:bseInventoryApprovalBoundaryCore_};if(targets.length===1&&targets[0]==='Asset_Event_Log')return {target:'Asset_Event_Log',core:bseInventoryApprovalBoundaryCore_};if(targets.length===1&&targets[0]==='Leave_Record_Log')return {target:'Leave_Record_Log',core:bseLeaveReviewCore_};if(targets.length===1&&targets[0]==='Maintenance_Event_Log')return {target:'Maintenance_Event_Log',core:bseMaintenanceReviewCore_};if(targets.length===1&&targets[0]==='Plant_Replacement_Event_Log')return {target:'Plant_Replacement_Event_Log',core:bsePlantReplacementReviewCore_};if(targets.length===1&&targets[0]==='Plant_Condition_Log')return {target:'Plant_Condition_Log',core:bsePlantConditionReviewCore_};if(targets.length===1&&targets[0]==='Observation_Log')return {target:'Observation_Log',core:bseObservationReviewCore_};if(targets.length===1&&targets[0]==='Operation_Log')return {target:'Operation_Log',core:result.candidates[0].fields&&result.candidates[0].fields.operation_type==='CYCLE_END'?bsePilotCycleEndReviewCore_:bseOperationReviewCore_};if(targets.length===1&&targets[0]==='Decision_Approval_Log')return {target:'Decision_Approval_Log',core:bseDecisionApprovalReviewCore_};throw new Error('Target review Telegram tidak disokong atau tidak atomik.');}
+function bseApprovalDomain_(result){const targets=(result.candidates||[]).map(c=>c&&c.target).filter(Boolean);if(result.aggregate_type==='PILOT_RACUN_ATOMIC'&&targets.length>1&&targets.every(t=>t==='Treatment_Event_Log')){if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')throw Error('RACUN_WRONG_ENVIRONMENT');return {target:'Treatment_Event_Log',core:function(){throw Error('RACUN_CALLBACK_CONTEXT_REQUIRED');}};}if(targets.length===1&&targets[0]==='Measurement_Log')return {target:'Measurement_Log',core:bseMeasurementReviewCore_};if(targets.includes('Crop_Batch_Log')&&targets.every(t=>['Crop_Batch_Log','Planting_Event_Log','Plot_Allocation_Log'].includes(t)))return {target:'Crop_Batch_Log',core:bseCropBatchReviewCore_};if(targets.length===1&&targets[0]==='Transplant_Event_Log')return {target:'Transplant_Event_Log',core:bseTransplantReviewCore_};if(targets.length===1&&targets[0]==='Plant_Census_Log')return {target:'Plant_Census_Log',core:bsePlantCensusReviewCore_};if(targets.length===1&&targets[0]==='Treatment_Event_Log')return {target:'Treatment_Event_Log',core:bseTreatmentReviewCore_};if(targets.length===1&&targets[0]==='EC_Leachate_Log')return {target:'EC_Leachate_Log',core:bseEcLeachateReviewCore_};if(targets.length===1&&targets[0]==='Inventory_Event_Log')return {target:'Inventory_Event_Log',core:result.candidates[0].fields&&result.candidates[0].fields.baja_group===true?bsePilotBajaReviewCore_:bseInventoryApprovalBoundaryCore_};if(targets.length===1&&targets[0]==='Input_Usage_Log')return {target:'Input_Usage_Log',core:bseInputUsageReviewCore_};if(targets.length===1&&targets[0]==='Claim_Request_Log')return {target:'Claim_Request_Log',core:bseInventoryApprovalBoundaryCore_};if(targets.length===1&&targets[0]==='Asset_Proposal_Log')return {target:'Asset_Proposal_Log',core:bseInventoryApprovalBoundaryCore_};if(targets.length===1&&targets[0]==='Asset_Event_Log')return {target:'Asset_Event_Log',core:bseInventoryApprovalBoundaryCore_};if(targets.length===1&&targets[0]==='Leave_Record_Log')return {target:'Leave_Record_Log',core:bseLeaveReviewCore_};if(targets.length===1&&targets[0]==='Maintenance_Event_Log')return {target:'Maintenance_Event_Log',core:bseMaintenanceReviewCore_};if(targets.length===1&&targets[0]==='Plant_Replacement_Event_Log')return {target:'Plant_Replacement_Event_Log',core:bsePlantReplacementReviewCore_};if(targets.length===1&&targets[0]==='Plant_Condition_Log')return {target:'Plant_Condition_Log',core:bsePlantConditionReviewCore_};if(targets.length===1&&targets[0]==='Observation_Log')return {target:'Observation_Log',core:bseObservationReviewCore_};if(targets.length===1&&targets[0]==='Operation_Log')return {target:'Operation_Log',core:result.candidates[0].fields&&result.candidates[0].fields.operation_type==='CYCLE_END'?bsePilotCycleEndReviewCore_:bseOperationReviewCore_};if(targets.length===1&&targets[0]==='Decision_Approval_Log')return {target:'Decision_Approval_Log',core:bseDecisionApprovalReviewCore_};throw new Error('Target review Telegram tidak disokong atau tidak atomik.');}
 function bseApprovalToken_(){return Utilities.getUuid().replace(/-/g,'').slice(0,12);}
 function bseApprovalMarkup_(token){return {inline_keyboard:[[{text:'\u2705 Benar',callback_data:'B1:'+token+':A'},{text:'\u274c Batal',callback_data:'B1:'+token+':R'}]]};}
 function bseApprovalMarkupForResult_(token,result){const c=result&&Array.isArray(result.candidates)&&result.candidates.length===1?result.candidates[0]:null,r=c&&c.target==='Transplant_Event_Log'&&c.fields&&c.fields.reallocation;if(r&&r.required===true)return {inline_keyboard:[[{text:'✅ Benar',callback_data:'B1:'+token+':A'},{text:'❌ Batal',callback_data:'B1:'+token+':R'}]]};return bseApprovalMarkup_(token);}
@@ -146,6 +146,21 @@ function bsePilotCensusReviewCard_(reference,fields){
 function bseApprovalSummary_(reference,result){
   if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&result&&result.candidates&&result.candidates.length===1&&result.candidates[0].fields&&result.candidates[0].fields.baja_group===true)return bsePilotBajaCard_(reference,result);
   const candidates=Array.isArray(result&&result.candidates)?result.candidates:[],targets=candidates.map(c=>c&&c.target).filter(Boolean),atomicCropBatch=targets.includes('Crop_Batch_Log')&&targets.every(t=>['Crop_Batch_Log','Planting_Event_Log','Plot_Allocation_Log'].includes(t));
+  if(result&&result.aggregate_type==='PILOT_RACUN_ATOMIC'&&bseRuntimeEnvironmentName_()==='PILOT_OPERATION'){
+    const lines=['SEMAKAN RACUN — '+candidates.length+' REKOD PILOT','Rujukan: '+reference,
+      'Tarikh: '+bseApprovalDisplayDate_(candidates[0].fields.event_date),
+      'Satu Benar mengesahkan semua kumpulan di bawah. Tiada batch atau tanaman direka.'];
+    candidates.forEach((candidate,index)=>{
+      const f=candidate.fields||{};
+      lines.push('',String(index+1)+'. Plot: '+(Array.isArray(f.plot_ids)?f.plot_ids.join(', '):''));
+      if(String(f.crop||'').trim())lines.push('Tanaman: '+String(f.crop).trim());
+      String(f.treatment_description||'').split(/\r?\n/).filter(Boolean).forEach(item=>lines.push('- '+item));
+    });
+    lines.push('Simpanan: PILOT unlinked, bukan rekod rasmi BSE.');
+    const resultText=lines.join('\n');
+    if(resultText.length>4000)throw Error('RACUN_APPROVAL_CARD_TOO_LONG');
+    return resultText;
+  }
   if(atomicCropBatch){
     const batch=candidates.find(c=>c&&c.target==='Crop_Batch_Log'),f=batch&&batch.fields||{},plots=candidates.filter(c=>c&&c.target==='Plot_Allocation_Log').map(c=>String(c.fields&&c.fields.plot_id||'')).filter(Boolean),statuses=Array.from(new Set(candidates.filter(c=>c&&c.target==='Plot_Allocation_Log').map(c=>String(c.fields&&c.fields.allocation_status||'')).filter(Boolean)));
     const lines=['Semakan TEST '+reference,'Tarikh semai: '+bseApprovalDisplayDate_(f.event_date),'Tanaman: '+String(f.crop||'')];
@@ -288,8 +303,9 @@ function bseApprovalEnvelopes_(result){
   const looksRacun=result.candidates.length>1&&result.candidates.every(c=>c&&c.target==='Treatment_Event_Log'&&c.fields&&/^Racun\s*$/im.test(String(c.fields.original_note||'')));
   const racun=looksRacun&&typeof bsePilotRacunAggregateEnvelope_==='function'?bsePilotRacunAggregateEnvelope_(result):null;
   if(racun){
-    const readiness=typeof bsePilotRacunAggregateEligibility_==='function'?bsePilotRacunAggregateEligibility_(result):{eligible:false};
-    if(readiness.eligible===true)return [racun];
+    const readiness=typeof bsePilotRacunAggregateEligibility_==='function'?bsePilotRacunAggregateEligibility_(result,typeof boundTestBook_==='function'?boundTestBook_():null):{eligible:false};
+    if(readiness.eligible!==true)throw Error('RACUN_AGGREGATE_NOT_READY: '+String(readiness.reason||'BLOCKED'));
+    return [racun];
   }
   return result.candidates.map((_,index)=>bseApprovalCandidateEnvelope_(result,index));
 }
@@ -491,7 +507,14 @@ function bseTelegramReporterConfirmationCore_(book,context,input){
   if(i<0)throw new Error('Token pengesahan tidak ditemui.');
   const row=rows[i],sheetRow=i+2;
   if(!bseTelegramReporterCardAuthorized_(row,input.callback)){if(input.callback.id)bseTelegramApi_('answerCallbackQuery',{callback_query_id:input.callback.id,text:'Pilihan ini hanya untuk penghantar asal.',show_alert:true});return {authorized:false};}
-  if(String(row[17])!=='OPEN')return {duplicate:true,status:String(row[17])};
+  if(String(row[17])!=='OPEN'){
+    const isCommittedRacun=String(row[17])==='REPORTER_CONFIRMED'&&
+      String(row[1])===String(row[0])+'|Treatment_Event_Log'&&
+      String(row[18])==='PILOT_RACUN_ATOMIC';
+    if(isCommittedRacun&&typeof bsePilotRacunTelegramReconcileExisting_==='function'&&input.kind==='A')
+      return bsePilotRacunTelegramReconcileExisting_(book,context,input,{row:row,card_row:sheetRow});
+    return {duplicate:true,status:String(row[17])};
+  }
   const queue=bseTelegramQueue_(book),qrows=queue.getLastRow()>1?queue.getRange(2,1,queue.getLastRow()-1,BSE_TG_QUEUE_HEADERS.length).getValues():[],q=qrows.findIndex(r=>'BSE-TG-'+String(r[0])===String(row[0]));
   if(q<0)throw new Error('Queue tidak ditemui.');
   let aggregate;try{aggregate=JSON.parse(String(qrows[q][9]||''));}catch(_){throw new Error('candidate_json tidak sah.');}
@@ -517,6 +540,15 @@ function bseTelegramReporterConfirmationCore_(book,context,input){
     return {production_write:false,candidate_index:candidateIndex,queue_status:status};
   }
 
+  // Aggregate Racun must never fall into the legacy single-treatment domain.
+  // Card readiness stays closed until the durable callback and Sheet contract are live-proven.
+  if(parsed&&parsed.aggregate_type==='PILOT_RACUN_ATOMIC'){
+    const ready=typeof bsePilotRacunAggregateEligibility_==='function'?bsePilotRacunAggregateEligibility_(aggregate,book):{eligible:false,reason:'UNBOUND'};
+    if(ready.eligible!==true)throw Error('RACUN_AGGREGATE_NOT_READY: '+String(ready.reason||'BLOCKED'));
+    if(typeof bsePilotRacunTelegramAggregateCore_!=='function')throw Error('RACUN_AGGREGATE_HANDLER_MISSING');
+    sheet.getRange(sheetRow,19).setValue('PILOT_RACUN_ATOMIC');SpreadsheetApp.flush();
+    return bsePilotRacunTelegramAggregateCore_(book,context,input,{row:row,queue_row:qrows[q],proposal:parsed,card_row:sheetRow});
+  }
   context.reference=String(row[0]);context.action='APPROVED';context.proposalResult=parsed;context.candidate_index=candidateIndex;
   const domain=bseApprovalDomain_(parsed);
   if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&domain.target==='Crop_Batch_Log'&&
