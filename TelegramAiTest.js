@@ -114,8 +114,12 @@ function bseAiIracGrounded_(question){
   for(let mi=0;mi<models.length;mi++){modelUsed=models[mi];const url='https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(modelUsed)+':generateContent';for(let attempt=0;attempt<2;attempt++){try{response=UrlFetchApp.fetch(url,{method:'post',contentType:'application/json',headers:{'x-goog-api-key':key},muteHttpExceptions:true,followRedirects:false,payload:JSON.stringify(payload)});}catch(_){response=null;}status=response?response.getResponseCode():0;if(status===200)break;if(![0,429,500,502,503,504].includes(status)||attempt===1)break;Utilities.sleep(500*(attempt+1));}if(status===200)break;if(![0,429,500,502,503,504].includes(status))break;}
   if(!response||status!==200)return {available:false,reason:'IRAC_GROUNDING_HTTP_'+status,model_used:modelUsed,production_write:false};
   let data;try{data=JSON.parse(response.getContentText());}catch(_){return {available:false,reason:'IRAC_GROUNDING_INVALID_RESPONSE',model_used:modelUsed,production_write:false};}
-  const text=bseAiExtractText_(data),details=bseAiGroundingDetails_(data).filter(x=>/IRAC/i.test(String(x.title||'')+' '+String(x.authority||'')));
-  if(!details.length||!text||/^NOT_FOUND\b/i.test(text))return {available:false,reason:'IRAC_GROUNDING_MISSING',model_used:modelUsed,production_write:false};
+  const text=bseAiExtractText_(data),details=bseAiGroundingDetails_(data).filter(x=>/IRAC|MoA[_ -]?Classification|Mode.of.Action/i.test(String(x.title||'')+' '+String(x.authority||'')+' '+String(x.url||'')));
+  if(!details.length||!text||/^NOT_FOUND\b/i.test(text)){
+    const chunks=data&&data.candidates&&data.candidates[0]&&data.candidates[0].groundingMetadata&&data.candidates[0].groundingMetadata.groundingChunks;
+    console.log('BSE_IRAC_GROUNDING_DIAGNOSTIC: '+JSON.stringify({http_status:status,model:modelUsed,text_present:!!text,not_found:/^NOT_FOUND\b/i.test(text),grounding_chunks:Array.isArray(chunks)?chunks.length:0,source_titles:bseAiGroundingDetails_(data).map(x=>x.title).slice(0,4),production_write:false}));
+    return {available:false,reason:'IRAC_GROUNDING_MISSING',model_used:modelUsed,production_write:false};
+  }
   return {available:true,text:text,source_details:details,sources:details.map(x=>x.title),model_used:modelUsed,production_write:false};
 }
 function diagnoseBseAiIracGroundingTest(){return bseAiIracGrounded_('Abamectin kumpulan IRAC berapa?');}
