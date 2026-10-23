@@ -83,7 +83,14 @@ function bsePilotEcRebuildIndex_(batch,observedRows){
     if(ids.has(id))throw Error('EC_DERIVED_INDEX_DUPLICATE');
     ids.add(id);
     const expected=wanted.find(x=>key(x)===id);
-    if(!expected||JSON.stringify(r)!==JSON.stringify(expected))throw Error('EC_DERIVED_INDEX_CONFLICT');
+    // Normalize only genuine Google Sheets round-trips; do not relax field integrity.
+    const actual=Object.assign({},r);
+    if(Object.prototype.toString.call(actual.date)==='[object Date]'){
+      if(typeof Utilities==='undefined'||typeof Utilities.formatDate!=='function')throw Error('EC_DERIVED_DATE_ADAPTER_MISSING');
+      actual.date=Utilities.formatDate(actual.date,'Asia/Kuala_Lumpur','yyyy-MM-dd');
+    }
+    if(actual.input_status!=='NUMERIC'&&actual.value==='')actual.value=null;
+    if(!expected||JSON.stringify(actual)!==JSON.stringify(expected))throw Error('EC_DERIVED_INDEX_CONFLICT');
   }
   return {canonical_unchanged:true,expected_count:wanted.length,missing:wanted.filter(r=>!ids.has(key(r)))};
 }
