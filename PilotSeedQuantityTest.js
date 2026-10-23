@@ -99,7 +99,7 @@ function bsePilotSeedFinalizeGate_(result,input){
   return bsePilotSeedQuantityGuard_(result,input);
 }
 function bsePilotSowingApprovedPayloadGuard_(originalNote,proposal){
-  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||!/^\s*Semai(?:an)?(?:\s|:|$)/i.test(String(originalNote||'')))return true;
+  if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||!bsePilotSowingHeadingPattern_().test(String(originalNote||'').trim()))return true;
   const expected=bsePilotSowingQuantityResult_(originalNote);
   if(!expected||expected.validation!=='PASS')throw Error('SEMAIAN_SOURCE_REQUIRED_FIELDS_MISSING');
   const sourceProposal=bseCropBatchProposal_(JSON.stringify(expected),originalNote);
