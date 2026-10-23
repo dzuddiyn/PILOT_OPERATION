@@ -1,0 +1,14 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const src=fs.readFileSync(__dirname+'/TelegramApprovalUiTest.js','utf8');
+const extract=(name)=>{const pos=src.indexOf('function '+name+'(');assert(pos>=0,name);let i=src.indexOf('{',pos),depth=0;for(let j=i;j<src.length;j++){if(src[j]==='{')depth++;if(src[j]==='}'&&!--depth)return src.slice(pos,j+1)}throw Error('parse')};
+const row=Array(26).fill('');row[0]='BSE-TG-TEST';row[3]='123';row[7]='123';row[9]='45';row[10]='TOK12345678';row[17]='OPEN';
+const context={bseTelegramSafeErrorDescription_:x=>x,bseTelegramCallbackTerminalError_:()=>false,bseTelegramCallbackRetryAt_:()=> 'future',bseApprovalRows_:()=>[row],bseTelegramApprovalSheet_:()=>{},bseTelegramReporterCardAuthorized_:()=>true,bseTelegramApi_:(kind,payload)=>({message_id:45}),console};
+vm.createContext(context);vm.runInContext(['bseTelegramCallbackFailureState_','bseTelegramLifecycleConflictCard_'].map(extract).join('\n'),context);
+const fail=context.bseTelegramCallbackFailureState_(new Error('CROP_LIFECYCLE_CONFLICT: duplicate'),1,0);
+assert.equal(fail.status,'FAILED_LIFECYCLE_CONFLICT');assert.equal(fail.next_attempt_at,'');
+const msg=context.bseTelegramLifecycleConflictCard_({}, {data:'B1:TOK12345678:A',from:{id:123},message:{chat:{id:123}}});
+assert.equal(msg.state,'CARD_EDIT_ACKNOWLEDGED');
+context.bseTelegramApi_=()=>{throw Error('timeout')};
+assert.equal(context.bseTelegramLifecycleConflictCard_({}, {data:'B1:TOK12345678:A',from:{id:123},message:{chat:{id:123}}}).state,'CARD_EDIT_UNVERIFIED');
+assert(src.includes('Status rekod: Selesai / Disahkan'));
+console.log('CL_H06C_TARGETED 5/5 PASS');
