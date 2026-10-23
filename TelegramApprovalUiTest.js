@@ -283,6 +283,14 @@ function bseApprovalEnvelopes_(result){
   const targets=result.candidates.map(candidate=>candidate&&candidate.target).filter(Boolean);
   const atomicCropBatch=targets.includes('Crop_Batch_Log')&&targets.every(target=>['Crop_Batch_Log','Planting_Event_Log','Plot_Allocation_Log'].includes(target));
   if(atomicCropBatch)return [JSON.parse(JSON.stringify(result))];
+  // Racun aggregate must not become an actionable card until the full durable
+  // callback + storage contract is ready; preserve existing fail-closed behavior.
+  const looksRacun=result.candidates.length>1&&result.candidates.every(c=>c&&c.target==='Treatment_Event_Log'&&c.fields&&/^Racun\s*$/im.test(String(c.fields.original_note||'')));
+  const racun=looksRacun&&typeof bsePilotRacunAggregateEnvelope_==='function'?bsePilotRacunAggregateEnvelope_(result):null;
+  if(racun){
+    const readiness=typeof bsePilotRacunAggregateEligibility_==='function'?bsePilotRacunAggregateEligibility_(result):{eligible:false};
+    if(readiness.eligible===true)return [racun];
+  }
   return result.candidates.map((_,index)=>bseApprovalCandidateEnvelope_(result,index));
 }
 function bseApprovalCandidateIndexFromSourceKey_(sourceKey){
