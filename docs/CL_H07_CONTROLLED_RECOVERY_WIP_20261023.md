@@ -31,3 +31,19 @@ Owner approved one review card containing every reading and fail-closed atomic w
 Added pure fail-closed preflight (not yet hooked into live worker). Synthetic EC preflight PASS 6 assertions; whole branch Node 260/260 PASS. Existing EC_Leachate_Log batched core writes review marker, then a range setValues, then updates state. Multi-sheet operations are not guaranteed atomic on Apps Script; existing core needs explicit all-or-nothing protocol or verified recovery policy before accepting this new input. No merge or runtime sync authorized by test result alone.
 
 NEXT implementation: design atomic batch staging/commit and read-back verified state, make pending candidates lossless, and test injected write exceptions including partial outcomes. Do not replay 772258028 or auto-approve.
+## CL-H07 EC canonical batch implementation WIP (2026-10-24)
+Owner-approved: EC-only shorthand M7 -> M7P3; one canonical batch write; individual readings are rebuildable derived index; fail-closed when writing status unknown. Do not apply M7 rule globally.
+
+Added PilotEcAtomicBatch.js with pure source parsing preserving all source locations, status BLANK/NOT_MEASURED/NUMERIC, one-row canonical commit prototype, source mismatch handling and read-back proof; indexes are pure projections only. Synthetic tests:
+- Canonical batch extraction 9/9 PASS.
+- Write/recovery failure injection 9/9 PASS (timeout after append, then read-back ALREADY_APPLIED).
+- Full Node suite 262/262 PASS.
+- No Apps Script real write, Telegram send, merged PR, or HEAD sync.
+
+CRITICAL NOT INTEGRATED:
+- Controller still sends multi Measurement_Log proposals to single-target bseApprovalDomain_, so original report remains blocked.
+- Final proposal reconciliation for all nine locations, including absent M7 and x/blank, needs full-source lossless conversion into canonical batch.
+- Single approval card and ScriptLock ownership not yet wired. Integration tests and native regression pending.
+- Existing EcLeachateTest.js two-sheet write path must not be used as the new atomic authority; redesign/adapter required.
+- Canonical sheet schema/migration authorization and runtime revision validation before any sync.
+State: WIP / NOT MERGED / HEAD UNCHANGED / LIVE UNVERIFIED.
