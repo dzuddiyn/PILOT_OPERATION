@@ -133,7 +133,7 @@ function bseAiGeminiAnswer_(question,currentSismarp,iracGrounded){
   const payload={
     systemInstruction:{parts:[{text:bseTelegramAiSystemPrompt_(!!store||!!sitePocContext)}]},
     contents:[{role:'user',parts:[{text:question+currentContext+iracContext+sitePocContext+archivePocContext}]}],
-    generationConfig:{maxOutputTokens:1800,temperature:0}
+    generationConfig:{maxOutputTokens:650,temperature:0}
   };
   if(store&&!(iracGrounded&&iracGrounded.available))payload.tools=[{fileSearch:{fileSearchStoreNames:[store]}}];
   let response=null,status=0,modelUsed='';
@@ -194,6 +194,8 @@ function bseTelegramAiReceive_(book,m,allowedPrivate,allowedGroup){
   const isPilot=bseRuntimeEnvironmentName_()==='PILOT_OPERATION';
   const isPesticideReference=/\b(?:irac|moa|mode of action|sismarp|pendaftaran|berdaftar)\b/i.test(question);
   const noteContext=isPilot&&!isPesticideReference&&typeof bsePilotAskKbNoteContext_==='function'?bsePilotAskKbNoteContext_(question):'';
+  const exactFromNote=isPilot&&!isPesticideReference&&typeof bsePilotAskKbPrecisePlotAnswer_==='function'?bsePilotAskKbPrecisePlotAnswer_(question):'';
+  if(exactFromNote){bseTelegramAiSend_(m,exactFromNote);return {handled:true,kb_used:true,source:'NOTA_INDUK_VERIFIED_TABLE',production_write:false};}
   // Note-first for site questions; if Gemini is unavailable, retain structured KB.
   // SISMARP and IRAC retain their specialized source-authority paths.
   if(isPilot&&!noteContext&&!isPesticideReference){
