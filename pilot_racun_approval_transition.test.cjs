@@ -1,0 +1,13 @@
+'use strict';
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),test=require('node:test');
+const ctx={Map,JSON,Error,bseRuntimeEnvironmentName_:()=>ctx.env,env:'PILOT_OPERATION'};
+vm.createContext(ctx);
+vm.runInContext(fs.readFileSync(__dirname+'/PilotRacunApprovalReconcile.js','utf8'),ctx);
+vm.runInContext(fs.readFileSync(__dirname+'/PilotRacunApprovalTransition.js','utf8'),ctx);
+const record={source_key:'BSE-TG-1|Treatment_Event_Log|R01',qty:20};
+const plan={reference:'BSE-TG-1',record_count:1,storage_mode:'UNLINKED_PILOT',records:[record]};
+const proof={reference:'BSE-TG-1',authorized:true,hash_verified:true,approval_hash:'hash1'};
+const ledger=(status='COMMITTED')=>({getJournal:()=>({status,fingerprint:JSON.stringify(plan.records),count:1}),readRows:()=>[record]});
+const approval=()=>{let x={hash:'hash1',status:'OPEN'},writes=0;return {get:()=>({...x}),set:(_,status)=>{writes++;x.status=status;},count:()=>writes};};
+test('durable transition only after ledger COMMITTED + independent readback',()=>{const a=approval();assert.equal(ctx.bsePilotRacunFinalizeApproval_(plan,ledger(),a,proof).status,'REPORTER_CONFIRMED');assert.equal(ctx.bsePilotRacunFinalizeApproval_(plan,ledger(),a,proof).status,'ALREADY_CONFIRMED');assert.equal(a.count(),1);});
+test('failed ledger, wrong hash and environment do not change approval',()=>{const a=approval();assert.equal(ctx.bsePilotRacunFinalizeApproval_(plan,ledger('RECOVERY_REQUIRED'),a,proof).status,'RECOVERY_REQUIRED');assert.equal(a.count(),0);assert.throws(()=>ctx.bsePilotRacunFinalizeApproval_(plan,ledger(),a,{...proof,approval_hash:'wrong'}),/HASH_CONFLICT/);ctx.env='PILOT_TEST';assert.throws(()=>ctx.bsePilotRacunFinalizeApproval_(plan,ledger(),a,proof),/WRONG_ENV/);});
