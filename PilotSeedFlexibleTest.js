@@ -51,7 +51,7 @@ function bsePilotSeedFlexibleResult_(input){
   if(formal){
     const facts=bseSeedSowingSourceFacts_({original:lines.join('\n'),clarifications:[]});
     crop=facts.crop;variety=facts.variety;
-    fields=lines.slice(1).filter(x=>!/^(?:Jenis\s+Tanaman|Varieti)\s*:/i.test(x));
+    fields=lines.slice(1).filter(x=>!/^(?:Jenis\s+Tanaman|Varieti|Bilangan\s+Tray|Jumlah\s+Tray)\s*:/i.test(x));
   }else{
     const paired=String(lines[compact?1:2]||'').match(/^([^()]+?)\s*\(([^()]+)\)$/);
     if(paired){crop=paired[1].trim();variety=paired[2].trim();}

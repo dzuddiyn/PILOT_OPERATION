@@ -339,3 +339,12 @@ test('unrelated reports do not turn into sowing',()=>{
  for(const note of ['Kerja membaja\nTimun (CP 282)\nM8P1\n20/10/2026\n62 tray','Harvest\nTimun (CP 282)\nM8P1\n20/10/2026\n62 tray'])
   assert.equal(ctx.bsePilotSeedFreeOrderFacts_(note),null);
 });
+
+test('exact labelled Bilangan Tray formal report',()=>{
+ const note='KERJA SEMAIAN BENIH\nJenis Tanaman : Timun Local (CP 282)\nModul : M8P1, M8P2, M8P3\nTarikh Semai : 20/10/2026\nBilangan Tray : 62 tray';
+ const r=parse(note);assert(r);assert.equal(r.validation,'PASS',JSON.stringify(r.candidates[0].missing));
+ const event=r.candidates.find(c=>c.target==='Planting_Event_Log').fields;
+ assert.equal(event.seed_quantity,62);assert.equal(event.seed_unit,'tray');assert.equal(event.crop,'Timun Local');assert.equal(event.variety,'CP 282');
+ assert.equal(r.candidates.filter(c=>c.target==='Plot_Allocation_Log').map(c=>c.fields.plot_id).join(','),'M8P1,M8P2,M8P3');
+ assert.equal(event.original_note,note);
+});
