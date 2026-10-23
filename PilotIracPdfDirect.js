@@ -19,7 +19,11 @@ function bsePilotIracFromPdf_(question){
    const response=UrlFetchApp.fetch(url,{method:'post',contentType:'application/json',headers:{'x-goog-api-key':key},muteHttpExceptions:true,payload:JSON.stringify(payload)});
    if(response.getResponseCode()!==200)return unavailable('IRAC_PDF_HTTP_'+response.getResponseCode());
    const result=JSON.parse(response.getContentText()),answer=bseAiExtractText_(result);
-   if(!answer||/^NOT_FOUND\b/i.test(answer)||!/(?:group|kumpulan)\s*\d+[a-z]?\b/i.test(answer))return unavailable('IRAC_PDF_NOT_VERIFIED');
+   if(!answer||/^NOT_FOUND\b/i.test(answer)||!/(?:group|kumpulan)\s*\d+[a-z]?\b/i.test(answer)){
+     const candidate=result&&result.candidates&&result.candidates[0]||{};
+     console.log('BSE_IRAC_PDF_RESPONSE_DIAG '+JSON.stringify({model:model,http_status:200,finish_reason:String(candidate.finishReason||''),answer_excerpt:String(answer||'').replace(/[\r\n]+/g,' ').slice(0,280),answer_length:String(answer||'').length,usage_total_tokens:Number(result&&result.usageMetadata&&result.usageMetadata.totalTokenCount||0),production_write:false}));
+     return unavailable('IRAC_PDF_NOT_VERIFIED');
+   }
    return {available:true,text:answer,source_details:[{title:'IRAC.pdf',url:BSE_PILOT_IRAC_PDF_URL,authority:'IRAC MoA classification PDF supplied as inline source'}],sources:['IRAC.pdf'],production_write:false};
  }catch(error){
    console.log('BSE_IRAC_PDF_READ_FAILED: '+String(error&&error.message||error).slice(0,140));
