@@ -82,7 +82,8 @@ function bsePilotRacunCardEdit_(book,row,summary,position){
   const sheet=bseTelegramApprovalSheet_(book);
   try{
     const ack=bseTelegramApi_('editMessageText',{
-      chat_id:String(row[7]),message_id:Number(row[9]),text:summary
+      chat_id:String(row[7]),message_id:Number(row[9]),text:summary,
+      reply_markup:{inline_keyboard:[]}
     });
     if(!ack)throw Error('RACUN_CARD_EDIT_NO_ACK');
     sheet.getRange(position,20).setValue('');SpreadsheetApp.flush();

@@ -62,6 +62,7 @@ test('real callback core commits 10 synthetic Racun records with one outer lock 
  assert.equal(x.tables.TEST_TELEGRAM_APPROVAL_UI[1][17],'REPORTER_CONFIRMED');
  assert.equal(x.tables.TEST_TELEGRAM_APPROVAL_UI[1][13],'REPORTER_CONFIRMED');
  assert.deepEqual(x.lockCounts(),[1,1]);assert.equal(x.close.length,1);
+ assert.equal(JSON.stringify(x.close[0].reply_markup),'{"inline_keyboard":[]}');
  assert.match(output.receipt_text,/Jumlah rekod: 10/);
  const replay=x.ctx.bsePilotRacunWithLock_(()=>x.ctx.bsePilotRacunTelegramAggregateCore_(x.book,x.context,x.input,x.snapshot()));
  assert.equal(replay.status,'ALREADY_CONFIRMED');
@@ -88,7 +89,7 @@ test('Telegram edit failure leaves durable repair marker; idempotent replay repa
  const replay=x.ctx.bsePilotRacunWithLock_(()=>x.ctx.bsePilotRacunTelegramAggregateCore_(x.book,x.context,x.input,x.snapshot()));
  assert.equal(replay.status,'ALREADY_CONFIRMED');assert.equal(replay.card_display_status,'SYNCED');
  assert.equal(x.tables.TEST_TELEGRAM_APPROVAL_UI[1][19],'');
- assert.equal(x.close.length,2);assert.equal(x.tables.PILOT_RACUN_TX_ROWS.length,11);
+ assert.equal(x.close.length,2);assert.equal(JSON.stringify(x.close[1].reply_markup),'{"inline_keyboard":[]}');assert.equal(x.tables.PILOT_RACUN_TX_ROWS.length,11);
 });
 test('cancel guard blocks after partial durable writes, accepts only untouched records',()=>{
  const x=make();
