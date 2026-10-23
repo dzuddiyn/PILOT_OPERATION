@@ -87,3 +87,10 @@ Source of truth / state:
 - Branch only; no merge, no PILOT_OPERATION Script HEAD sync or official production write.
 - Original EC reference BSE-TG-772258028 not replayed.
 - Full live acceptance / CL-H07 remains BLOCKED until native synthetic proof and independent acceptance.
+## Post-OAuth native test proof — 2026-10-24 MYT
+
+The owner completed Google OAuth for the isolated standalone Apps Script `BSE-CL-H07-EC-TEST-ONLY-20261024`. Remote Desktop Commander Windows UI Automation then identified the exact project editor, selected `runClH07EcNativeSyntheticRegression` and invoked Run exactly once. Actual Apps Script execution log 00:24:13 MYT: `CL_H07_EC_NATIVE_SYNTHETIC {"total":10,"passed":10,"failed":0,"failures":[],"production_write":false}`, followed by completed execution. The test runs no Telegram send and no Pilot Sheet writes.
+
+Post-authorization full local Node regression: 266 tests passed, 0 failed. GitHub branch still `fix/cl-h07-receipts-commands-ec`, main unchanged at `ef276b3`; no merge or PILOT_OPERATION HEAD sync.
+
+Native test confirms only pure EC batch parsing/projection, NOT a real authorized callback or canonical Sheets write. Additional premerge risk: branch contains 15 modified files spanning Baja receipts and plot command changes; cannot equate EC native synthetic PASS to production end-to-end or safely deploy all changes. A targeted full callback test, lock/partial write and derived-index physical reconciliation still need independent live-isolated proof. CL-H07 remains IN PROGRESS.
