@@ -2,6 +2,8 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),test=require('node:test');
 const calls=[];const store={hash:'HASH',status:'OPEN'};
 const ctx={
+ bsePilotRacunLockOwned_:()=>ctx.owned,
+ owned:true,
  bsePilotRacunSheetAdapter_:()=>({}),
  bsePilotRacunApprovalSheetAdapter_:()=>({get:()=>({...store}),set:(_r,s)=>{store.status=s;}}),
  bsePilotRacunAtomicPlan_:()=>({reference:'BSE-TG-100',storage_mode:'UNLINKED_PILOT'}),
@@ -12,7 +14,9 @@ const ctx={
 const input={action:'A',authorized:true,hash_verified:true,reference:'BSE-TG-100',source_key:'BSE-TG-100|Treatment_Event_Log',approval_hash:'HASH',callback_token:'ABCDEFGHIJKL',outer_lock_held:true,proposal:{}};
 test('orchestration calls ledger before approval readback',()=>{assert.equal(ctx.bsePilotRacunExecuteApproval_(input,{}).status,'REPORTER_CONFIRMED');assert.deepEqual(calls,['commit','readback']);});
 test('outer lock is mandatory before any storage operation',()=>{
- assert.throws(()=>ctx.bsePilotRacunExecuteApproval_({...input,outer_lock_held:false},{}),/OUTER_LOCK_REQUIRED/);
+ ctx.owned=false;
+ assert.throws(()=>ctx.bsePilotRacunExecuteApproval_(input,{}),/OUTER_LOCK_REQUIRED/);
+ ctx.owned=true;
  assert.deepEqual(calls,['commit','readback']);
 });
 test('mismatched hash and forged source block before ledger',()=>{
