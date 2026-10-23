@@ -34,7 +34,9 @@ function bseTelegramAiSystemPrompt_(hasKb){
     'Susun jawapan supaya mudah dibaca di Telegram. Jika soalan mempunyai beberapa bahagian, pecahkan jawapan mengikut bahagian dan beri tajuk ringkas bagi setiap bahagian.',
     'Gunakan **Tajuk** hanya untuk tajuk/pembahagian utama. Jangan guna asterisk untuk bullet; guna tanda •. Elakkan markdown table, heading #, code fence, dan hiasan markdown berlebihan.',
     'Untuk istilah teknikal IRAC, kekalkan nama rasmi/English label daripada sumber grounding (contohnya Pyrethroids, Sodium channel modulators). Jangan cipta atau terjemah sendiri nama kelas/Mode of Action yang tidak disebut dalam grounding.',
-    'Jawab dalam Bahasa Melayu yang ringkas dan praktikal kecuali pengguna meminta bahasa lain.'
+    'Jawab dalam Bahasa Melayu yang ringkas dan praktikal kecuali pengguna meminta bahasa lain.',
+    'Soalan fakta mudah: jawab terus dalam 1-3 baris. Jangan ulang tajuk soalan atau senarai peringatan panjang. Cukup satu nota pendek tentang status data jika benar-benar perlu.',
+    'Jangan ulang seksyen Rujukan KB atau pautan sumber dalam isi jawapan; sistem akan menambah sumber dan pautan Google Docs secara automatik.'
   ].join('\n');
 }
 function bseAiExtractText_(data){
@@ -163,10 +165,10 @@ function bseAiGeminiAnswer_(question,currentSismarp,iracGrounded,providedNoteCon
 function bseTelegramAiRender_(answer){
   const lines=['**🤖 AI — NON_CANONICAL**','',String(answer.text||'').trim()],current=answer.sismarp_current;
   if(current){lines.push('','**SISMARP CURRENT**');if(current.available){lines.push('• Status: derived cache semasa sah','• Padanan query: '+String(current.total||0),'• Snapshot: '+String(current.cache_refreshed_at||''),'• Umur cache: '+String(current.age_days==null?'?':current.age_days)+' hari','• Sumber authority: SISMARP — Jabatan Pertanian Malaysia');if(Number(current.total||0)===0)lines.push('• Nota: 0 padanan tidak membuktikan bahan aktif/produk tiada pendaftaran Malaysia secara umum.');}else{lines.push('• Status: semakan semasa tidak tersedia','• Sebab: '+String(current.reason||'UNKNOWN'));if(current.cache_refreshed_at)lines.push('• Snapshot terakhir: '+current.cache_refreshed_at);}}
-  if(answer.sources&&answer.sources.length){lines.push('','**Rujukan KB**');answer.sources.forEach(s=>lines.push('• '+s));}
+  if(answer.sources&&answer.sources.length){lines.push('','**Rujukan KB**');answer.sources.forEach(s=>lines.push('• '+s+(s.indexOf('Nota Induk BSE Site B')>=0?' — https://docs.google.com/document/d/1iRd8fcbHQbzj04Tnia417iYChFmnBjB2Bft4s2yQnyA/edit':'')));}
   const details=(answer.source_details||[]).filter(x=>x&&x.url);if(details.length){lines.push('','**Butiran sumber**');details.forEach(x=>lines.push('• '+x.title+' — '+x.url));}
   if(current&&current.source_url)lines.push('• SISMARP — '+current.source_url);
-  lines.push('','Rujukan AI sahaja. Bukan rekod, approval atau arahan operasi BSE.');
+  lines.push('','Peringatan: Maklumat KB ialah rujukan, bukan status operasi terkini.');
   return lines.join('\n');
 }
 function bseTelegramAiToHtml_(text){
