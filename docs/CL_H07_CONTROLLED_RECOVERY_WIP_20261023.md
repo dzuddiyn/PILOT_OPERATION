@@ -24,3 +24,10 @@ Date: 2026-10-23, PILOT_OPERATION. Feature branch only; do not deploy this state
 - Receipt delivery requires genuine Telegram error evidence and safe edit-only reconciliation, not blind sendMessage.
 - EC needs an explicit atomic multi-measurement review contract; no partial field write.
 - Targeted native regression then GitHub review before merge / HEAD sync.
+
+## Owner-approved atomic EC decision / new source discrepancy
+Owner approved one review card containing every reading and fail-closed atomic write, no partial write. Source record BSE-TG-772258028 has NINE locations: M1P1-x, M1P2-x, M2P3-blank, M2P4-3.0, M3P3-3.5, M3P4-3.5, M4P1-3.0, M4P2-3.0, M7-3.5. Persisted candidate_json contains only FIVE Measurement_Log candidates: M2P4, M3P3, M3P4, M4P1 and M4P2. Thus M7 numeric and three x/blank scopes were omitted. Approved one-card contract forbids silent loss.
+
+Added pure fail-closed preflight (not yet hooked into live worker). Synthetic EC preflight PASS 6 assertions; whole branch Node 260/260 PASS. Existing EC_Leachate_Log batched core writes review marker, then a range setValues, then updates state. Multi-sheet operations are not guaranteed atomic on Apps Script; existing core needs explicit all-or-nothing protocol or verified recovery policy before accepting this new input. No merge or runtime sync authorized by test result alone.
+
+NEXT implementation: design atomic batch staging/commit and read-back verified state, make pending candidates lossless, and test injected write exceptions including partial outcomes. Do not replay 772258028 or auto-approve.
