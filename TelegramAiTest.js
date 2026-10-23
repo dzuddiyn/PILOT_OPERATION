@@ -167,7 +167,11 @@ function bseAiGeminiAnswer_(question,currentSismarp,iracGrounded,providedNoteCon
   return {text:text,sources:sourceDetails.map(x=>x.title),source_details:sourceDetails,kb_used:!!store||!!sitePocContext,model_used:modelUsed,sismarp_current:currentSismarp||null,production_write:false};
 }
 function bseTelegramAiRender_(answer){
-  const lines=['**🤖 AI — NON_CANONICAL**','',String(answer.text||'').trim()],current=answer.sismarp_current;
+  let clean=String(answer.text||'').trim();
+  if((answer.sources||[]).some(s=>String(s).indexOf('Nota Induk BSE Site B')>=0)){
+    clean=clean.replace(/\n\s*(?:Nota|Perlu diingatkan|Sila ambil perhatian|Peringatan Penting)\s*:?\s*(?:Maklumat ini|Bahawa maklumat ini|maklumat ini|ini adalah|Berdasarkan nota)[^\n]*(?:\n[^\n]*)?/gi,'').trim();
+  }
+  const lines=['**🤖 AI — NON_CANONICAL**','',clean],current=answer.sismarp_current;
   if(current){lines.push('','**SISMARP CURRENT**');if(current.available){lines.push('• Status: derived cache semasa sah','• Padanan query: '+String(current.total||0),'• Snapshot: '+String(current.cache_refreshed_at||''),'• Umur cache: '+String(current.age_days==null?'?':current.age_days)+' hari','• Sumber authority: SISMARP — Jabatan Pertanian Malaysia');if(Number(current.total||0)===0)lines.push('• Nota: 0 padanan tidak membuktikan bahan aktif/produk tiada pendaftaran Malaysia secara umum.');}else{lines.push('• Status: semakan semasa tidak tersedia','• Sebab: '+String(current.reason||'UNKNOWN'));if(current.cache_refreshed_at)lines.push('• Snapshot terakhir: '+current.cache_refreshed_at);}}
   if(answer.sources&&answer.sources.length){lines.push('','**Rujukan KB**');answer.sources.forEach(s=>lines.push('• '+s+(s.indexOf('Nota Induk BSE Site B')>=0?' — https://docs.google.com/document/d/1iRd8fcbHQbzj04Tnia417iYChFmnBjB2Bft4s2yQnyA/edit':'')));}
   const details=(answer.source_details||[]).filter(x=>x&&x.url);if(details.length){lines.push('','**Butiran sumber**');details.forEach(x=>lines.push('• '+x.title+' — '+x.url));}
@@ -201,6 +205,12 @@ function bseTelegramAiReceive_(book,m,allowedPrivate,allowedGroup){
   const isPesticideReference=/\b(?:irac|moa|mode of action|sismarp|pendaftaran|berdaftar)\b/i.test(question);
   const liveNote=isPilot&&!isPesticideReference&&typeof bsePilotAskKbDocText_==='function'?bsePilotAskKbDocText_():{text:'',live:false};
   const noteContext=isPilot&&!isPesticideReference&&typeof bsePilotAskKbNoteContext_==='function'?bsePilotAskKbNoteContext_(question,liveNote):'';
+  const currentCapacity=isPilot&&!isPesticideReference&&typeof bsePilotAskCapacityFromDoc_==='function'?bsePilotAskCapacityFromDoc_(question,liveNote):'';
+  if(currentCapacity){bseTelegramAiSend_(m,currentCapacity);return {handled:true,kb_used:true,source:'CURRENT_GOOGLE_DOC_CAPACITY',production_write:false};}
+  if(isPilot&&!isPesticideReference&&typeof bsePilotAskKbDocText_==='function'&&!liveNote.live&&/(?:polybag|polibeg|polibag)/i.test(question)){
+    bseTelegramAiSend_(m,'Jadual kapasiti Google Docs belum dapat dibaca. Sila cuba semula; angka lama tidak digunakan.',{noAnswerHeading:true});
+    return {handled:true,kb_unavailable:true,production_write:false};
+  }
   const exactFromNote=isPilot&&!isPesticideReference&&!liveNote.live&&typeof bsePilotAskKbPrecisePlotAnswer_==='function'?bsePilotAskKbPrecisePlotAnswer_(question):'';
   if(exactFromNote){bseTelegramAiSend_(m,exactFromNote);return {handled:true,kb_used:true,source:'NOTA_INDUK_VERIFIED_TABLE',production_write:false};}
   // Note-first for site questions; if Gemini is unavailable, retain structured KB.
