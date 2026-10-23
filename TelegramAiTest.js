@@ -128,9 +128,11 @@ function bseAiGeminiAnswer_(question,currentSismarp,iracGrounded){
   if(bseAiIracQuestion_(question)&&!(iracGrounded&&iracGrounded.available))throw new Error('IRAC grounding daripada KB tidak tersedia; klasifikasi tidak dijawab untuk mengelakkan jawapan tanpa sumber.');
   const currentContext=currentSismarp?('\n\nCURRENT_SISMARP_CONTEXT_JSON:\n'+JSON.stringify(currentSismarp)+'\nGunakan konteks SISMARP CURRENT ini sebagai fakta semasa hanya untuk padanan query/filter yang dinyatakan apabila available=true. Jangan tambah produk, tanaman, perosak, nombor pendaftaran atau status yang tiada dalam konteks. Jika total=0, nyatakan tepat bahawa tiada padanan SISMARP semasa ditemui untuk filter tersebut; jangan simpulkan bahan aktif/produk tidak berdaftar di Malaysia secara umum. Jika available=false, nyatakan semakan semasa tidak tersedia/stale dan jangan membuat kesimpulan pendaftaran.'):'';
   const iracContext=iracGrounded&&iracGrounded.available?('\n\nGROUNDED_IRAC_CONTEXT:\n'+String(iracGrounded.text||'')+'\nGunakan konteks IRAC ini sahaja untuk klasifikasi IRAC/MoA; jangan tambah klasifikasi dari pengetahuan model. Kekalkan group code dan nama teknikal rasmi/English label seperti yang terdapat dalam grounding; jangan reka terjemahan Melayu untuk nama kelas atau Mode of Action.'):'';
+  const sitePocContext=typeof bsePilotAskKbNoteContext_==='function'?bsePilotAskKbNoteContext_(question):'';
+  const archivePocContext=typeof bsePilotAskKbManifestContext_==='function'?bsePilotAskKbManifestContext_(question):'';
   const payload={
-    systemInstruction:{parts:[{text:bseTelegramAiSystemPrompt_(!!store)}]},
-    contents:[{role:'user',parts:[{text:question+currentContext+iracContext}]}],
+    systemInstruction:{parts:[{text:bseTelegramAiSystemPrompt_(!!store||!!sitePocContext)}]},
+    contents:[{role:'user',parts:[{text:question+currentContext+iracContext+sitePocContext+archivePocContext}]}],
     generationConfig:{maxOutputTokens:1800,temperature:0}
   };
   if(store&&!(iracGrounded&&iracGrounded.available))payload.tools=[{fileSearch:{fileSearchStoreNames:[store]}}];
@@ -155,7 +157,8 @@ function bseAiGeminiAnswer_(question,currentSismarp,iracGrounded){
   if(!text)throw new Error('Gemini tidak memulangkan jawapan.');
   const sourceDetails=bseAiGroundingDetails_(data),seen=new Set(sourceDetails.map(x=>x.title));
   (iracGrounded&&iracGrounded.source_details||[]).forEach(x=>{if(x&&x.title&&!seen.has(x.title)){seen.add(x.title);sourceDetails.push(x);}});
-  return {text:text,sources:sourceDetails.map(x=>x.title),source_details:sourceDetails,kb_used:!!store,model_used:modelUsed,sismarp_current:currentSismarp||null,production_write:false};
+  if(sitePocContext&&!seen.has('Nota Induk BSE Site B (10/09/2026)'))sourceDetails.push({title:'Nota Induk BSE Site B (10/09/2026)',url:'',authority:'Internal site reference snapshot'});
+  return {text:text,sources:sourceDetails.map(x=>x.title),source_details:sourceDetails,kb_used:!!store||!!sitePocContext,model_used:modelUsed,sismarp_current:currentSismarp||null,production_write:false};
 }
 function bseTelegramAiRender_(answer){
   const lines=['**🤖 AI — NON_CANONICAL**','',String(answer.text||'').trim()],current=answer.sismarp_current;
