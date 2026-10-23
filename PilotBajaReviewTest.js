@@ -5,7 +5,7 @@ function bsePilotBajaLineage_(reference,f,item){
   const sourceKey=String(reference)+'|'+String(f.record_type)+'|BAJA_'+String(item.baja_type)+'|'+(String(item.destination||'')||'NO_PLOT');
   const payload={source_key:sourceKey,domain:f.record_type,item_name:item.item_name,
     baja_type:item.baja_type,quantity:item.quantity,unit:item.unit,event_date:f.event_date,
-    destination:f.destination||'',original_note:f.original_note||''};
+    destination:f.baja_scoped_group?String(item.destination||''):String(f.destination||''),original_note:f.original_note||''};
   const hash=bseInventoryPayloadHash_(payload);
   return {sourceKey:sourceKey,hash:hash,id:'BSE-SB-INV-'+hash.slice(0,12),payload:payload};
 }

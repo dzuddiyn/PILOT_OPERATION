@@ -13,7 +13,8 @@ for(const value of ['/status M3P12','/status M3P1,2','/status plot M3P12','/stat
  assert.deepEqual(parse(value),{kind:'STATUS_MULTI',plots:module==='M12'?['M12P3','M12P4']:['M3P1','M3P2']});
  });
 }
-for(const value of ['/status','/status plot','/status ABC','/status M3P11','/status M3P1,1','/status M3P123','/status M3P1,M4P2','/status M3P1,2,3','/status M3P0','/status M3P2 extra','/status M3P1\nother','/statusplot M3P1']){
+for(const [value,plots] of [['/status M3P123',['M3P1','M3P2','M3P3']],['/status M3P1234',['M3P1','M3P2','M3P3','M3P4']],['/status M3P1,M4P2',['M3P1','M4P2']],['/status M3P1,2,3',['M3P1','M3P2','M3P3']],['/status M3 P1 P2',['M3P1','M3P2']]])check('new flexible '+value,()=>assert.deepEqual(parse(value),{kind:'STATUS_MULTI',plots}));
+for(const value of ['/status','/status plot','/status ABC','/status M3P11','/status M3P1,1','/status M3P0','/status M3P2 extra','/status M3P1\nother','/statusplot M3P1']){
  check('invalid '+value.replace(/\n/g,'\\n'),()=>{
  assert.equal(parse(value),null);
  assert.equal(ctx.bseTelegramPlotStatusUsageCommand_(value),!/\/statusplot/.test(value));

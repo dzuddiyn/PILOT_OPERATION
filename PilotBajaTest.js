@@ -107,7 +107,10 @@ function bsePilotBajaValidateResult_(result){
    if(seen.has(key))missing.push('duplicate_baja_type');
    seen.add(key);
  }
- if(!incoming&&items.length!==plots.length*(new Set(items.map(i=>i.baja_type))).size)missing.push('plot_product_grid');
+ // Scoped fertilizer groups may intentionally target different plots. Every listed plot
+ // must still have at least one valid item; duplicate (type,plot) pairs are blocked above.
+ if(!incoming&&f.baja_scoped_group===true&&plots.some(plot=>!items.some(item=>item.destination===plot)))missing.push('plot_without_baja_item');
+ if(!incoming&&f.baja_scoped_group!==true&&items.length!==plots.length*(new Set(items.map(i=>i.baja_type))).size)missing.push('plot_product_grid');
  const combined=Array.from(new Set([...(Array.isArray(candidate&&candidate.missing)?candidate.missing:[]),...missing]));
  return {validation:combined.length===0&&candidate.validation==='PASS'&&result.validation==='PASS'?'PASS':'NEED_INFO',missing:combined};
 }

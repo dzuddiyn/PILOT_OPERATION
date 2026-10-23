@@ -185,3 +185,38 @@ t('Baja In 4 set F remains PASS',()=>{
  assert.equal(r.candidates[0].fields.baja_items[0].quantity,4);
 });
 t('Date roundtrip guard',()=>{assert(writer.includes('Utilities.formatDate'));assert(writer.includes('getSpreadsheetTimeZone'));});
+
+t('Baja Out grouped F and N bind only to their own module plots',()=>{
+ const r=parse('Baja out\n8/10/2026\nM3 P3 P4 - F\nM2 P3 P4 - N');
+ assert.equal(r.validation,'PASS');
+ assert.deepEqual(JSON.parse(JSON.stringify(r.candidates[0].fields.baja_items.map(x=>[x.baja_type,x.quantity,x.unit,x.destination]))),
+ [['F',1,'set','M3P3'],['F',1,'set','M3P4'],['N',1,'set','M2P3'],['N',1,'set','M2P4']]);
+});
+t('Baja In 1 Set baja - N parses as explicit N one set',()=>{
+ const r=parse('Baja in\n10/10/2026\n1 Set baja - N');
+ assert.equal(r.validation,'PASS');assert.equal(r.candidates[0].fields.baja_items.length,1);
+ assert.equal(r.candidates[0].fields.baja_items[0].baja_type,'N');
+ assert.equal(r.candidates[0].fields.baja_items[0].quantity,1);
+});
+
+t('Baja Out grouped malformed trailing token never becomes PASS',()=>{
+ const r=parse('Baja out\n8/10/2026\nM3 P3 P4 - F\nM2 P3 P4 - N garbage');
+ assert.notEqual(r.validation,'PASS');
+});
+t('Baja Out duplicate type and plot pair never becomes PASS',()=>{
+ const r=parse('Baja out\n8/10/2026\nM3 P3 P4 - F\nM3 P3 - F');
+ assert.notEqual(r.validation,'PASS');
+});
+
+t('Grouped Baja F/N approval writes precisely four scoped rows, retry remains idempotent',()=>{
+ db=book();
+ const r=parse('Baja out\n8/10/2026\nM3 P3 P4 - F\nM2 P3 P4 - N');
+ assert.equal(ctx.bsePilotBajaValidateResult_(r).validation,'PASS');
+ const committed=ctx.bsePilotBajaReviewCore_(db,context(r));
+ assert.equal(committed.validation,'PASS');assert.equal(committed.record_count,4);
+ const sheet=db.getSheetByName('TEST_INVENTORY_EVENT');
+ assert.deepEqual(sheet.rows.map(x=>x[26]+'|'+x[21]),['F|M3P3','F|M3P4','N|M2P3','N|M2P4']);
+ const repeat=ctx.bsePilotBajaReviewCore_(db,context(r));
+ assert.equal(repeat.duplicate,true);
+ assert.equal(sheet.rows.length,4);
+});
