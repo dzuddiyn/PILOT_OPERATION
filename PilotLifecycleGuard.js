@@ -47,6 +47,17 @@ function bsePilotLifecycleRequireHarvestStart_(allocations,statuses,logs,plot,da
  if(existing.length)throw new Error('CROP_LIFECYCLE_CONFLICT: tarikh mula tuai sudah direkodkan bagi plot; perlu reconciliation');
  return true;
 }
+function bsePilotSowingQueueGuard_(book,result){
+ if(bseRuntimeEnvironmentName_()!=='PILOT_OPERATION'||!book||!result||result.validation!=='PASS'||!Array.isArray(result.candidates)||!result.candidates.some(c=>c&&c.target==='Planting_Event_Log'&&c.fields&&c.fields.event_type==='SEED_SOWING'))return result;
+ const plots=result.candidates.filter(c=>c&&c.target==='Plot_Allocation_Log').map(c=>String(c.fields&&c.fields.plot_id||''));
+ if(!plots.length)return result;
+ const open=bsePilotLifecycleOccupancy_(bsePilotLifecycleBookRows_(book,'TEST_PLOT_ALLOCATION',BSE_PLOT_ALLOCATION_HEADERS),bsePilotLifecycleBookRows_(book,'TEST_ALLOCATION_STATUS_EVENT',BSE_ALLOCATION_STATUS_EVENT_HEADERS));
+ const conflicting=plots.filter(plot=>(open[plot.toUpperCase()]||[]).length>0);
+ if(!conflicting.length)return result;
+ result.validation='NEED_INFO';result.lifecycle_plot_conflicts=Array.from(new Set(conflicting));
+ result.candidates.forEach(c=>{if(!c)return;c.validation='NEED_INFO';c.missing=Array.from(new Set((c.missing||[]).concat(['plot_occupied'])));});
+ return result;
+}
 function bsePilotLifecycleBookRows_(book,name,headers){
  const sheet=book.getSheetByName(name);return sheet?bseCropBatchRows_(sheet,headers.length):[];
 }
