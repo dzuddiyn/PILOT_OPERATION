@@ -169,3 +169,18 @@ t('Baja in free-order report reads 4 set F without inventing fields',()=>{
 t('Baja in shorthand still fails closed for missing type',()=>{
  assert.equal(parse('Baja in\n23/10/2026\n4 set').validation,'NEED_INFO');
 });
+
+t('Baja Out module-shared P1 P2 yields F per plot, not P2 fertilizer',()=>{
+ const r=parse('Baja out\nF\nM1 P1 P2\n19/10/2026');
+ assert.equal(r.validation,'PASS');
+ assert.deepEqual(JSON.parse(JSON.stringify(r.candidates[0].fields.baja_items.map(x=>[x.baja_type,x.quantity,x.unit,x.destination]))),[['F',1,'set','M1P1'],['F',1,'set','M1P2']]);
+});
+t('Baja Out module-shared P3 P4 works',()=>{
+ const r=parse('baja out , F , M3 P3 P4 , 20/10/2026');
+ assert.equal(r.validation,'PASS');
+ assert.deepEqual(r.candidates[0].fields.baja_items.map(x=>x.destination).join(','),'M3P3,M3P4');
+});
+t('Baja In 4 set F remains PASS',()=>{
+ const r=parse('Baja in\n23/10/2026\n4 set F');assert.equal(r.validation,'PASS');
+ assert.equal(r.candidates[0].fields.baja_items[0].quantity,4);
+});

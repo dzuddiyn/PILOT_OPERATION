@@ -48,6 +48,13 @@ function bsePilotBajaFlexNormalize_(input){
   if(dateTokens.length!==1)bad=true;
   const date=dateTokens.length===1?bsePilotBajaFlexibleDate_(dateTokens[0]):'';
   if(dateTokens.length===1&&!date)bad=true;
+  // Expand explicit module + distinct P tokens (e.g. M1 P1 P2); never treat P2 as fertilizer.
+  rest=rest.replace(/\bM\s*([1-9]\d*)\s+((?:P\s*[1-9]\d*\s*){2,})/gi,(whole,mod,suffix)=>{
+    const ps=suffix.match(/P\s*[1-9]\d*/gi)||[];
+    if(ps.length>12){bad=true;return ' ';}
+    for(const part of ps){const plot='M'+mod+part.replace(/\s+/g,'').toUpperCase();if(plots.includes(plot))bad=true;else plots.push(plot);}
+    return ' ';
+  });
   // Plot is a separate axis, regardless of its position relative to date/type.
   rest=rest.replace(/\bM\s*([1-9]\d*)\s*P\s*([1-9]\d*)(?:\s*(?:,|&|\bdan\b)\s*(?:P\s*)?([1-9]\d*))?/gi,(found,moduleNum,first,second)=>{
     const expanded=bsePilotBajaExpandPlot_(moduleNum,first,second);
