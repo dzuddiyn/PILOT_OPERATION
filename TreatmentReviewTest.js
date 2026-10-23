@@ -186,7 +186,51 @@ function bseChlorineTreatmentParseMessage_(text,receivedAt){
   return {validation:'NEED_INFO',production_write:false,candidates:candidates};
 }
 
+function bsePilotRacunNumberedSections_(text,receivedAt){
+  if(typeof bseRuntimeEnvironmentName_!=='function'||bseRuntimeEnvironmentName_()!=='PILOT_OPERATION')return null;
+  const source=String(text||'').trim();
+  if(!/^Racun\s*$/im.test(source))return null;
+  const rows=source.split(/\r?\n/),headers=[];
+  rows.forEach((line,index)=>{
+    const m=String(line).trim().match(/^(\d+)\.\s*(M[1-9]\d*)\s*(?:-\s*)?(?:P\s*([1-9]\d*(?:\s*,\s*[1-9]\d*)?)\s*)?(.*)$/i);
+    if(m)headers.push({index:index,ordinal:Number(m[1]),module:m[2].toUpperCase(),plots:m[3]||'',tail:m[4]||''});
+  });
+  if(headers.length<2)return null;
+  const date=bseTreatmentListDate_(source,'');
+  const candidates=[],ordinals=new Set(),seenPlots=new Set();
+  for(let i=0;i<headers.length;i++){
+    const h=headers[i],end=i+1<headers.length?headers[i+1].index:rows.length;
+    const crop=String(h.tail).replace(/\(\s*\d+\s*HST\s*\)/ig,'').replace(/^[-\s]+/,'').trim();
+    let plots=[];
+    if(h.plots){
+      const compact=h.plots.replace(/\s/g,'');
+      const digits=compact.split(',');
+      if(digits.length===1&&digits[0].length===2&&digits[0][0]!==digits[0][1])plots=digits[0].split('').map(n=>h.module+'P'+n);
+      else plots=digits.map(n=>h.module+'P'+n);
+    }else if(h.module==='M7')plots=['M7P3'];
+    const items=[],missing=[];
+    rows.slice(h.index+1,end).forEach(line=>{
+      const item=String(line||'').trim();
+      if(!item)return;
+      const found=item.match(/^(.+?)\s*(?:-|:|=|\s)\s*(\d+(?:[.,]\d+)?)\s*(.*)$/);
+      if(!found||!String(found[1]).trim()){missing.push('treatment_dosage');return;}
+      items.push(String(found[1]).trim()+' - '+Number(String(found[2]).replace(',','.'))+(String(found[3]||'').trim()?' '+String(found[3]).trim():''));
+    });
+    if(!date)missing.push('event_date');
+    if(!plots.length||plots.some(x=>!/^M[1-9]\d*P[1-9]\d*$/.test(x)))missing.push('plot_ids');
+    if(!items.length)missing.push('treatment_description');
+    if(ordinals.has(h.ordinal)||plots.some(x=>seenPlots.has(x)))missing.push('duplicate_scope');
+    ordinals.add(h.ordinal);plots.forEach(x=>seenPlots.add(x));
+    const fields={project_id:'BSE_SB',system_year:2026,event_date:date,record_type:'TREATMENT_EVENT',verification_status:'PROVISIONAL',original_note:source,crop:crop,treatment_description:items.join('\n'),pending_treatment_items:[],plot_ids:plots.sort(bseCropBatchPlotCompare_),event_status:'COMPLETED',router_confidence:'HIGH'};
+    // Source extraction is allowed, but writer must not bypass legacy batch/atomicity checks.
+    missing.push('batch_match');
+    candidates.push({target:'Treatment_Event_Log',validation:'NEED_INFO',missing:Array.from(new Set(missing)),fields:fields});
+  }
+  return {validation:'NEED_INFO',production_write:false,candidates:candidates};
+}
+
 function bseTreatmentListParseMessage_(text,receivedAt){
+  const pilotNumbered=typeof bsePilotRacunNumberedSections_==='function'?bsePilotRacunNumberedSections_(text,receivedAt):null;if(pilotNumbered)return pilotNumbered;
   const context=typeof bseUnifiedSourceContext_==='function'?bseUnifiedSourceContext_(text):{original:String(text||''),clarifications:[],provenance:String(text||'')};
   const source=String(context.original||'').trim(),clarifications=Array.isArray(context.clarifications)?context.clarifications:[],provenance=String(context.provenance||source);
   if(!source)return null;
@@ -237,6 +281,19 @@ function bseTreatmentListParseMessage_(text,receivedAt){
 function bseTreatmentFinalizeResult_(book,rawResult,job){
   if(!rawResult||rawResult.production_write!==false||!Array.isArray(rawResult.candidates)||!rawResult.candidates.length)return rawResult;
   if(!rawResult.candidates.every(c=>c&&c.target==='Treatment_Event_Log'))return rawResult;
+  const aggregate=rawResult.candidates.length>1&&rawResult.candidates.every(c=>c.fields&&/^Racun\s*$/im.test(String(c.fields.original_note||'')));
+  if(aggregate&&typeof bsePilotRacunSourceAssessment_==='function'){
+    const assessment=bsePilotRacunSourceAssessment_(rawResult);
+    if(assessment.status!=='SOURCE_COMPLETE_STORAGE_BLOCKED')return rawResult;
+    const prepared=JSON.parse(JSON.stringify(rawResult));
+    prepared.validation='PASS';prepared.candidates.forEach(c=>{c.validation='PASS';c.missing=[];});
+    const readiness=typeof bsePilotRacunAggregateEligibility_==='function'?bsePilotRacunAggregateEligibility_(prepared,book):{eligible:false,reason:'DURABLE_CALLBACK_NOT_BOUND'};
+    if(readiness.eligible===true)return prepared;
+    const blocked=JSON.parse(JSON.stringify(rawResult));
+    blocked.storage_blocked=true;blocked.storage_reason=String(readiness.reason||'UNVERIFIED');
+    blocked.candidates.forEach(c=>{c.validation='NEED_INFO';c.missing=['storage_ready'];});
+    return blocked;
+  }
   return bseTreatmentReconcileCandidates_(book,rawResult);
 }
 

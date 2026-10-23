@@ -1,0 +1,48 @@
+# BSE-RACUN-WRITER-02O — Evidence 2026-10-23
+
+## Scope and authority
+- Canonical GitHub: `dzuddiyn/PILOT_OPERATION`, feature branch `fix/racun-contract-20261023`, PR #184 DRAFT.
+- Production and official BSE writes: strictly **false**.
+- No replay of original live Telegram report `BSE-TG-772257756`; it remains untouched.
+- Never treat a source-code change, a test fixture or a connector write as deployed Apps Script behavior.
+
+## Real isolated Google Sheets connector proof
+- Account: authorized BSE owner (`dzuddiyn01@gmail.com`).
+- Separate disposable workbook: [TEST_ONLY_BSE_RACUN_02O_20261023](https://docs.google.com/spreadsheets/d/1v5DAWbkaNffrTZFI-E0gPbdz-CiMmt22KfJO483GaXw/edit).
+- Different spreadsheet ID from the operational PILOT workbook.
+- Tabs with exact adapter header schemas:
+  - `PILOT_RACUN_TX_JOURNAL`
+  - `PILOT_RACUN_TX_ROWS`
+- All records are synthetic with reference `BSE-TG-9999999902`, materials marked `TEST_ONLY_MATERIAL`.
+- Direct Sheets connector write: journal PREPARED, first 5 rows, independent read-back showed 5/10 and 5 unique keys.
+- Recovery write: appended remaining five records only. Independent read-back verified all 10 unique source keys, record JSON parity and exact ordered fingerprint equal to journal fingerprint before committing.
+- Final write: journal COMMITTED. Final fresh range reads verified journal COMMITTED, 10 rows, 10 unique keys, payload-key parity, fingerprint parity. **CONNECTOR_STORAGE_LIVE_PROOF_PASS**.
+- This is a **real Google Sheets connector storage proof only**; it is *not* native Apps Script adapter execution, a Telegram callback or an operational PILOT write.
+
+## Local callback integration
+- Parser handles 10 independently numbered sections with optional crop/unit and scoped M7 -> M7P3; no invented batch or allocation IDs.
+- `bseTreatmentFinalizeResult_` separates source completeness from storage readiness. Produces actionable PASS only if callback methods and physical ledger/approval tab schemas are present on the bound PILOT book.
+- `bseApprovalEnvelopes_` requires durable readiness: never silently creates ten separately actionable cards for one Racun aggregate.
+- `bseApprovalDomain_` recognizes atomic Racun envelopes solely as a card target; ordinary direct domain write remains blocked.
+- Effective `bseTelegramReporterConfirmationCore_` routes the authenticated aggregate callback to `bsePilotRacunTelegramAggregateCore_` after source/hash verification. Existing non-aggregate handling remains.
+- `bseReviewWithLock_` marks internal ownership only after a real ScriptLock acquisition; a journal adapter cannot reacquire a nested lock.
+- Confirmation flow: journal PREPARED -> append/read-back all rows -> COMMITTED/read-back -> approval state -> audit/read-back -> card summary. Retry can reconcile a committed ledger with incomplete callback audit without duplicating rows. An explicit PILOT_RACUN_ATOMIC marker prevents ordinary Treatment callbacks entering the retry path.
+- Dedicated review card shows group plots, optional crop and each chemical/quantity and warns that records are PILOT unlinked, not official BSE data.
+- Local synthetic tests exercised injected after-append-5 failure and recovery, duplicate protection, authorization failure, hash and lock checks, summary formatting and fail-closed oversized Telegram card.
+- Full Node suite: **182/182 PASS (LOCAL / SYNTHETIC)**.
+
+
+## Independent reviewer findings and controlled recovery patch
+- Real Codex CLI 0.155.1 READ-ONLY review of `origin/main...HEAD` detected TWO HIGH issues: (1) reporter Batal was possible after partial durable Racun rows, leaving stranded records with a discarded approval; (2) Telegram card edit error was swallowed, leaving a visually clickable card after committed ledger and reporter confirmation.
+- Controlled recovery patch in same feature branch: `bsePilotRacunCancelEligibility_` reads actual journal and rows and prohibits cancel when either exists (or storage cannot be checked); `bsePilotRacunCardEdit_` persists `RACUN_CARD_EDIT_PENDING` after API error. Retry is idempotent; bounded `bsePilotRacunRepairPendingCard_` processes one pending confirmed card only after independent ledger verification. Callback processor invokes the repair trigger when its due queue is empty, preserving the existing one-line callback processor contract.
+- Synthetic negative tests include cancellation guard for zero/partial/committed/orphan/error cases, failed Telegram edit + retry, periodic repair ledger gate.
+- Full local regression after patch: **187/187 PASS**. This is still LOCAL / SYNTHETIC, not native Telegram proof.
+
+## Unverified gates
+- Canonical PR #184 remains DRAFT; no merge authorization granted.
+- No Apps Script HEAD update, version, deployment, native regression, live Telegram approval or runtime binding change in this task.
+- Fresh connected owner-account metadata read found **77** tabs in the operational `BSE_OpsMate_SB_PILOT_OPERATION` workbook. Its physical approval tab is `PILOT_TELEGRAM_APPROVAL_UI`; neither `PILOT_RACUN_TX_JOURNAL` nor `PILOT_RACUN_TX_ROWS` exists there yet.
+- Verified `boundTestBook_()` returns `bseRuntimeBook_(book)`; `bseRuntimeSheetName_('TEST_TELEGRAM_APPROVAL_UI')` maps to the physical `PILOT_TELEGRAM_APPROVAL_UI` tab under PILOT_OPERATION. The Racun ledger names already start with `PILOT_` and remain unchanged. **No operational workbook write was performed.**
+- The real operational PILOT workbook was **not** provisioned with new Racun ledger tabs by this task, and no operational Racun rows were written.
+- Native `SpreadsheetApp` + `LockService` integration and actual Telegram card/callback remain **UNVERIFIED** until authorized merge/deployment and isolated controlled live proof.
+- Review source architecture and physical binding before promoting to LIVE PASS.
