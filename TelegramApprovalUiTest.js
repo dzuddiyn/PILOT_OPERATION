@@ -583,17 +583,20 @@ function bseTelegramReporterConfirmationCore_(book,context,input){
   const receiptText=verifiedSummary||('REKOD DISAHKAN - RINGKASAN BELUM DAPAT DISAHKAN\nRujukan: '+String(row[0])+'\nJenis: '+domain.target);
   const cycleSingle=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&domain.target==='Operation_Log'&&parsed.candidates.length===1&&parsed.candidates[0].fields.operation_type==='CYCLE_END';
   const censusSingle=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&(domain.target==='Plant_Census_Log'||bajaGroup||domain.target==='Crop_Batch_Log'||domain.target==='EC_Leachate_Log');
-  const reporterRaw=censusSingle||cycleSingle?String(bseTelegramReporterDisplayName_(book,String(row[0]))||context.actor_name||''):'';
+  const reporterRaw=String((typeof bseTelegramReporterDisplayName_==='function'?bseTelegramReporterDisplayName_(book,String(row[0])):'')||context.actor_name||'');
   const reporterName=reporterRaw.replace(/[\r\n\t<>]/g,' ').replace(/\s+/g,' ').trim().slice(0,90)||('Telegram '+String(row[3]||''));
   const cycleText=cycleSingle?'✅ KITARAN TANAMAN BERJAYA DITAMATKAN\n\nRujukan: '+String(row[0])+'\nTarikh: '+bseApprovalDisplayDate_(parsed.candidates[0].fields.event_date)+'\nPlot: '+String(parsed.candidates[0].fields.plot_id)+'\nAktiviti: Tamat Kitaran Tanaman\nPelapor: '+reporterName+'\n\nStatus: Berjaya direkodkan.':'';
-  bseTelegramApprovalCloseCard_(row,'REPORTER_CONFIRMED',context.actor_name,cycleSingle?cycleText:censusSingle?receiptText+'\nPelapor : '+reporterName:receiptText);
+  const lifecycleReceipt=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'&&(domain.target==='Transplant_Event_Log'||domain.target==='Operation_Log');
+  const friendlyReceipt=lifecycleReceipt&&domain.target==='Operation_Log'&&parsed.candidates[candidateIndex==null?0:candidateIndex]&&parsed.candidates[candidateIndex==null?0:candidateIndex].fields.operation_type==='HARVEST_START'?receiptText.replace(/^REKOD OPERASI/,'✅ MULA TUAI DIREKODKAN').replace(/Status : REPORTER_CONFIRMED/g,'Status: Direkodkan').replace(/\nMod TEST - tiada rekod production ditulis\./g,''):receiptText;
+  const cardText=cycleSingle?cycleText:censusSingle?receiptText+'\nPelapor : '+reporterName:lifecycleReceipt?friendlyReceipt+'\nPelapor: '+reporterName:receiptText;
+  bseTelegramApprovalCloseCard_(row,'REPORTER_CONFIRMED',context.actor_name,cardText);
   if(cycleSingle){outcome.candidate_index=candidateIndex;outcome.queue_status=status;return outcome;}
   if(!censusSingle){
-    try{bseTelegramReporterReceipt_(book,row[3],receiptText);}catch(_){}
+    if(!lifecycleReceipt)try{bseTelegramReporterReceipt_(book,row[3],receiptText);}catch(_){}
     const ownerNotice=bseRuntimeEnvironmentName_()==='PILOT_OPERATION'
       ?bseTelegramPilotConfirmedOwnerNotice_(book,row,candidateIndex,recordSummary)
       :(recordSummary?recordSummary+'\n\n':'')+'Makluman TEST '+row[0]+(candidateIndex==null?'':' rekod '+(candidateIndex+1))+' telah direkodkan oleh penghantar.';
-    bseTelegramOwnerNotice_(book,ownerNotice);
+    if(!lifecycleReceipt)bseTelegramOwnerNotice_(book,ownerNotice);
   }
   outcome.candidate_index=candidateIndex;outcome.queue_status=status;return outcome;
 }
