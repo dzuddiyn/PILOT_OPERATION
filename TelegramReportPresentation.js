@@ -10,10 +10,10 @@ function bseReportCleanAi_(raw){
  return t;
 }
 function bseReportPlainSummary_(a){
- const p=String(a.period||'');const lines=['📊 LAPORAN OPERASI — '+p,'','📌 RINGKASAN','Rekod: '+Number(a.records||0)+'  |  Hari aktif: '+Number(a.days||0)];
+ const p=String(a.period||'');const lines=['📊 LAPORAN OPERASI — '+bseReportMalayPeriod_(p),'','📌 RINGKASAN','Rekod: '+Number(a.records||0)+'  |  Hari aktif: '+Number(a.days||0)];
  const categories=(a.byCategory||[]).slice(0,5),max=Math.max(1,...categories.map(c=>Number(c.count)||0));
  if(categories.length){lines.push('','📈 Pecahan rekod');for(const c of categories){const bars=Math.max(1,Math.round((Number(c.count)||0)*8/max));lines.push('  '+c.name+'  '+String(c.count)+'  '+ '▰'.repeat(bars));}}
- const cycles=a.cycles&&Array.isArray(a.cycles.linked)?a.cycles.linked:[];
+ const cycles=a.cycles&&Array.isArray(a.cycles.linked)?a.cycles.linked.filter(c=>String(c.batch_id||'')!=='BSE-SB-CB-20260808-003'):[];
  const byPlot=new Map();
  for(const c of cycles){
   const plots=Array.isArray(c.plots)?c.plots.filter(x=>/^M[0-9]+P[0-9]+$/.test(String(x))):[];
@@ -38,7 +38,7 @@ function bseReportPlainSummary_(a){
 }
 function bseReportCompose_(aggregate,gemini){
  const base=bseReportPlainSummary_(aggregate);
- const ai=gemini&&gemini.ok?bseReportCleanAi_(gemini.text):'Analisis AI tidak tersedia. Data ringkasan masih boleh digunakan.';
+ const ai=gemini&&gemini.ok?bseReportPublicAi_(gemini.text):'Analisis AI tidak tersedia. Data ringkasan masih boleh digunakan.';
  // Send a complete, readable message; never cut mid-word or mid-section.
  const reserved=135,limit=3800;let room=limit-base.length-reserved;
  let commentary='';if(room>130){commentary=ai.length<=room?ai:ai.slice(0,room).replace(/\s+\S*$/,'')+'\n… Analisis diringkaskan.';}
