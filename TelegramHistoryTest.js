@@ -258,6 +258,7 @@ function bseTelegramHistoryRecordEvents_(book){
         category:category,
         summary:selected.map(bseTelegramHistoryUserCandidateLine_).filter(Boolean).join(' / ').slice(0,160),
         pilot_summary:pilot?bseTelegramHistoryPilotSummary_(selected):'',
+        report_facts:{batch_ids:Array.from(new Set(selected.map(c=>String(c.fields&&(c.fields.batch_id||c.fields.crop_batch_id||c.fields.cycle_id)||'').trim()).filter(Boolean))),activities:Array.from(new Set(selected.map(c=>String(c.target||'').replace(/_Log$/,'')))),crops:Array.from(new Set(selected.map(c=>String(c.fields&&c.fields.crop||'').trim()).filter(Boolean))),plots:Array.from(new Set(selected.flatMap(c=>[c.fields&&c.fields.plot_id,...(Array.isArray(c.fields&&c.fields.plot_ids)?c.fields.plot_ids:[])]).filter(p=>/^M\d+P\d+$/.test(String(p||'')))))},
         reporter_user_id:String(queue[2]||''),
         visibility:visibility
       });
