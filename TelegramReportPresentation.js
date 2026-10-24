@@ -31,7 +31,7 @@ function bseReportPlainSummary_(a){
     const variety=String(c.variety||'').trim();
     const all=Array.isArray(c.stages)?c.stages:[];
     const last=all.filter(x=>x&&['CYCLE_END','HARVEST_START','TRANSPLANT','SEED_SOWING'].includes(String(x.type))).sort((x,y)=>String(x.date||'').localeCompare(String(y.date||'')))[all.filter(x=>x&&['CYCLE_END','HARVEST_START','TRANSPLANT','SEED_SOWING'].includes(String(x.type))).length-1];
-    const phases={SEED_SOWING:'🌱 Fasa Semaian',TRANSPLANT:'🌿 Fasa Pertumbuhan',HARVEST_START:'🥒 Fasa Tuaian',CYCLE_END:'🛠️ Fasa Penyelenggaraan'};
+    const phases={SEED_SOWING:'🌱 Fasa Semaian',TRANSPLANT:'🌿 Fasa Pertumbuhan',HARVEST_START:'🥒 Fasa Tuaian',CYCLE_END:'🏁 Fasa Penyelenggaraan'};
     lines.push('  '+name+(variety?' — '+variety:''));
     lines.push('  '+(last&&phases[last.type]||'Fasa belum dapat dipastikan'));
    }
