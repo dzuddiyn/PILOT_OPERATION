@@ -13,18 +13,26 @@ function bseReportPlainSummary_(a){
  const p=String(a.period||'');const lines=['📊 LAPORAN OPERASI — '+p,'','📌 RINGKASAN','Rekod: '+Number(a.records||0)+'  |  Hari aktif: '+Number(a.days||0)];
  const categories=(a.byCategory||[]).slice(0,5),max=Math.max(1,...categories.map(c=>Number(c.count)||0));
  if(categories.length){lines.push('','📈 Pecahan rekod');for(const c of categories){const bars=Math.max(1,Math.round((Number(c.count)||0)*8/max));lines.push('  '+c.name+'  '+String(c.count)+'  '+ '▰'.repeat(bars));}}
- for(const [label,counts] of [['🌿 Tanaman',a.crops],['🛠️ Aktiviti',a.activities],['📍 Plot',a.plots]]){
-  const pairs=Object.entries(counts||{}).sort((x,y)=>y[1]-x[1]).slice(0,5);
-  if(pairs.length){lines.push('',label);for(const [k,v] of pairs)lines.push('  • '+bseReportFriendlyTerm_(k)+': '+v);}
- }
  const cycles=a.cycles&&Array.isArray(a.cycles.linked)?a.cycles.linked:[];
- if(cycles.length){lines.push('','🌱 KITARAN TANAMAN ('+cycles.length+')');for(const c of cycles.slice(0,4)){
-  const suffix=String(c.batch_id||'').split('-').slice(-2).join('-');
-  const stages=Array.isArray(c.activities)?c.activities:(Array.isArray(c.stages)?c.stages.map(s=>s.type):[]);
-  lines.push('• '+(c.crops||[]).join(', ')+' · '+(c.plots||[]).join(', '));
-  lines.push('  '+(stages.map(bseReportFriendlyTerm_).join(' → ')||'Aktiviti belum lengkap')+' · Batch '+suffix);
- }}else if(a.records)lines.push('','🌱 Kitaran tanaman: tiada rekod berpaut untuk tempoh ini');
- if(a.cycles&&a.cycles.unlinked_records)lines.push('ℹ️ '+a.cycles.unlinked_records+' rekod belum berpaut pada batch.');
+ const byPlot=new Map();
+ for(const c of cycles){
+  const plots=Array.isArray(c.plots)?c.plots.filter(x=>/^M[0-9]+P[0-9]+$/.test(String(x))):[];
+  for(const plot of plots){if(!byPlot.has(plot))byPlot.set(plot,[]);byPlot.get(plot).push(c);}
+ }
+ if(byPlot.size){lines.push('','🌱 KITARAN TANAMAN — MENGIKUT PLOT');
+  for(const [plot,items] of Array.from(byPlot.entries()).sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true})).slice(0,12)){
+   lines.push('','📍 '+plot);
+   for(const c of items){
+    const name=(c.crops||[]).join(', ')||'Tanaman tidak dinyatakan';
+    const variety=String(c.variety||'').trim();
+    const all=Array.isArray(c.stages)?c.stages:[];
+    const last=all.filter(x=>x&&['CYCLE_END','HARVEST_START','TRANSPLANT','SEED_SOWING'].includes(String(x.type))).sort((x,y)=>String(x.date||'').localeCompare(String(y.date||'')))[all.filter(x=>x&&['CYCLE_END','HARVEST_START','TRANSPLANT','SEED_SOWING'].includes(String(x.type))).length-1];
+    const phases={SEED_SOWING:'🌱 Fasa Semaian',TRANSPLANT:'🌿 Fasa Pertumbuhan',HARVEST_START:'🥒 Fasa Tuaian',CYCLE_END:'🛠️ Fasa Penyelenggaraan'};
+    lines.push('  '+name+(variety?' — '+variety:''));
+    lines.push('  '+(last&&phases[last.type]||'Fasa belum dapat dipastikan'));
+   }
+  }
+ }else if(a.records)lines.push('','🌱 Tiada kitaran tanaman berpaut pada plot untuk tempoh ini.');
  if(!a.records)lines.push('Tiada rekod disahkan bagi tempoh ini.');
  return lines.join('\n');
 }
