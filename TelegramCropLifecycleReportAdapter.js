@@ -17,7 +17,7 @@ function bseTelegramReportLedgerCycles_(book,period){
   for(const r of rows.CROP_BATCH){
     const id=String(r.batch_id||'').trim();
     if(!id||cycles.has(id))continue;
-    cycles.set(id,{batch_id:id,crops:[String(r.crop||'')].filter(Boolean),plots:new Set(),stages:[],verification_status:String(r.verification_status||''),first_date:String(r.event_date||''),last_date:String(r.event_date||''),records:0});
+    cycles.set(id,{batch_id:id,crops:[String(r.crop||'')].filter(Boolean),variety:String(r.variety||''),plots:new Set(),stages:[],verification_status:String(r.verification_status||''),first_date:String(r.event_date||''),last_date:String(r.event_date||''),records:0});
   }
   function stage(id,date,type,source,plot){
     const c=cycles.get(String(id||''));if(!c)return false;
@@ -52,5 +52,5 @@ function bseTelegramReportLedgerCycles_(book,period){
     if(!ids||ids.size!==1){if(bseTelegramHistoryInPeriod_(date,period))unlinked.push('OPERATION_UNLINKED');continue;}
     stage(Array.from(ids)[0],date,String(r.operation_type||'OPERATION'),r.source_key,r.plot_id);
   }
-  return {linked:Array.from(cycles.values()).filter(c=>c.records>0).map(c=>({batch_id:c.batch_id,crops:c.crops,plots:Array.from(c.plots),first_date:c.first_date,last_date:c.last_date,records:c.records,verification_status:c.verification_status,stages:c.stages,status_transitions:c.status_transitions||[]})),unlinked_records:unlinked.length,forecast_basis:'CANONICAL_LEDGER_EXPLICIT_BATCH_AND_SOURCE',source_tabs:names};
+  return {linked:Array.from(cycles.values()).filter(c=>c.records>0).map(c=>({batch_id:c.batch_id,crops:c.crops,variety:c.variety,plots:Array.from(c.plots),first_date:c.first_date,last_date:c.last_date,records:c.records,verification_status:c.verification_status,stages:c.stages,status_transitions:c.status_transitions||[]})),unlinked_records:unlinked.length,forecast_basis:'CANONICAL_LEDGER_EXPLICIT_BATCH_AND_SOURCE',source_tabs:names};
 }
