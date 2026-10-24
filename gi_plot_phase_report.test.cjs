@@ -1,6 +1,6 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const c={};vm.createContext(c);vm.runInContext(fs.readFileSync('TelegramReportPresentation.js','utf8'),c);
+const c={};vm.createContext(c);vm.runInContext(fs.readFileSync('TelegramReportPresentation.js','utf8'),c);vm.runInContext(fs.readFileSync('TelegramReportHumanFormat.js','utf8'),c);
 const a={period:'2026-10',records:3,days:2,byCategory:[],crops:{Timun:1},plots:{M3P1:4},activities:{},cycles:{linked:[{batch_id:'BSE-SB-CB-20260808-001',crops:['Timun'],variety:'7055 CCB',plots:['M3P1'],verification_status:'PROVISIONAL',stages:[{date:'2026-10-06',type:'CYCLE_END'}]},{batch_id:'BSE-SB-CB-20261020-001',crops:['Timun Local'],variety:'',plots:['M8P1'],stages:[{date:'2026-10-20',type:'SEED_SOWING'}]}],unlinked_records:1}};
 const x=c.bseReportPlainSummary_(a);
 assert(x.indexOf('📍 M3P1')<x.indexOf('📍 M8P1'));

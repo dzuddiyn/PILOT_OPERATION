@@ -87,7 +87,7 @@ function bseTelegramReportRetrieve_(book,m){
   if(command.invalid){audit('DENIED','INVALID_PERIOD',0,0,'NOT_CALLED');return {handled:true,text:'Format contoh: /report • /report Okt 2026 • /report 2026-10 • /report 24/10/2026'};}
   const owner=bseTestOwnerForTelegramUser_(book,user);
   if(!m||!m.chat||m.chat.type!=='private'||!owner.ok||String(owner.private_chat_id)!==chat){audit('DENIED',m&&m.chat&&m.chat.type!=='private'?'NOT_PRIVATE':'NOT_OWNER_ACTIVE',0,0,'NOT_CALLED');return {handled:true,text:'Laporan hanya untuk OWNER aktif melalui PM bot.'};}
-  const events=bseTelegramReportCanonicalEvents_(book,command.period),aggregate=bseTelegramReportAggregate_(command.period,events);if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION')aggregate.cycles=bseTelegramReportLedgerCycles_(book,command.period);const gemini=bseTelegramReportGeminiCommentary_(command.period,aggregate);
+  const events=bseTelegramReportCanonicalEvents_(book,command.period),aggregate=bseTelegramReportAggregate_(command.period,events);if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION'){aggregate.cycles=bseTelegramReportLedgerCycles_(book,command.period);aggregate.cycles.linked=aggregate.cycles.linked.filter(c=>String(c.batch_id||'')!=='BSE-SB-CB-20260808-003');}const gemini=bseTelegramReportGeminiCommentary_(command.period,aggregate);
   const lines=[bseReportCompose_(aggregate,gemini)];
   audit('SENT','OWNER_ACTIVE',events.length,aggregate.records,gemini.ok?'SENT':gemini.reason);
   return {handled:true,text:lines.join('\n')};
