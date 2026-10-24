@@ -36,10 +36,10 @@ function bseTelegramReportLedgerCycles_(book,period){
   for(const r of rows.ALLOCATION_STATUS_EVENT){
     const id=String(r.batch_id||''),alloc=String(r.allocation_id||'');
     if(!cycles.has(id)||links.get(alloc)!==id){unlinked.push('STATUS_LINK_MISMATCH');continue;}
-    const date=String(r.changed_at||'').slice(0,10);
-    // Lifecycle status evidence is used for stage attribution; this timestamp is not the field-work date.
-    if(!bseTelegramHistoryInPeriod_(date,period))continue;
-    stage(id,date,'ALLOCATION_'+String(r.to_status||''),r.source_key,r.plot_id);
+    // changed_at records processing time; it is not the agricultural event date.
+    const c=cycles.get(id);
+    if(!c.status_transitions)c.status_transitions=[];
+    c.status_transitions.push({to_status:String(r.to_status||''),plot:String(r.plot_id||''),date_basis:'RECORDED_AT_ONLY'});
   }
   const statusBySource=new Map();
   for(const r of rows.ALLOCATION_STATUS_EVENT){
@@ -52,5 +52,5 @@ function bseTelegramReportLedgerCycles_(book,period){
     if(!ids||ids.size!==1){if(bseTelegramHistoryInPeriod_(date,period))unlinked.push('OPERATION_UNLINKED');continue;}
     stage(Array.from(ids)[0],date,String(r.operation_type||'OPERATION'),r.source_key,r.plot_id);
   }
-  return {linked:Array.from(cycles.values()).filter(c=>c.records>0).map(c=>({batch_id:c.batch_id,crops:c.crops,plots:Array.from(c.plots),first_date:c.first_date,last_date:c.last_date,records:c.records,verification_status:c.verification_status,stages:c.stages})),unlinked_records:unlinked.length,forecast_basis:'CANONICAL_LEDGER_EXPLICIT_BATCH_AND_SOURCE',source_tabs:names};
+  return {linked:Array.from(cycles.values()).filter(c=>c.records>0).map(c=>({batch_id:c.batch_id,crops:c.crops,plots:Array.from(c.plots),first_date:c.first_date,last_date:c.last_date,records:c.records,verification_status:c.verification_status,stages:c.stages,status_transitions:c.status_transitions||[]})),unlinked_records:unlinked.length,forecast_basis:'CANONICAL_LEDGER_EXPLICIT_BATCH_AND_SOURCE',source_tabs:names};
 }
