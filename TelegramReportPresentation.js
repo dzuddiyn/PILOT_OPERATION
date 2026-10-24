@@ -11,7 +11,8 @@ function bseReportCleanAi_(raw){
 }
 function bseReportPlainSummary_(a){
  const p=String(a.period||'');const lines=['📊 LAPORAN OPERASI — '+p,'','📌 RINGKASAN','Rekod: '+Number(a.records||0)+'  |  Hari aktif: '+Number(a.days||0)];
- for(const c of (a.byCategory||[]))lines.push('• '+c.name+': '+c.count);
+ const categories=(a.byCategory||[]).slice(0,5),max=Math.max(1,...categories.map(c=>Number(c.count)||0));
+ if(categories.length){lines.push('','📈 Pecahan rekod');for(const c of categories){const bars=Math.max(1,Math.round((Number(c.count)||0)*8/max));lines.push('  '+c.name+'  '+String(c.count)+'  '+ '▰'.repeat(bars));}}
  for(const [label,counts] of [['🌿 Tanaman',a.crops],['🛠️ Aktiviti',a.activities],['📍 Plot',a.plots]]){
   const pairs=Object.entries(counts||{}).sort((x,y)=>y[1]-x[1]).slice(0,5);
   if(pairs.length){lines.push('',label);for(const [k,v] of pairs)lines.push('  • '+bseReportFriendlyTerm_(k)+': '+v);}
