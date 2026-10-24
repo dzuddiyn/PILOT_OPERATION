@@ -88,9 +88,7 @@ function bseTelegramReportRetrieve_(book,m){
   const owner=bseTestOwnerForTelegramUser_(book,user);
   if(!m||!m.chat||m.chat.type!=='private'||!owner.ok||String(owner.private_chat_id)!==chat){audit('DENIED',m&&m.chat&&m.chat.type!=='private'?'NOT_PRIVATE':'NOT_OWNER_ACTIVE',0,0,'NOT_CALLED');return {handled:true,text:'Laporan hanya untuk OWNER aktif melalui PM bot.'};}
   const events=bseTelegramReportCanonicalEvents_(book,command.period),aggregate=bseTelegramReportAggregate_(command.period,events);if(bseRuntimeEnvironmentName_()==='PILOT_OPERATION')aggregate.cycles=bseTelegramReportLedgerCycles_(book,command.period);const gemini=bseTelegramReportGeminiCommentary_(command.period,aggregate);
-  const lines=[bseTelegramReportSummary_(aggregate),'','🧠 Analisis & jangkaan Gemini'];
-  lines.push(gemini.ok?gemini.text:'Analisis Gemini belum tersedia ('+gemini.reason+'). Tiada jangkaan dibuat.');
-  lines.push('','ℹ️ Angka ialah rekod PILOT disahkan; jangkaan bukan fakta. Tiada rekod rasmi BSE diubah.');
+  const lines=[bseReportCompose_(aggregate,gemini)];
   audit('SENT','OWNER_ACTIVE',events.length,aggregate.records,gemini.ok?'SENT':gemini.reason);
   return {handled:true,text:lines.join('\n')};
 }
@@ -99,7 +97,7 @@ function runBseTelegramReportHarnessTests(){
   const actual=cases.map(c=>bseTelegramReportCommand_(c[0],new Date('2026-10-24T01:00:00Z')).period===c[1]);
   const casesPass=actual.every(Boolean),invalid=bseTelegramReportCommand_('/report 31/02/2026').invalid===true;
   const source=bseTelegramReportRetrieve_.toString()+bseTelegramReportGeminiCommentary_.toString();
-  const tests=[{id:'flexible date/month with current-month default',pass:casesPass&&invalid},{id:'owner PM only',pass:/owner\.ok/.test(source)&&/private_chat_id/.test(source)},{id:'aggregation and AI not raw history listing',pass:/bseTelegramReportAggregate_/.test(source)&&!/forEach\(event=>lines.push/.test(source)},{id:'conditional forecast controls',pass:/BERSYARAT/.test(source)&&/Jangan reka/.test(source)},{id:'Gemini failure does not block facts',pass:/Analisis Gemini belum tersedia/.test(source)},{id:'no production writer',pass:!/production_write\s*:\s*true/.test(source)}];
+  const tests=[{id:'flexible date/month with current-month default',pass:casesPass&&invalid},{id:'owner PM only',pass:/owner\.ok/.test(source)&&/private_chat_id/.test(source)},{id:'aggregation and AI not raw history listing',pass:/bseTelegramReportAggregate_/.test(source)&&!/forEach\(event=>lines.push/.test(source)},{id:'conditional forecast controls',pass:/BERSYARAT/.test(source)&&/Jangan reka/.test(source)},{id:'Gemini failure does not block facts',pass:/bseReportCompose_/.test(source)},{id:'no production writer',pass:!/production_write\s*:\s*true/.test(source)}];
   if(tests.some(t=>!t.pass))throw new Error('Report harness gagal: '+JSON.stringify(tests.filter(t=>!t.pass)));
   return tests;
 }
