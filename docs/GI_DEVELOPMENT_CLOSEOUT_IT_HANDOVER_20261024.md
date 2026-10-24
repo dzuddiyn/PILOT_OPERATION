@@ -48,3 +48,30 @@
 - `OPERATIONAL_HANDOVER_PENDING`: retains OWNER/IT acceptance tasks separate from development.
 - `DELIVERED`: only after IT and recipient ownership acceptance, verified access and no unowned operational risk.
 - **No registry, Telegram, Script Properties, production or official BSE system modifications** are part of this documentation change.
+
+## Operational SOP — approved group-first reporting and PM retrieval
+
+This section supersedes any earlier implication that `zen areyf` needs an elevated technical role to collect routine field reports.
+
+| Work | Channel | Boundary |
+| --- | --- | --- |
+| Field operation reports (semai, pindah tanam, baja, rawatan, banci, EC and others) | Authorized BSE OpsMate Telegram operational group | Staff submits correct factual work note; reporter reviews its Benar card; incorrect reports use Betulkan/Batal |
+| Shared operational reporting visibility | Authorized operational group | Group submission gives the normal shared operational workflow; it does **not** automatically make every historical private report public |
+| `/history Oct 2026` (or specific day/week) | Bot private message (PM) | Only records within registration and visibility rules |
+| `/retrieve BSE-TG-XXXXXXXXX` | Bot PM | Restricted records remain restricted; use the reference from the group report |
+| `/claim` | Bot PM | Own claim flow only, according to the existing permission check |
+| OWNER/ADMIN transfer, Google and Telegram technical custody | BSE IT authorized process | Never issue a second OWNER or grant ADMIN by editing the legacy owner registry |
+
+- `zen areyf` acts as an **active registered user and operational records liaison**, not a new system role and not an ADMIN. Manual transcription into official BSE records must follow the company procedure; pilot records are **not** automatically synchronized to the official system.
+- Staff should report operations through the designated group going forward, to make common operational facts available under existing group visibility rules. This rule is prospective; no attempt to retroactively expose private reports or widen permissions.
+- The outgoing OWNER retains live administrative privileges **temporarily**, which is an outstanding **high-risk IT handover item**; this document does not appoint the outgoing employee as indefinite technical support.
+- `S S.` is the nominated receiving OWNER but cannot be described as activated until IT verifies the one-time cutover.
+
+## Development closeout acceptance and residuals
+
+**Development result: DEVELOPMENT_CLOSED — SCOPED PILOT.** Scope: tested Telegram capture/approval, Baja In/Out grouping and ledger, EC canonical history, multi-plot status, accessible operational history and bot menu; no assertion of official production deployment, ownership transfer or complete clearance of legacy queue.
+
+- Canonical GitHub PR #223 and #224 merged, latest verified Apps Script HEAD 115/115 hash match; full Node regression 274/274 PASS, native EC read-only 2 batches/18 readings and lifecycle 7/7 PASS. User live acceptance confirmed `/status M3P1234`, `/ec 2026-10`, `/history Oct 2026`, Baja In N and grouped Baja Out F/N. These are scoped acceptance results, not a blanket statement of full operational readiness.
+- Known limitations: some `PRIVATE SUBMISSION` treatment and census history text remains raw; monthly history intentionally truncates to 20 of 24 entries with narrower period required; private record visibility limits deputy's retrieval; unresolved older queue/callback anomalies must be handed to IT for reconciliation, not replayed.
+- **OPERATIONAL_HANDOVER_PENDING:** IT cutover of S S., removal of old-owner privileges, transfer of distinct technical authorities, recipient acceptance, and IT runbook owner remain unverified. Do not label FULLY_DELIVERED.
+- Exit criterion for this scoped development closeout is preservation of evidence, owner risk explicitly assigned to IT as pending, and operation instructions documented. Closing development does not authorize pausing triggers, revoking accounts, or granting new permissions.
