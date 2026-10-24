@@ -13,6 +13,10 @@ function bseReportPlainSummary_(a){
  const p=String(a.period||'');const lines=['📊 LAPORAN OPERASI — '+bseReportMalayPeriod_(p),'','📌 RINGKASAN','Rekod: '+Number(a.records||0)+'  |  Hari aktif: '+Number(a.days||0)];
  const categories=(a.byCategory||[]).slice(0,5),max=Math.max(1,...categories.map(c=>Number(c.count)||0));
  if(categories.length){lines.push('','📈 Pecahan rekod');for(const c of categories){const bars=Math.max(1,Math.round((Number(c.count)||0)*8/max));lines.push('  '+c.name+'  '+String(c.count)+'  '+ '▰'.repeat(bars));}}
+ const activityItems=Object.entries(a.activities||{}).filter(([name,count])=>name&&Number(count)>0).sort((a,b)=>Number(b[1])-Number(a[1]));
+ lines.push('','🛠️ Aktiviti');
+ if(activityItems.length){for(const [name,count] of activityItems)lines.push('  • '+bseReportFriendlyTerm_(name)+': '+Number(count));}
+ else lines.push('  • Tiada aktiviti direkodkan untuk tempoh ini.');
  const cycles=a.cycles&&Array.isArray(a.cycles.linked)?a.cycles.linked.filter(c=>String(c.batch_id||'')!=='BSE-SB-CB-20260808-003'):[];
  const byPlot=new Map();
  for(const c of cycles){
